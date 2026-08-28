@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Nómina de Empleados - RRHH</title>
+</head>
+<body>
+    <h1>Gestor de Personal - Recursos Humanos</h1>
+    <!-- Creamos una tabla con bordes y espaciado de celdas -->
+    <table border="1" cellpadding="10">
+        <tr>
+            <th>Nombre Completo</th>
+            <th>Cargo</th>
+            <th>Salario Mensual</th>
+            <th>Estado</th>
+        </tr>
+        <!-- Bucle que recorre la lista de empleados enviada desde la vista -->
+        {% for empleado in lista_empleados %}
+        <tr>
+            <!-- Imprimimos el valor exacto extraído de la base de datos -->
+            <td>{{ empleado.nombre_completo }}</td>
+            <td>{{ empleado.cargo }}</td>
+            <td>${{ empleado.salario_mensual }} USD</td>
+            <td>
+                <!-- Condicional para cambiar el texto visual según el estado booleano (True/False) -->
+                {% if empleado.esta_activo %} Activo ✓ {% else %} Inactivo ✗ {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
