@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Nómina de Empleados - RRHH</title>
@@ -103,6 +104,32 @@
             color: #777;
         }
 
+        .acciones-superiores {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+
+        .boton-nuevo,
+        .boton-editar {
+            display: inline-block;
+            background-color: #1f4e78;
+            color: white;
+            text-decoration: none;
+            padding: 9px 14px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .boton-nuevo:hover,
+        .boton-editar:hover {
+            background-color: #163a5c;
+        }
+
+        .boton-editar {
+            padding: 7px 12px;
+            font-size: 14px;
+        }
+
         @media (max-width: 700px) {
             body {
                 padding: 15px;
@@ -135,6 +162,14 @@
             <p>${{ total_nomina }} USD</p>
         </div>
 
+        {% if puede_editar %}
+        <div class="acciones-superiores">
+            <a href="{% url 'crear_empleado' %}" class="boton-nuevo">
+                + Nuevo empleado
+            </a>
+        </div>
+        {% endif %}
+
         <table>
 
             <tr>
@@ -142,55 +177,67 @@
                 <th>Cargo</th>
                 <th>Salario Mensual</th>
                 <th>Estado</th>
+
+                {% if puede_editar %}
+                <th>Acciones</th>
+                {% endif %}
             </tr>
 
             {% for empleado in lista_empleados %}
 
-                {% if empleado.esta_activo %}
-                    <tr class="fila-activa">
+            {% if empleado.esta_activo %}
+            <tr class="fila-activa">
                 {% else %}
-                    <tr class="fila-inactiva">
+            <tr class="fila-inactiva">
                 {% endif %}
 
-                    <td>
-                        {{ empleado.nombre_completo }}
-                    </td>
+                <td>
+                    {{ empleado.nombre_completo }}
+                </td>
 
-                    <td>
-                        {{ empleado.cargo }}
-                    </td>
+                <td>
+                    {{ empleado.cargo }}
+                </td>
 
-                    <td class="salario">
-                        ${{ empleado.salario_mensual }} USD
-                    </td>
+                <td class="salario">
+                    ${{ empleado.salario_mensual }} USD
+                </td>
 
-                    <td>
+                <td>
 
-                        {% if empleado.esta_activo %}
+                    {% if empleado.esta_activo %}
 
-                            <span class="activo">
-                                Activo ✓
-                            </span>
+                    <span class="activo">
+                        Activo ✓
+                    </span>
 
-                        {% else %}
+                    {% else %}
 
-                            <span class="inactivo">
-                                Inactivo ✗
-                            </span>
+                    <span class="inactivo">
+                        Inactivo ✗
+                    </span>
 
-                        {% endif %}
+                    {% endif %}
 
-                    </td>
+                </td>
 
-                </tr>
+                {% if puede_editar %}
+                <td>
+                    <a href="{% url 'editar_empleado' empleado.id %}" class="boton-editar">
+                        Editar
+                    </a>
+                </td>
+                {% endif %}
+
+            </tr>
 
             {% empty %}
 
-                <tr>
-                    <td colspan="4" class="sin-empleados">
-                        No hay empleados registrados.
-                    </td>
-                </tr>
+            <tr>
+                <td colspan="4" class="sin-empleados">
+                    No hay empleados registrados.
+                </td>
+            </tr>
 
             {% endfor %}
 
@@ -199,4 +246,5 @@
     </div>
 
 </body>
+
 </html>

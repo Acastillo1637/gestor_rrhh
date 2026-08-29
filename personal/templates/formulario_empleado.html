@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ titulo }} - RRHH</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 40px;
+            color: #333;
+        }
+
+        .contenedor {
+            max-width: 650px;
+            margin: auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1f4e78;
+            margin-bottom: 25px;
+        }
+
+        .campo {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        .botones {
+            margin-top: 25px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button,
+        .volver {
+            border: none;
+            padding: 11px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: #1f4e78;
+            color: white;
+        }
+
+        .volver {
+            background-color: #ddd;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+    <h1>{{ titulo }}</h1>
+
+    <form method="post">
+
+        {% csrf_token %}
+
+        <div class="campo">
+            <label>Nombre completo</label>
+            {{ formulario.nombre_completo }}
+        </div>
+
+        <div class="campo">
+            <label>Cargo</label>
+            {{ formulario.cargo }}
+        </div>
+
+        <div class="campo">
+            <label>Salario mensual</label>
+            {{ formulario.salario_mensual }}
+        </div>
+
+        <div class="campo">
+            <label>
+                {{ formulario.esta_activo }}
+                Empleado activo
+            </label>
+        </div>
+
+        <div class="botones">
+
+            <button type="submit">
+                Guardar
+            </button>
+
+            <a href="{% url 'listar_empleados' %}" class="volver">
+                Volver
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+</body>
+</html>
