@@ -1,12 +1,6 @@
-from django.shortcuts import render
-from .models import Empleado
+from django.urls import path
+from . import views
 
-
-def listar_empleados(request):
-    empleados = Empleado.objects.all()
-
-    contexto = {
-        'lista_empleados': empleados
-    }
-
-    return render(request, 'listar.html', contexto)
+urlpatterns = [
+    path('empleados/', views.listar_empleados, name='listar_empleados'),
+]
