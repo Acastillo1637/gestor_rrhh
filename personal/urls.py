@@ -1,7 +1,12 @@
-from django.urls import path
-from .views import listar_empleados
+from django.shortcuts import render
+from .models import Empleado
 
-# Conectamos la dirección URL '/empleados/' con la función de la vista
-urlpatterns = [
-    path('empleados/', listar_empleados, name='listar_empleados'),
-]
+
+def listar_empleados(request):
+    empleados = Empleado.objects.all()
+
+    contexto = {
+        'lista_empleados': empleados
+    }
+
+    return render(request, 'listar.html', contexto)
