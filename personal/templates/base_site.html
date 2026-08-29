@@ -1,0 +1,54 @@
+{% extends "admin/base.html" %}
+
+{% block title %}
+Gestor de Personal - RRHH
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    Gestor de Personal - Recursos Humanos
+</h1>
+{% endblock %}
+
+{% block nav-global %}
+<style>
+    #header {
+        background: #1f4e78;
+    }
+
+    #branding h1,
+    #branding h1 a:link,
+    #branding h1 a:visited {
+        color: white;
+    }
+
+    .module h2,
+    .module caption,
+    .inline-group h2 {
+        background: #1f4e78;
+    }
+
+    div.breadcrumbs {
+        background: #163a5c;
+    }
+
+    a:link,
+    a:visited {
+        color: #1f4e78;
+    }
+
+    .button,
+    input[type=submit],
+    input[type=button],
+    .submit-row input,
+    a.button {
+        background: #1f4e78;
+    }
+
+    .button:hover,
+    input[type=submit]:hover,
+    input[type=button]:hover {
+        background: #163a5c;
+    }
+</style>
+{% endblock %}

@@ -5,9 +5,11 @@ from .models import Empleado
 class EmpleadoForm(forms.ModelForm):
     class Meta:
         model = Empleado
+
         fields = [
             'nombre_completo',
             'cargo',
+            'departamento',
             'salario_mensual',
             'esta_activo',
         ]
@@ -16,12 +18,19 @@ class EmpleadoForm(forms.ModelForm):
             'nombre_completo': forms.TextInput(attrs={
                 'class': 'form-control'
             }),
+
             'cargo': forms.TextInput(attrs={
                 'class': 'form-control'
             }),
+
+            'departamento': forms.TextInput(attrs={
+                'class': 'form-control'
+            }),
+
             'salario_mensual': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01'
             }),
+
             'esta_activo': forms.CheckboxInput(),
         }

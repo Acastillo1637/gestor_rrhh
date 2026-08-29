@@ -1,18 +1,34 @@
 from django.contrib import admin
 from .models import Empleado, HistorialSalario
 
+admin.site.site_header = "Gestor de Personal - Recursos Humanos"
+admin.site.site_title = "RRHH"
+admin.site.index_title = "Administración de Personal"
+admin.site.site_url = "/empleados/"
+
 
 @admin.register(Empleado)
 class EmpleadoAdmin(admin.ModelAdmin):
     list_display = (
         'nombre_completo',
         'cargo',
+        'departamento',
         'salario_mensual',
         'esta_activo'
     )
 
-    list_filter = ('esta_activo', 'cargo')
-    search_fields = ('nombre_completo', 'cargo')
+    list_filter = (
+        'departamento',
+        'cargo',
+        'esta_activo'
+    )
+
+    search_fields = (
+        'nombre_completo',
+        'cargo',
+        'departamento'
+    )
+
     ordering = ('-salario_mensual',)
 
     def has_view_permission(self, request, obj=None):

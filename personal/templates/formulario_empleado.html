@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>{{ titulo }} - RRHH</title>
@@ -75,51 +76,57 @@
 
 <body>
 
-<div class="contenedor">
+    <div class="contenedor">
 
-    <h1>{{ titulo }}</h1>
+        <h1>{{ titulo }}</h1>
 
-    <form method="post">
+        <form method="post">
 
-        {% csrf_token %}
+            {% csrf_token %}
 
-        <div class="campo">
-            <label>Nombre completo</label>
-            {{ formulario.nombre_completo }}
-        </div>
+            <div class="campo">
+                <label>Nombre completo</label>
+                {{ formulario.nombre_completo }}
+            </div>
 
-        <div class="campo">
-            <label>Cargo</label>
-            {{ formulario.cargo }}
-        </div>
+            <div class="campo">
+                <label>Cargo</label>
+                {{ formulario.cargo }}
+            </div>
 
-        <div class="campo">
-            <label>Salario mensual</label>
-            {{ formulario.salario_mensual }}
-        </div>
+            <div class="campo">
+                <label>Departamento</label>
+                {{ formulario.departamento }}
+            </div>
 
-        <div class="campo">
-            <label>
-                {{ formulario.esta_activo }}
-                Empleado activo
-            </label>
-        </div>
+            <div class="campo">
+                <label>Salario mensual</label>
+                {{ formulario.salario_mensual }}
+            </div>
 
-        <div class="botones">
+            <div class="campo">
+                <label>
+                    {{ formulario.esta_activo }}
+                    Empleado activo
+                </label>
+            </div>
 
-            <button type="submit">
-                Guardar
-            </button>
+            <div class="botones">
 
-            <a href="{% url 'listar_empleados' %}" class="volver">
-                Volver
-            </a>
+                <button type="submit">
+                    Guardar
+                </button>
 
-        </div>
+                <a href="{% url 'listar_empleados' %}" class="volver">
+                    Volver
+                </a>
 
-    </form>
+            </div>
 
-</div>
+        </form>
+
+    </div>
 
 </body>
+
 </html>

@@ -130,7 +130,128 @@
             font-size: 14px;
         }
 
+        .filtros {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filtros input,
+        .filtros select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        .filtros input {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .filtros button {
+            background-color: #1f4e78;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .boton-limpiar {
+            background-color: #ddd;
+            color: #333;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+        }
+
+        .barra-usuario {
+            max-width: 1100px;
+            margin: 0 auto 15px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .barra-botones {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .boton-admin,
+        .boton-salir {
+            display: inline-block;
+            padding: 9px 14px;
+            border-radius: 6px;
+            font-weight: bold;
+            text-decoration: none;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .boton-admin {
+            background-color: #1f4e78;
+            color: white;
+        }
+
+        .boton-salir {
+            background-color: #555;
+            color: white;
+            border: none;
+        }
+
+        .form-logout {
+            margin: 0;
+        }
+
+        .boton-admin:hover {
+            background-color: #163a5c;
+        }
+
+        .boton-salir:hover {
+            background-color: #333;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .tarjeta {
+            background-color: #eef4f8;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #1f4e78;
+        }
+
+        .tarjeta h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #1f4e78;
+            font-size: 16px;
+        }
+
+        .tarjeta p {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .tarjeta-nomina {
+            grid-column: span 1;
+        }
+
         @media (max-width: 700px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
             body {
                 padding: 15px;
             }
@@ -153,98 +274,187 @@
 
 <body>
 
-    <div class="contenedor">
+    <body>
 
-        <h1>Gestor de Personal - Recursos Humanos</h1>
+        <div class="barra-usuario">
+            <span>
+                Usuario: <strong>{{ request.user.username }}</strong>
+            </span>
 
-        <div class="resumen">
-            <h2>Gasto total mensual en nómina</h2>
-            <p>${{ total_nomina }} USD</p>
+            <div class="barra-botones">
+                <a href="/admin/" class="boton-admin">
+                    Administración
+                </a>
+
+                <form method="post" action="/admin/logout/" class="form-logout">
+                    {% csrf_token %}
+                    <button type="submit" class="boton-salir">
+                        Cerrar sesión
+                    </button>
+                </form>
+            </div>
         </div>
 
-        {% if puede_editar %}
-        <div class="acciones-superiores">
-            <a href="{% url 'crear_empleado' %}" class="boton-nuevo">
-                + Nuevo empleado
-            </a>
-        </div>
-        {% endif %}
+        <div class="contenedor">
 
-        <table>
+            <h1>Gestor de Personal - Recursos Humanos</h1>
 
-            <tr>
-                <th>Nombre Completo</th>
-                <th>Cargo</th>
-                <th>Salario Mensual</th>
-                <th>Estado</th>
+            <div class="dashboard">
+
+                <div class="tarjeta">
+                    <h3>Total empleados</h3>
+                    <p>{{ total_empleados }}</p>
+                </div>
+
+                <div class="tarjeta">
+                    <h3>Empleados activos</h3>
+                    <p>{{ total_activos }}</p>
+                </div>
+
+                <div class="tarjeta">
+                    <h3>Empleados inactivos</h3>
+                    <p>{{ total_inactivos }}</p>
+                </div>
+
+                <div class="tarjeta tarjeta-nomina">
+                    <h3>Gasto mensual en nómina</h3>
+                    <p>${{ total_nomina }} USD</p>
+                </div>
+
+            </div>
+
+            <form method="get" class="filtros">
+
+                <input type="text" name="busqueda" placeholder="Buscar por nombre o cargo" value="{{ busqueda }}">
+
+                <select name="departamento">
+                    <option value="">Todos los departamentos</option>
+
+                    {% for departamento in departamentos %}
+                    <option value="{{ departamento }}" {% if departamento_seleccionado == departamento %}selected{% endif%}>
+                        {{ departamento }}
+                    </option>
+                    {% endfor %}
+                </select>
+
+                <select name="cargo">
+                    <option value="">Todos los cargos</option>
+
+                    {% for cargo in cargos %}
+                    <option value="{{ cargo }}" {% if cargo_seleccionado == cargo %}selected{% endif %}>
+                        {{ cargo }}
+                    </option>
+                    {% endfor %}
+                </select>
+
+                <select name="estado">
+                    <option value="">Todos los estados</option>
+
+                    <option value="activo" {% if estado_seleccionado == 'activo' %}selected{% endif %}>
+                        Activos
+                    </option>
+
+                    <option value="inactivo" {% if estado_seleccionado == 'inactivo' %}selected{% endif %}>
+                        Inactivos
+                    </option>
+                </select>
+
+                <button type="submit">
+                    Buscar
+                </button>
+
+                <a href="{% url 'listar_empleados' %}" class="boton-limpiar">
+                    Limpiar
+                </a>
+
+                </form>
 
                 {% if puede_editar %}
-                <th>Acciones</th>
-                {% endif %}
-            </tr>
-
-            {% for empleado in lista_empleados %}
-
-            {% if empleado.esta_activo %}
-            <tr class="fila-activa">
-                {% else %}
-            <tr class="fila-inactiva">
+                <div class="acciones-superiores">
+                    <a href="{% url 'crear_empleado' %}" class="boton-nuevo">
+                        + Nuevo empleado
+                    </a>
+                </div>
                 {% endif %}
 
-                <td>
-                    {{ empleado.nombre_completo }}
-                </td>
+                <table>
 
-                <td>
-                    {{ empleado.cargo }}
-                </td>
+                    <tr>
+                        <th>Nombre Completo</th>
+                        <th>Departamento</th>
+                        <th>Cargo</th>
+                        <th>Salario Mensual</th>
+                        <th>Estado</th>
 
-                <td class="salario">
-                    ${{ empleado.salario_mensual }} USD
-                </td>
+                        {% if puede_editar %}
+                        <th>Acciones</th>
+                        {% endif %}
+                    </tr>
 
-                <td>
+                    {% for empleado in lista_empleados %}
 
                     {% if empleado.esta_activo %}
+                    <tr class="fila-activa">
+                        {% else %}
+                    <tr class="fila-inactiva">
+                        {% endif %}
 
-                    <span class="activo">
-                        Activo ✓
-                    </span>
+                        <td>
+                            {{ empleado.nombre_completo }}
+                        </td>
+                        <td>
+                            {{ empleado.departamento }}
+                        </td>
+                        <td>
+                            {{ empleado.cargo }}
+                        </td>
 
-                    {% else %}
+                        <td class="salario">
+                            ${{ empleado.salario_mensual }} USD
+                        </td>
 
-                    <span class="inactivo">
-                        Inactivo ✗
-                    </span>
+                        <td>
 
-                    {% endif %}
+                            {% if empleado.esta_activo %}
 
-                </td>
+                            <span class="activo">
+                                Activo ✓
+                            </span>
 
-                {% if puede_editar %}
-                <td>
-                    <a href="{% url 'editar_empleado' empleado.id %}" class="boton-editar">
-                        Editar
-                    </a>
-                </td>
-                {% endif %}
+                            {% else %}
 
-            </tr>
+                            <span class="inactivo">
+                                Inactivo ✗
+                            </span>
 
-            {% empty %}
+                            {% endif %}
 
-            <tr>
-                <td colspan="4" class="sin-empleados">
-                    No hay empleados registrados.
-                </td>
-            </tr>
+                        </td>
 
-            {% endfor %}
+                        {% if puede_editar %}
+                        <td>
+                            <a href="{% url 'editar_empleado' empleado.id %}" class="boton-editar">
+                                Editar
+                            </a>
+                        </td>
+                        {% endif %}
 
-        </table>
+                    </tr>
 
-    </div>
+                    {% empty %}
 
-</body>
+                    <tr>
+                        <td colspan="{% if puede_editar %}6{% else %}5{% endif %}" class="sin-empleados">
+                            No hay empleados que coincidan con los filtros.
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+
+                </table>
+
+        </div>
+
+    </body>
 
 </html>

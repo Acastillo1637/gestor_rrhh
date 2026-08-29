@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Sum
+from django.db.models import Sum, Q
 
 from .forms import EmpleadoForm
 from .models import Empleado, HistorialSalario
@@ -25,24 +25,109 @@ def usuario_rrhh(user):
 @user_passes_test(usuario_autorizado, login_url='/admin/login/')
 def listar_empleados(request):
 
+    # Consulta base
     empleados = Empleado.objects.all()
 
+    # Valores recibidos desde los filtros
+    busqueda = request.GET.get('busqueda', '')
+    departamento = request.GET.get('departamento', '')
+    cargo = request.GET.get('cargo', '')
+    estado = request.GET.get('estado', '')
+
+    # Buscar por nombre o cargo
+    if busqueda:
+        empleados = empleados.filter(
+            Q(nombre_completo__icontains=busqueda) |
+            Q(cargo__icontains=busqueda)
+        )
+
+    # Filtrar por departamento
+    if departamento:
+        empleados = empleados.filter(
+            departamento=departamento
+        )
+
+    # Filtrar por cargo
+    if cargo:
+        empleados = empleados.filter(
+            cargo=cargo
+        )
+
+    # Filtrar por estado
+    if estado == 'activo':
+        empleados = empleados.filter(
+            esta_activo=True
+        )
+
+    elif estado == 'inactivo':
+        empleados = empleados.filter(
+            esta_activo=False
+        )
+
+    # -----------------------------------
+    # INDICADORES DEL RESULTADO FILTRADO
+    # -----------------------------------
+
+    total_empleados = empleados.count()
+
+    total_activos = empleados.filter(
+        esta_activo=True
+    ).count()
+
+    total_inactivos = empleados.filter(
+        esta_activo=False
+    ).count()
+
     total_nomina = (
-        Empleado.objects
+        empleados
         .filter(esta_activo=True)
         .aggregate(total=Sum('salario_mensual'))
         ['total']
         or 0
     )
 
-    contexto = {
-    'lista_empleados': empleados,
-    'total_nomina': total_nomina,
-    'puede_editar': (
+    # -----------------------------------
+    # OPCIONES PARA LOS SELECT
+    # -----------------------------------
+
+    departamentos = (
+        Empleado.objects
+        .values_list('departamento', flat=True)
+        .distinct()
+        .order_by('departamento')
+    )
+
+    cargos = (
+        Empleado.objects
+        .values_list('cargo', flat=True)
+        .distinct()
+        .order_by('cargo')
+    )
+
+    # RRHH puede crear/editar
+    puede_editar = (
         request.user.is_superuser
         or request.user.groups.filter(name='RRHH').exists()
     )
-}
+
+    contexto = {
+        'lista_empleados': empleados,
+
+        'total_empleados': total_empleados,
+        'total_activos': total_activos,
+        'total_inactivos': total_inactivos,
+        'total_nomina': total_nomina,
+
+        'departamentos': departamentos,
+        'cargos': cargos,
+
+        'busqueda': busqueda,
+        'departamento_seleccionado': departamento,
+        'cargo_seleccionado': cargo,
+        'estado_seleccionado': estado,
+
+        'puede_editar': puede_editar,
+    }
 
     return render(request, 'listar.html', contexto)
 
