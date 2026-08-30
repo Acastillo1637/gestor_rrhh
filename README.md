@@ -1,72 +1,72 @@
 Instalación y Configuración Completa del Gestor de RRHH
 
-Paso 1: Instalar Python
+Requisitos del Sistema
 
-Descarga el instalador oficial de Python desde python.org (versión 3.10 o superior).
+Python 3.10 o superior.
 
-Ejecuta el instalador descargado y marca obligatoriamente la casilla "Add Python to PATH" (Añadir Python al PATH) en la parte inferior de la ventana antes de hacer clic en Install Now.
+Git instalado en el equipo.
 
-Abre una nueva terminal (PowerShell o CMD) y verifica que se haya instalado correctamente escribiendo:
+Paso 1: Instalación de Herramientas Base (En equipos limpios)
+
+En Ubuntu / Debian (Linux):
 
 Bash
-python --version
-Paso 2: Descargar el Código del Proyecto
+sudo apt update && sudo apt install python3 python3-pip python3-venv git -y
+En macOS (vía Homebrew):
 
-Asegúrate de tener Git instalado. Clona el repositorio oficial ejecutando en tu terminal:
+Bash
+brew install python git
+En Windows: Descargar e instalar Python y Git desde sus sitios oficiales, asegurándose de marcar la casilla "Add Python to PATH" durante la instalación de Python.
+
+Paso 2: Descarga del Repositorio
+Clonar el código fuente desde el repositorio oficial de GitHub y acceder al directorio del proyecto:
 
 Bash
 git clone https://github.com/Acastillo1637/gestor_rrhh.git
-Entra a la carpeta del proyecto recién descargada:
-
-Bash
 cd gestor_rrhh
-Paso 3: Crear y Activar un Entorno Virtual
+Paso 3: Configuración del Entorno Virtual
+Aislar las dependencias del sistema creando y activando un entorno virtual:
 
-Crea un entorno virtual dentro de la carpeta del proyecto para aislar las dependencias:
+Crear el entorno:
 
 Bash
 python -m venv venv
-Activa el entorno virtual según tu sistema operativo:
+Activar en Windows (PowerShell):
 
-En Windows (PowerShell):
-
-Bash
+PowerShell
 venv\Scripts\Activate
-En macOS / Linux:
+Activar en macOS / Linux:
 
 Bash
 source venv/bin/activate
-Paso 4: Instalar Django y las Dependencias
-
-Con el entorno virtual activo, instala automáticamente Django y todas las librerías necesarias ejecutando:
+Paso 4: Instalación de Dependencias Profesionales
+Actualizar el gestor de paquetes e instalar todas las librerías necesarias especificadas en el proyecto:
 
 Bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-Paso 5: Configurar la Base de Datos (Migraciones)
-
-Prepara las tablas en la base de datos local ejecutando las migraciones:
+Paso 5: Configuración y Migración de la Base de Datos
+Generar y aplicar las tablas correspondientes en la base de datos SQLite local:
 
 Bash
 python manage.py makemigrations
 python manage.py migrate
-Paso 6: Crear un Usuario Administrador
-
-Registra una cuenta de superusuario para poder ingresar al panel de control y ver las auditorías:
+Paso 6: Creación del Usuario Administrador
+Registrar credenciales para acceder al panel de control protegido y al módulo de auditoría de salarios:
 
 Bash
 python manage.py createsuperuser
-Introduce el nombre de usuario, tu correo electrónico y tu contraseña cuando el sistema te lo solicite.
+(Ingresa el nombre de usuario, correo electrónico y contraseña solicitados en pantalla).
 
-Paso 7: Ejecutar el Servidor de Pruebas
+Paso 7: Ejecución del Servidor
 
-Pon en marcha la aplicación localmente con el comando:
+Modo Desarrollo (Local):
 
 Bash
 python manage.py runserver
-Paso 8: Acceder a la Aplicación
+Modo Producción (Opcional con Gunicorn para Linux/Servidores):
 
-Abre tu navegador web favorito.
-
-Entra a la Vista Principal (Dashboard, filtros y calculadora de nómina en vivo) en: http://127.0.0.1:8000/empleados/
-
-Entra al Panel de Administración (Control de usuarios e Historial de Salarios) en: http://127.0.0.1:8000/admin/
+Bash
+pip install gunicorn
+gunicorn config.wsgi:application --bind 0.0.0.0:8000
+Una vez ejecutado el servidor, la aplicación estará disponible en [http://127.0.0.1:8000/empleados/](http://127.0.0.1:8000/empleados/) para la interfaz de gestión y en [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/) para el panel administrativo.
