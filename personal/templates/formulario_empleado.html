@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <!-- Configuración de la codificación de caracteres y diseño responsivo básico -->
+    <meta charset="UTF-8">
+    <!-- Título dinámico recibido desde la vista de Django con un sufijo del sistema -->
+    <title>{{ titulo }} - RRHH</title>
+    {{ formulario.errors }}
+
+    <style>
+        /* Estilos generales para el cuerpo de la página web */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 40px;
+            color: #333;
+        }
+
+        /* Contenedor central tipo tarjeta para centrar y estructurar el formulario */
+        .contenedor {
+            max-width: 650px;
+            margin: auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Encabezado principal del formulario */
+        h1 {
+            color: #1f4e78;
+            margin-bottom: 25px;
+        }
+
+        /* Bloque individual de cada campo de entrada de datos */
+        .campo {
+            margin-bottom: 20px;
+        }
+
+        /* Etiquetas descriptivas para cada campo del formulario */
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        /* Reglas de diseño para los campos de texto, numéricos y selectores generados */
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        /* Contenedor flexible para alinear los botones de acción */
+        .botones {
+            margin-top: 25px;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Estilos base compartidos para botones y enlaces de navegación */
+        button,
+        .volver {
+            border: none;
+            padding: 11px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Estilo específico para el botón de envío principal */
+        button {
+            background-color: #1f4e78;
+            color: white;
+        }
+
+        /* Estilo para el botón o enlace de retroceso */
+        .volver {
+            background-color: #ddd;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Contenedor visual principal -->
+    <div class="contenedor">
+
+        <!-- Título principal inyectado desde la vista -->
+        <h1>{{ titulo }}</h1>
+
+        <!-- Formulario para crear o editar los datos del empleado. -->
+        <form method="post">
+
+            <!-- Token de seguridad obligatorio de Django para peticiones POST -->
+            {% csrf_token %}
+
+            <!-- Campo para el nombre completo del empleado -->
+            <div class="campo">
+                <label>Nombre completo</label>
+                {{ formulario.nombre_completo }}
+            </div>
+
+            <!-- Campo para el cargo del empleado -->
+            <div class="campo">
+                <label>Cargo</label>
+                {{ formulario.cargo }}
+            </div>
+
+            <!-- Campo para el departamento asignado -->
+            <div class="campo">
+                <label>Departamento</label>
+                {{ formulario.departamento }}
+            </div>
+
+            <!-- Campo para el salario mensual -->
+            <div class="campo">
+                <label>Salario mensual</label>
+                {{ formulario.salario_mensual }}
+            </div>
+
+            <!-- Campo de selección para el estado laboral detallado -->
+            <div class="campo">
+                <label>Estado Laboral</label>
+                {{ formulario.estado_laboral }}
+            </div>
+
+            <!-- Sección contenedora de los botones de acción -->
+            <div class="botones">
+
+                <!-- Botón de envío para guardar los datos -->
+                <button type="submit">
+                    Guardar
+                </button>
+
+                <!-- Enlace de redirección para volver al listado general -->
+                <a href="{% url 'listar_empleados' %}" class="volver">
+                    Volver
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</body>
+
+</html>
