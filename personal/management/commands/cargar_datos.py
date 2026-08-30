@@ -160,18 +160,27 @@ class Command(BaseCommand):
         # CREAR O ACTUALIZAR EMPLEADOS
         # -------------------------------------------------
 
+        # CREAR O ACTUALIZAR EMPLEADOS
+# -------------------------------------------------
+
         for datos in empleados:
 
             empleado, creado = Empleado.objects.get_or_create(
-                nombre_completo=datos['nombre_completo']
+                nombre_completo=datos['nombre_completo'],
+                defaults={
+                    'cargo': datos['cargo'],
+                    'departamento': datos['departamento'],
+                    'salario_mensual': datos['salario_mensual'],
+                    'estado_laboral': 'activo' if datos['esta_activo'] else 'despedido',
+                }
             )
 
+        if not creado:
             empleado.cargo = datos['cargo']
             empleado.departamento = datos['departamento']
             empleado.salario_mensual = datos['salario_mensual']
             empleado.estado_laboral = 'activo' if datos['esta_activo'] else 'despedido'
-
-            empleado.save()
+            
 
         # -------------------------------------------------
         # MENSAJE FINAL
