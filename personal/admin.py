@@ -20,14 +20,14 @@ class EmpleadoAdmin(admin.ModelAdmin):
         'cargo',
         'departamento',
         'salario_mensual',
-        'estado_laboral'  # <-- Corregido
+        'estado_laboral'
     )
 
     # Filtros laterales disponibles en el administrador.
     list_filter = (
         'departamento',
         'cargo',
-        'estado_laboral'  # <-- Corregido
+        'estado_laboral'
     )
 
     # Campos que se pueden buscar mediante el buscador del administrador.
@@ -38,6 +38,12 @@ class EmpleadoAdmin(admin.ModelAdmin):
     )
 
     ordering = ('-salario_mensual',)
+
+    # Fuerza a que el campo departamento comience vacío en el formulario de creación.
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        initial['departamento'] = ''
+        return initial
 
     def has_view_permission(self, request, obj=None):
         return (

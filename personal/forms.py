@@ -24,27 +24,19 @@ class EmpleadoForm(forms.ModelForm):
         widgets = {
             'nombre_completo': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': '',
-                'value': ''
             }),
 
             'cargo': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': '',
-                'value': ''
             }),
 
             'departamento': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': '',
-                'value': ''
             }),
 
             'salario_mensual': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
-                'placeholder': '',
-                'value': ''
             }),
 
             'estado_laboral': forms.Select(attrs={

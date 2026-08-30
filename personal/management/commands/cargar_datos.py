@@ -169,7 +169,7 @@ class Command(BaseCommand):
             empleado.cargo = datos['cargo']
             empleado.departamento = datos['departamento']
             empleado.salario_mensual = datos['salario_mensual']
-            empleado.esta_activo = datos['esta_activo']
+            empleado.estado_laboral = 'activo' if datos['esta_activo'] else 'despedido'
 
             empleado.save()
 

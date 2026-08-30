@@ -396,8 +396,8 @@
 
                 {% for empleado in lista_empleados %}
 
-                <!-- Lógica de estilos actualizada al nuevo campo estado_laboral -->
-                {% if empleado.estado_laboral == 'activo' %}
+                <!-- Aplica clase de estilo según si el empleado está activo o inactivo (insensible a mayúsculas/minúsculas) -->
+                {% if empleado.estado_laboral|lower == 'activo' %}
                 <tr class="fila-activa">
                 {% else %}
                 <tr class="fila-inactiva">
@@ -419,8 +419,8 @@
 
                         <td>
 
-                            <!-- Lógica de despliegue de estado actualizada para detallar el motivo de inactividad -->
-                            {% if empleado.estado_laboral == 'activo' %}
+                            <!-- Indicador visual de estado: muestra 'Activo' con visto bueno o 'Inactivo' detallando el estado específico -->
+                            {% if empleado.estado_laboral|lower == 'activo' %}
 
                             <span class="activo">
                                 Activo ✓

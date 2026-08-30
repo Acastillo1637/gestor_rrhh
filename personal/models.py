@@ -25,8 +25,7 @@ class Empleado(models.Model):
 
     # Área o departamento al que pertenece el empleado.
     departamento = models.CharField(
-        max_length=100,
-        default='Sin departamento'
+        max_length=100
     )
 
     # Salario mensual almacenado como decimal para evitar errores de precisión monetaria.
@@ -51,6 +50,13 @@ class Empleado(models.Model):
     # Representación legible del objeto cuando Django lo muestra como texto.
     def __str__(self):
         return f"{self.nombre_completo} - {self.cargo}"
+
+    # Sobrescritura del método save para normalizar los valores antes de guardar en base de datos.
+    def save(self, *args, **kwargs):
+        # Asegura que el estado laboral siempre se guarde en minúsculas para mantener consistencia con los choices y cálculos.
+        if self.estado_laboral:
+            self.estado_laboral = self.estado_laboral.lower()
+        super().save(*args, **kwargs)
 
 # Historial de cambios realizados en los salarios (Audit Trail requerido para auditorías salariales).
 class HistorialSalario(models.Model):

@@ -60,36 +60,39 @@ def listar_empleados(request):
             cargo=cargo
         )
 
-    # Filtrar por estado usando el nuevo campo estado_laboral detallado
+    # Filtrar por estado laboral (se usa iexact para evitar discrepancias por mayúsculas o minúsculas)
     if estado == 'activo':
         empleados = empleados.filter(
-            estado_laboral='activo'
+            estado_laboral__iexact='activo'
         )
 
     elif estado == 'inactivo':
-        # Excluimos a los activos, lo que incluye tanto 'despedido' como 'renuncio'
+        # Excluimos a los activos para incluir otros estados como 'despedido' y 'renuncio'
         empleados = empleados.exclude(
-            estado_laboral='activo'
+            estado_laboral__iexact='activo'
         )
 
     # -----------------------------------
     # INDICADORES DEL RESULTADO FILTRADO
     # -----------------------------------
 
-    # Calcula indicadores usando el resultado ya filtrado.
+    # Total general de empleados que coinciden con los filtros aplicados.
     total_empleados = empleados.count()
 
+    # Total de empleados con estado activo (insensible a mayúsculas/minúsculas).
     total_activos = empleados.filter(
-        estado_laboral='activo'
+        estado_laboral__iexact='activo'
     ).count()
 
+    # Total de empleados inactivos (todos aquellos cuyo estado no sea activo).
     total_inactivos = empleados.exclude(
-        estado_laboral='activo'
+        estado_laboral__iexact='activo'
     ).count()
 
+    # Cálculo del gasto mensual total en nómina: suma de los salarios de todos los empleados activos.
     total_nomina = (
         empleados
-        .filter(estado_laboral='activo')
+        .filter(estado_laboral__iexact='activo')
         .aggregate(total=Sum('salario_mensual'))
         ['total']
         or 0
