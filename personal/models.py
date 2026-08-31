@@ -34,7 +34,7 @@ class Empleado(models.Model):
         decimal_places=2
     )
 
-    # Estado laboral detallado requerido por la rúbrica (activo, despedido, renunció).
+    # Estado laboral detallado (activo, despedido, renunció).
     estado_laboral = models.CharField(
         max_length=20,
         choices=ESTADOS_LABORALES,
