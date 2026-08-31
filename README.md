@@ -45,12 +45,16 @@ Actualizar el gestor de paquetes e instalar todas las librerías necesarias espe
 Bash
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+
+
 Paso 5: Configuración y Migración de la Base de Datos
 Generar y aplicar las tablas correspondientes en la base de datos SQLite local:
 
 Bash
 python manage.py makemigrations
 python manage.py migrate
+
+
 Paso 6: Creación del Usuario Administrador
 Registrar credenciales para acceder al panel de control protegido y al módulo de auditoría de salarios:
 
