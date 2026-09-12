@@ -1,94 +1,442 @@
- # -----------------------------------------------------------------------------
-# Modelos de datos del sistema. Define empleados y el historial de modificaciones salariales.
 # -----------------------------------------------------------------------------
-from django.db import models
+# Modelos de datos del sistema de Gestión de Personal (RRHH)
+# -----------------------------------------------------------------------------
 
-# Modelo que representa a cada empleado registrado en el sistema.
+from django.db import models
+from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+
+# =============================================================================
+# DEPARTAMENTO
+# =============================================================================
+
+class Departamento(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    descripcion = models.TextField(blank=True)
+
+    jefe = models.ForeignKey(
+        'Empleado',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='departamentos_a_cargo'
+    )
+
+    presupuesto = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    def __str__(self):
+        return self.nombre
+
+
+# =============================================================================
+# EMPLEADO
+# =============================================================================
+
 class Empleado(models.Model):
 
-    # Opciones para el estado laboral detallado del empleado.
     ESTADOS_LABORALES = [
-        ('activo', 'Activo (Trabajando)'),
+        ('activo', 'Activo'),
         ('despedido', 'Despedido'),
         ('renuncio', 'Renunció'),
     ]
 
-    # Nombre completo que se mostrará en los listados.
+    GENEROS = [
+        ('masculino', 'Masculino'),
+        ('femenino', 'Femenino'),
+        ('otro', 'Otro'),
+        ('no_indica', 'Prefiere no indicar'),
+    ]
+
+    # Relación opcional con usuario de Django.
+    usuario = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='empleado'
+    )
+
     nombre_completo = models.CharField(
         max_length=150
     )
 
-    # Cargo o función que desempeña el empleado (puesto).
-    cargo = models.CharField(
-        max_length=100
+    email = models.EmailField(
+        unique=True,
+        null=True,
+        blank=True
     )
 
-    # Área o departamento al que pertenece el empleado.
-    departamento = models.CharField(
-        max_length=100
+    dni = models.CharField(
+        max_length=20,
+        unique=True,
+        null=True,
+        blank=True
     )
 
-    # Salario mensual almacenado como decimal para evitar errores de precisión monetaria.
-    salario_mensual = models.DecimalField(
-        max_digits=10,
-        decimal_places=2
+    fecha_nacimiento = models.DateField(
+        null=True,
+        blank=True
     )
 
-    # Estado laboral detallado (activo, despedido, renunció).
+    genero = models.CharField(
+        max_length=20,
+        choices=GENEROS,
+        default='no_indica'
+    )
+
+    telefono = models.CharField(
+        max_length=20,
+        blank=True
+    )
+
+    direccion = models.CharField(
+        max_length=200,
+        blank=True
+    )
+
+    fecha_contratacion = models.DateField(
+        null=True,
+        blank=True
+    )
+
     estado_laboral = models.CharField(
         max_length=20,
         choices=ESTADOS_LABORALES,
         default='activo'
     )
 
+    # -------------------------------------------------------------------------
+    # CAMPOS DEL PROYECTO ANTERIOR
+    # Los conservamos temporalmente para no romper las vistas actuales.
+    # -------------------------------------------------------------------------
 
-    # Configuración adicional del modelo.
+    cargo = models.CharField(
+        max_length=100,
+        blank=True
+    )
+
+    departamento = models.CharField(
+        max_length=100,
+        blank=True
+    )
+
+    salario_mensual = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
     class Meta:
-        # Ordena los empleados de mayor a menor salario por defecto (cumpliendo con la rúbrica).
-        ordering = ['-salario_mensual']
+        ordering = ['nombre_completo']
 
-    # Representación legible del objeto cuando Django lo muestra como texto.
     def __str__(self):
-        return f"{self.nombre_completo} - {self.cargo}"
+        return self.nombre_completo
 
-    # Sobrescritura del método save para normalizar los valores antes de guardar en base de datos.
     def save(self, *args, **kwargs):
-        # Asegura que el estado laboral siempre se guarde en minúsculas para mantener consistencia con los choices y cálculos.
         if self.estado_laboral:
             self.estado_laboral = self.estado_laboral.lower()
+
         super().save(*args, **kwargs)
 
-# Historial de cambios realizados en los salarios (Audit Trail requerido para auditorías salariales).
+
+# =============================================================================
+# PUESTO
+# =============================================================================
+
+class Puesto(models.Model):
+
+    NIVELES = [
+        ('junior', 'Junior'),
+        ('semi_senior', 'Semi Senior'),
+        ('senior', 'Senior'),
+        ('jefatura', 'Jefatura'),
+        ('gerencia', 'Gerencia'),
+    ]
+
+    nombre = models.CharField(max_length=100)
+
+    departamento = models.ForeignKey(
+        Departamento,
+        on_delete=models.CASCADE,
+        related_name='puestos'
+    )
+
+    nivel = models.CharField(
+        max_length=20,
+        choices=NIVELES
+    )
+
+    salario_base = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+
+    def __str__(self):
+        return f"{self.nombre} - {self.departamento.nombre}"
+
+
+# =============================================================================
+# HISTORIAL DE PUESTOS
+# =============================================================================
+
+class EmpleadoPuesto(models.Model):
+
+    empleado = models.ForeignKey(
+        Empleado,
+        on_delete=models.CASCADE,
+        related_name='historial_puestos'
+    )
+
+    puesto = models.ForeignKey(
+        Puesto,
+        on_delete=models.PROTECT,
+        related_name='empleados'
+    )
+
+    fecha_inicio = models.DateField()
+
+    fecha_fin = models.DateField(
+        null=True,
+        blank=True
+    )
+
+    es_actual = models.BooleanField(
+        default=True
+    )
+
+    class Meta:
+        ordering = ['-fecha_inicio']
+
+    def __str__(self):
+        return f"{self.empleado} - {self.puesto}"
+
+
+# =============================================================================
+# SALARIO / NÓMINA
+# =============================================================================
+
+class Salario(models.Model):
+
+    empleado = models.ForeignKey(
+        Empleado,
+        on_delete=models.CASCADE,
+        related_name='salarios'
+    )
+
+    mes_ano = models.DateField()
+
+    salario_base = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+
+    bonificacion = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    descuentos = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    neto = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    pagado = models.BooleanField(
+        default=False
+    )
+
+    class Meta:
+        unique_together = ('empleado', 'mes_ano')
+        ordering = ['-mes_ano']
+
+    def save(self, *args, **kwargs):
+        self.neto = (
+            self.salario_base
+            + self.bonificacion
+            - self.descuentos
+        )
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.empleado} - {self.mes_ano:%m/%Y}"
+
+
+# =============================================================================
+# ASISTENCIA
+# =============================================================================
+
+class Asistencia(models.Model):
+
+    ESTADOS = [
+        ('presente', 'Presente'),
+        ('ausente', 'Ausente'),
+        ('atraso', 'Atraso'),
+        ('permiso', 'Permiso'),
+    ]
+
+    empleado = models.ForeignKey(
+        Empleado,
+        on_delete=models.CASCADE,
+        related_name='asistencias'
+    )
+
+    fecha = models.DateField()
+
+    hora_entrada = models.TimeField(
+        null=True,
+        blank=True
+    )
+
+    hora_salida = models.TimeField(
+        null=True,
+        blank=True
+    )
+
+    minutos_trabajados = models.PositiveIntegerField(
+        default=0
+    )
+
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS,
+        default='presente'
+    )
+
+    class Meta:
+        unique_together = ('empleado', 'fecha')
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"{self.empleado} - {self.fecha}"
+
+
+# =============================================================================
+# PERMISOS
+# =============================================================================
+
+class Permiso(models.Model):
+
+    TIPOS = [
+        ('vacaciones', 'Vacaciones'),
+        ('medico', 'Médico'),
+        ('administrativo', 'Administrativo'),
+        ('otro', 'Otro'),
+    ]
+
+    ESTADOS = [
+        ('pendiente', 'Pendiente'),
+        ('aprobado', 'Aprobado'),
+        ('rechazado', 'Rechazado'),
+    ]
+
+    empleado = models.ForeignKey(
+        Empleado,
+        on_delete=models.CASCADE,
+        related_name='permisos'
+    )
+
+    tipo = models.CharField(
+        max_length=30,
+        choices=TIPOS
+    )
+
+    fecha_inicio = models.DateField()
+
+    fecha_fin = models.DateField()
+
+    dias = models.PositiveIntegerField(
+        default=1
+    )
+
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS,
+        default='pendiente'
+    )
+
+    aprobado = models.BooleanField(
+        default=False
+    )
+
+    def __str__(self):
+        return f"{self.empleado} - {self.tipo}"
+
+
+# =============================================================================
+# EVALUACIONES
+# =============================================================================
+
+class Evaluacion(models.Model):
+
+    empleado = models.ForeignKey(
+        Empleado,
+        on_delete=models.CASCADE,
+        related_name='evaluaciones'
+    )
+
+    periodo = models.CharField(
+        max_length=50
+    )
+
+    puntuacion = models.PositiveIntegerField(
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(5)
+        ]
+    )
+
+    feedback = models.TextField(
+        blank=True
+    )
+
+    def __str__(self):
+        return f"{self.empleado} - {self.periodo}"
+
+
+# =============================================================================
+# HISTORIAL SALARIAL DEL PROYECTO ANTERIOR
+# =============================================================================
+
 class HistorialSalario(models.Model):
 
-    # Relaciona el registro histórico con el empleado afectado.
     empleado = models.ForeignKey(
         Empleado,
         on_delete=models.CASCADE
     )
 
-    # Salario que tenía el empleado antes del cambio.
     salario_anterior = models.DecimalField(
         max_digits=10,
         decimal_places=2
     )
 
-    # Salario resultante después del cambio o aumento.
     salario_nuevo = models.DecimalField(
         max_digits=10,
         decimal_places=2
     )
 
-    # Usuario o área de RRHH que realizó la modificación.
     modificado_por = models.CharField(
         max_length=150
     )
 
-    # Fecha y hora en que se creó el registro histórico de forma automática.
     fecha_modificacion = models.DateTimeField(
         auto_now_add=True
     )
 
-    # Texto descriptivo del registro histórico para identificación en el panel.
     def __str__(self):
-        return f"Auditoría: {self.empleado.nombre_completo} - {self.fecha_modificacion.strftime('%Y-%m-%d %H:%M')}"
+        return (
+            f"Auditoría: {self.empleado.nombre_completo} - "
+            f"{self.fecha_modificacion:%Y-%m-%d %H:%M}"
+        )

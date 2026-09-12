@@ -23,4 +23,9 @@ urlpatterns = [
         views.editar_empleado,
         name='editar_empleado'
     ),
+    path(
+    'ajax/puestos/',
+    views.obtener_puestos_por_departamento,
+    name='obtener_puestos_por_departamento'
+    ),
 ]

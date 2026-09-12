@@ -1,17 +1,16 @@
 # -----------------------------------------------------------------------------
-# Formulario ModelForm usado para crear y editar empleados desde la interfaz web.
+# Formulario ModelForm usado para crear y editar empleados.
 # -----------------------------------------------------------------------------
+
 from django import forms
-from .models import Empleado
+from .models import Empleado, Departamento, Puesto
 
 
-# Formulario basado directamente en el modelo Empleado.
 class EmpleadoForm(forms.ModelForm):
-    # Meta indica qué modelo y campos utilizará el formulario.
+
     class Meta:
         model = Empleado
 
-        # Se muestran los campos necesarios para gestionar empleados, incluyendo el estado detallado.
         fields = [
             'nombre_completo',
             'cargo',
@@ -20,17 +19,8 @@ class EmpleadoForm(forms.ModelForm):
             'estado_laboral',
         ]
 
-        # Personaliza los controles HTML que Django generará para cada campo (fusionado en un solo diccionario).
         widgets = {
             'nombre_completo': forms.TextInput(attrs={
-                'class': 'form-control',
-            }),
-
-            'cargo': forms.TextInput(attrs={
-                'class': 'form-control',
-            }),
-
-            'departamento': forms.TextInput(attrs={
                 'class': 'form-control',
             }),
 
@@ -43,3 +33,44 @@ class EmpleadoForm(forms.ModelForm):
                 'class': 'form-control'
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Lista de departamentos registrados en la base de datos.
+        departamentos = Departamento.objects.order_by('nombre')
+
+        self.fields['departamento'] = forms.ChoiceField(
+            choices=[
+                ('', 'Seleccione un departamento')
+            ] + [
+                (departamento.nombre, departamento.nombre)
+                for departamento in departamentos
+            ],
+            widget=forms.Select(attrs={
+                'class': 'form-control'
+            })
+        )
+
+        # Lista de puestos registrados en la base de datos.
+        puestos = Puesto.objects.select_related(
+            'departamento'
+        ).order_by(
+            'departamento__nombre',
+            'nombre'
+        )
+
+        self.fields['cargo'] = forms.ChoiceField(
+            choices=[
+                ('', 'Seleccione un cargo')
+            ] + [
+                (
+                    puesto.nombre,
+                    f'{puesto.nombre} - {puesto.departamento.nombre}'
+                )
+                for puesto in puestos
+            ],
+            widget=forms.Select(attrs={
+                'class': 'form-control'
+            })
+        )

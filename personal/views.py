@@ -4,9 +4,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Sum, Q
+from django.http import JsonResponse
 
 from .forms import EmpleadoForm
-from .models import Empleado, HistorialSalario
+from .models import Empleado, HistorialSalario, Puesto
 
 
 # Comprueba si el usuario puede consultar el listado de empleados.
@@ -225,3 +226,20 @@ def editar_empleado(request, empleado_id):
         'formulario_empleado.html',
         contexto
     )
+    
+def obtener_puestos_por_departamento(request):
+    departamento_id = request.GET.get('departamento_id')
+
+    puestos = Puesto.objects.filter(
+        departamento_id=departamento_id
+    ).order_by('nombre')
+
+    data = [
+        {
+            'nombre': puesto.nombre,
+            'salario_base': float(puesto.salario_base),
+        }
+        for puesto in puestos
+    ]
+
+    return JsonResponse(data, safe=False)
