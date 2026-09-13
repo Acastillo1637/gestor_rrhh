@@ -1,0 +1,157 @@
+{% extends "base_site.html" %}
+
+{% block title %}
+Dashboard
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <h1>
+            Resumen general
+        </h1>
+
+        <p>
+            Información actualizada del sistema de Recursos Humanos.
+        </p>
+    </div>
+
+</div>
+
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+        <span class="stat-label">
+            Total empleados
+        </span>
+
+        <strong>
+            {{ total_empleados }}
+        </strong>
+    </div>
+
+
+    <div class="stat-card">
+        <span class="stat-label">
+            Empleados activos
+        </span>
+
+        <strong>
+            {{ total_activos }}
+        </strong>
+    </div>
+
+
+    <div class="stat-card">
+        <span class="stat-label">
+            Empleados inactivos
+        </span>
+
+        <strong>
+            {{ total_inactivos }}
+        </strong>
+    </div>
+
+
+    <div class="stat-card">
+        <span class="stat-label">
+            Gasto mensual
+        </span>
+
+        <strong>
+            ${{ total_nomina }}
+        </strong>
+    </div>
+
+</div>
+
+
+<div class="dashboard-grid">
+
+    <div class="card">
+
+        <div class="card-header">
+            <h2>
+                Empleados por departamento
+            </h2>
+        </div>
+
+        {% for departamento in departamentos %}
+
+            <div class="department-row">
+
+                <span>
+                    {{ departamento.departamento }}
+                </span>
+
+                <strong>
+                    {{ departamento.total }}
+                </strong>
+
+            </div>
+
+        {% empty %}
+
+            <p>
+                No existen departamentos registrados.
+            </p>
+
+        {% endfor %}
+
+    </div>
+
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <h2>
+                Últimas solicitudes
+            </h2>
+
+            <span>
+                {{ permisos_pendientes }}
+                pendientes
+            </span>
+
+        </div>
+
+
+        {% for permiso in ultimos_permisos %}
+
+            <div class="request-row">
+
+                <div>
+
+                    <strong>
+                        {{ permiso.get_tipo_display }}
+                    </strong>
+
+                    <span>
+                        {{ permiso.empleado.nombre_completo }}
+                    </span>
+
+                </div>
+
+                <span>
+                    {{ permiso.get_estado_display }}
+                </span>
+
+            </div>
+
+        {% empty %}
+
+            <p>
+                No hay solicitudes registradas.
+            </p>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+{% endblock %}

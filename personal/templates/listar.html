@@ -1,465 +1,434 @@
-<!DOCTYPE html>
-<html>
+{% extends "base_site.html" %}
 
-<head>
-    <meta charset="utf-8">
-    <title>Nómina de Empleados - RRHH</title>
+{% block title %}
+Empleados
+{% endblock %}
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f8;
-            margin: 0;
-            padding: 40px;
-            color: #333;
-        }
+{% block content %}
 
-        .contenedor {
-            max-width: 1100px;
-            margin: auto;
-            background-color: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
+<div class="page-header">
 
-        h1 {
-            text-align: center;
-            color: #1f4e78;
-            margin-bottom: 25px;
-        }
+    <div>
+        <h1>Empleados</h1>
 
-        /* Resumen de nómina */
-        .resumen {
-            background-color: #eef4f8;
-            padding: 20px;
-            margin-bottom: 25px;
-            border-radius: 8px;
-            border-left: 5px solid #1f4e78;
-        }
+        <p>
+            Gestiona la información del personal de la empresa.
+        </p>
+    </div>
 
-        .resumen h2 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            color: #1f4e78;
-        }
+    {% if puede_editar %}
 
-        .resumen p {
-            margin: 0;
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
+        <a
+            href="{% url 'crear_empleado' %}"
+            class="btn"
+        >
+            + Nuevo empleado
+        </a>
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: white;
-        }
+    {% endif %}
 
-        th {
-            background-color: #1f4e78;
-            color: white;
-            padding: 14px;
-            text-align: left;
-        }
+</div>
 
-        td {
-            padding: 14px;
-            border-bottom: 1px solid #ddd;
-        }
 
-        tr:hover {
-            background-color: #f1f5f9;
-        }
+<!-- ============================================================= -->
+<!-- INDICADORES -->
+<!-- ============================================================= -->
 
-        /* Empleado activo: toda la fila en negro */
-        .fila-activa {
-            color: #000000;
-        }
+<div class="stats-grid">
 
-        /* Empleado inactivo: toda la fila en gris tenue */
-        .fila-inactiva {
-            color: #999999;
-            background-color: #fafafa;
-        }
+    <div class="stat-card">
 
-        .activo {
-            color: #000000;
-            font-weight: bold;
-        }
+        <div class="stat-top">
 
-        .inactivo {
-            color: #999999;
-            font-weight: bold;
-        }
+            <div class="stat-icon">
+                👥
+            </div>
 
-        .salario {
-            font-weight: bold;
-        }
-
-        .sin-empleados {
-            text-align: center;
-            padding: 20px;
-            color: #777;
-        }
-
-        .acciones-superiores {
-            margin-bottom: 20px;
-            text-align: right;
-        }
-
-        .boton-nuevo,
-        .boton-editar {
-            display: inline-block;
-            background-color: #1f4e78;
-            color: white;
-            text-decoration: none;
-            padding: 9px 14px;
-            border-radius: 6px;
-            font-weight: bold;
-        }
-
-        .boton-nuevo:hover,
-        .boton-editar:hover {
-            background-color: #163a5c;
-        }
-
-        .boton-editar {
-            padding: 7px 12px;
-            font-size: 14px;
-        }
-
-        .filtros {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .filtros input,
-        .filtros select {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-        }
-
-        .filtros input {
-            flex: 1;
-            min-width: 220px;
-        }
-
-        .filtros button {
-            background-color: #1f4e78;
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        .boton-limpiar {
-            background-color: #ddd;
-            color: #333;
-            text-decoration: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-        }
-
-        .barra-usuario {
-            max-width: 1100px;
-            margin: 0 auto 15px auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .barra-botones {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .boton-admin,
-        .boton-salir {
-            display: inline-block;
-            padding: 9px 14px;
-            border-radius: 6px;
-            font-weight: bold;
-            text-decoration: none;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        .boton-admin {
-            background-color: #1f4e78;
-            color: white;
-        }
-
-        .boton-salir {
-            background-color: #555;
-            color: white;
-            border: none;
-        }
-
-        .form-logout {
-            margin: 0;
-        }
-
-        .boton-admin:hover {
-            background-color: #163a5c;
-        }
-
-        .boton-salir:hover {
-            background-color: #333;
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .tarjeta {
-            background-color: #eef4f8;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 5px solid #1f4e78;
-        }
-
-        .tarjeta h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            color: #1f4e78;
-            font-size: 16px;
-        }
-
-        .tarjeta p {
-            margin: 0;
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-
-        .tarjeta-nomina {
-            grid-column: span 1;
-        }
-
-        @media (max-width: 700px) {
-            .dashboard {
-                grid-template-columns: 1fr;
-            }
-
-            body {
-                padding: 15px;
-            }
-
-            .contenedor {
-                padding: 15px;
-            }
-
-            table {
-                font-size: 14px;
-            }
-
-            th,
-            td {
-                padding: 8px;
-            }
-        }
-    </style>
-</head>
-
-<body>
-
-        <!-- Barra superior con usuario, administración y cierre de sesión. -->
-        <div class="barra-usuario">
-            <span>
-                Usuario: <strong>{{ request.user.username }}</strong>
+            <span class="stat-label">
+                Total empleados
             </span>
 
-            <div class="barra-botones">
-                <a href="/admin/" class="boton-admin">
-                    Administración
-                </a>
-
-                <form method="post" action="/admin/logout/" class="form-logout">
-                    {% csrf_token %}
-                    <button type="submit" class="boton-salir">
-                        Cerrar sesión
-                    </button>
-                </form>
-            </div>
         </div>
 
-        <div class="contenedor">
+        <strong>
+            {{ total_empleados }}
+        </strong>
 
-            <h1>Gestor de Personal - Recursos Humanos</h1>
+        <span class="stat-subtext">
+            Personal registrado
+        </span>
 
-            <!-- Indicadores generales del personal. -->
-            <div class="dashboard">
+    </div>
 
-                <div class="tarjeta">
-                    <h3>Total empleados</h3>
-                    <p>{{ total_empleados }}</p>
-                </div>
 
-                <div class="tarjeta">
-                    <h3>Empleados activos</h3>
-                    <p>{{ total_activos }}</p>
-                </div>
+    <div class="stat-card stat-success">
 
-                <div class="tarjeta">
-                    <h3>Empleados inactivos</h3>
-                    <p>{{ total_inactivos }}</p>
-                </div>
+        <div class="stat-top">
 
-                <div class="tarjeta tarjeta-nomina">
-                    <h3>Gasto mensual en nómina</h3>
-                    <p>${{ total_nomina }} USD</p>
-                </div>
-
+            <div class="stat-icon">
+                ✓
             </div>
 
-            <!-- Formulario de filtros: búsqueda, departamento, cargo y estado. -->
-            <form method="get" class="filtros">
+            <span class="stat-label">
+                Empleados activos
+            </span>
 
-                <!-- Campo de búsqueda por nombre completo o cargo. -->
-                <input type="text" name="busqueda" placeholder="Escribe un nombre o cargo para buscar" aria-label="Buscar por nombre o cargo" value="{{ busqueda }}">
+        </div>
 
-                <select name="departamento">
-                    <option value="">Todos los departamentos</option>
+        <strong>
+            {{ total_activos }}
+        </strong>
 
-                    {% for departamento in departamentos %}
-                    <option value="{{ departamento }}" {% if departamento_seleccionado == departamento %}selected{% endif%}>
+        <span class="stat-subtext">
+            Actualmente trabajando
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-danger">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ✕
+            </div>
+
+            <span class="stat-label">
+                Empleados inactivos
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_inactivos }}
+        </strong>
+
+        <span class="stat-subtext">
+            Renuncias o desvinculaciones
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-purple">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                $
+            </div>
+
+            <span class="stat-label">
+                Gasto mensual
+            </span>
+
+        </div>
+
+        <strong>
+            ${{ total_nomina|floatformat:0 }}
+        </strong>
+
+        <span class="stat-subtext">
+            Nómina de empleados activos
+        </span>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- FILTROS -->
+<!-- ============================================================= -->
+
+<div class="card employees-card">
+
+    <div class="card-header">
+
+        <div>
+            <h2>
+                Lista de empleados
+            </h2>
+
+            <p>
+                Busca y filtra los registros disponibles.
+            </p>
+        </div>
+
+    </div>
+
+
+    <form
+        method="get"
+        class="filters-form"
+    >
+
+        <div class="filter-search">
+
+            <input
+                type="text"
+                name="busqueda"
+                value="{{ busqueda }}"
+                placeholder="Buscar por nombre o cargo..."
+            >
+
+        </div>
+
+
+        <div class="filter-control">
+
+            <select name="departamento">
+
+                <option value="">
+                    Todos los departamentos
+                </option>
+
+                {% for departamento in departamentos %}
+
+                    <option
+                        value="{{ departamento }}"
+                        {% if departamento == departamento_seleccionado %}
+                            selected
+                        {% endif %}
+                    >
                         {{ departamento }}
                     </option>
-                    {% endfor %}
-                </select>
 
-                <select name="cargo">
-                    <option value="">Todos los cargos</option>
+                {% endfor %}
 
-                    {% for cargo in cargos %}
-                    <option value="{{ cargo }}" {% if cargo_seleccionado == cargo %}selected{% endif %}>
-                        {{ cargo }}
+            </select>
+
+        </div>
+
+
+        <div class="filter-control">
+
+            <select name="cargo">
+
+                <option value="">
+                    Todos los cargos
+                </option>
+
+                {% for item in cargos %}
+
+                    <option
+                        value="{{ item }}"
+                        {% if item == cargo_seleccionado %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ item }}
                     </option>
-                    {% endfor %}
-                </select>
 
-                <select name="estado">
-                    <option value="">Todos los estados</option>
+                {% endfor %}
 
-                    <option value="activo" {% if estado_seleccionado == 'activo' %}selected{% endif %}>
-                        Activos
-                    </option>
+            </select>
 
-                    <option value="inactivo" {% if estado_seleccionado == 'inactivo' %}selected{% endif %}>
-                        Inactivos
-                    </option>
-                </select>
+        </div>
 
-                <button type="submit">
-                    Buscar
-                </button>
 
-                <a href="{% url 'listar_empleados' %}" class="boton-limpiar">
-                    Limpiar
-                </a>
+        <div class="filter-control">
 
-            </form>
+            <select name="estado">
 
-            {% if puede_editar %}
-            <div class="acciones-superiores">
-                <a href="{% url 'crear_empleado' %}" class="boton-nuevo">
-                    + Nuevo empleado
-                </a>
-            </div>
-            {% endif %}
+                <option value="">
+                    Todos los estados
+                </option>
 
-            <!-- Tabla principal con los empleados resultantes. -->
-            <table>
+                <option
+                    value="activo"
+                    {% if estado_seleccionado == 'activo' %}
+                        selected
+                    {% endif %}
+                >
+                    Activos
+                </option>
+
+                <option
+                    value="inactivo"
+                    {% if estado_seleccionado == 'inactivo' %}
+                        selected
+                    {% endif %}
+                >
+                    Inactivos
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <button
+            type="submit"
+            class="btn"
+        >
+            Buscar
+        </button>
+
+
+        <a
+            href="{% url 'listar_empleados' %}"
+            class="btn btn-secondary"
+        >
+            Limpiar
+        </a>
+
+    </form>
+
+
+    <!-- ========================================================= -->
+    <!-- TABLA -->
+    <!-- ========================================================= -->
+
+    <div class="table-responsive employees-table">
+
+        <table>
+
+            <thead>
 
                 <tr>
-                    <th>Nombre Completo</th>
-                    <th>Departamento</th>
+                    <th>Empleado</th>
                     <th>Cargo</th>
-                    <th>Salario Mensual</th>
+                    <th>Departamento</th>
+                    <th>Salario</th>
                     <th>Estado</th>
 
                     {% if puede_editar %}
-                    <th>Acciones</th>
+                        <th>Acciones</th>
                     {% endif %}
                 </tr>
 
+            </thead>
+
+            <tbody>
+
                 {% for empleado in lista_empleados %}
 
-                <!-- Aplica clase de estilo según si el empleado está activo o inactivo (insensible a mayúsculas/minúsculas) -->
-                {% if empleado.estado_laboral|lower == 'activo' %}
-                <tr class="fila-activa">
-                {% else %}
-                <tr class="fila-inactiva">
-                {% endif %}
+                    <tr>
 
                         <td>
-                            {{ empleado.nombre_completo }}
+
+                            <div class="employee-cell">
+
+                                <div class="employee-avatar">
+
+                                    {{ empleado.nombre_completo|first|upper }}
+
+                                </div>
+
+                                <div>
+
+                                    <strong>
+                                        {{ empleado.nombre_completo }}
+                                    </strong>
+
+                                    {% if empleado.email %}
+
+                                        <span>
+                                            {{ empleado.email }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
                         </td>
-                        <td>
-                            {{ empleado.departamento }}
-                        </td>
+
+
                         <td>
                             {{ empleado.cargo }}
                         </td>
 
-                        <td class="salario">
-                            ${{ empleado.salario_mensual }} USD
+
+                        <td>
+                            {{ empleado.departamento }}
                         </td>
+
 
                         <td>
 
-                            <!-- Indicador visual de estado: muestra 'Activo' con visto bueno o 'Inactivo' detallando el estado específico -->
+                            <strong>
+                                ${{ empleado.salario_mensual|floatformat:0 }}
+                            </strong>
+
+                        </td>
+
+
+                        <td>
+
                             {% if empleado.estado_laboral|lower == 'activo' %}
 
-                            <span class="activo">
-                                Activo ✓
-                            </span>
+                                <span class="status-badge status-approved">
+                                    Activo
+                                </span>
 
                             {% else %}
 
-                            <span class="inactivo">
-                                Inactivo ✗ ({{ empleado.get_estado_laboral_display }})
-                            </span>
+                                <span class="status-badge status-rejected">
+                                    {{ empleado.get_estado_laboral_display }}
+                                </span>
 
                             {% endif %}
 
                         </td>
 
+
                         {% if puede_editar %}
-                        <td>
-                            <a href="{% url 'editar_empleado' empleado.id %}" class="boton-editar">
-                                Editar
-                            </a>
-                        </td>
+
+                            <td>
+
+                                <a
+                                    href="{% url 'editar_empleado' empleado.id %}"
+                                    class="table-action"
+                                >
+                                    Editar
+                                </a>
+
+                            </td>
+
                         {% endif %}
 
-                </tr>
+                    </tr>
 
                 {% empty %}
 
-                <tr>
-                    <td colspan="{% if puede_editar %}6{% else %}5{% endif %}" class="sin-empleados">
-                        No hay empleados que coincidan con los filtros.
-                    </td>
-                </tr>
+                    <tr>
+
+                        <td
+                            colspan="{% if puede_editar %}6{% else %}5{% endif %}"
+                        >
+
+                            <div class="empty-state">
+
+                                <div class="empty-icon">
+                                    👥
+                                </div>
+
+                                <h3>
+                                    No se encontraron empleados
+                                </h3>
+
+                                <p>
+                                    Prueba cambiando los filtros de búsqueda.
+                                </p>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
 
                 {% endfor %}
 
-            </table>
+            </tbody>
 
-        </div>
+        </table>
 
-    </body>
+    </div>
 
-</html>
+</div>
+
+{% endblock %}

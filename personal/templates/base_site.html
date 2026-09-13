@@ -1,55 +1,518 @@
-{# Hereda la plantilla base del administrador de Django. #}
-{% extends "admin/base.html" %}
+{% load static %}
 
-{% block title %}
-Gestor de Personal - RRHH
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {% block title %}
+        Gestor de Personal
+        {% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'personal/css/site.css' %}"
+    >
+
+    {% block extra_css %}
+    {% endblock %}
+
+</head>
+
+
+<body>
+
+{% if request.user.is_authenticated %}
+
+<div class="app-layout">
+
+    <!-- ============================================================= -->
+    <!-- SIDEBAR -->
+    <!-- ============================================================= -->
+
+    <aside
+        class="sidebar"
+        id="sidebar"
+    >
+
+        <div class="sidebar-brand">
+
+            <div class="brand-icon">
+                👥
+            </div>
+
+            <div class="brand-text">
+
+                <strong>
+                    Gestor de Personal
+                </strong>
+
+                <span>
+                    Recursos Humanos
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- ========================================================= -->
+        <!-- NAVEGACIÓN RRHH / GERENCIA -->
+        <!-- ========================================================= -->
+
+        {% if es_gestion %}
+
+        <nav class="sidebar-nav">
+
+            <span class="nav-section">
+                GENERAL
+            </span>
+
+
+            <a
+                href="{% url 'dashboard_gestion' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'dashboard_gestion' %}active{% endif %}"
+            >
+
+                <span class="nav-icon">
+                    ⌂
+                </span>
+
+                <span>
+                    Inicio
+                </span>
+
+            </a>
+
+
+            <a
+                href="{% url 'listar_empleados' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'listar_empleados' %}active{% endif %}"
+            >
+
+                <span class="nav-icon">
+                    👤
+                </span>
+
+                <span>
+                    Empleados
+                </span>
+
+            </a>
+
+
+            <a
+                href="{% url 'gestion_permisos' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'gestion_permisos' %}active{% endif %}"
+            >
+
+                <span class="nav-icon">
+                    📋
+                </span>
+
+                <span>
+                    Permisos
+                </span>
+
+            </a>
+
+
+            <a
+                href="{% url 'gestion_nomina' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'gestion_nomina' or request.resolver_match.url_name == 'crear_liquidacion' %}active{% endif %}"
+            >
+
+                <span class="nav-icon">
+                    💳
+                </span>
+
+                <span>
+                    Nómina
+                </span>
+
+            </a>
+
+
+            <a
+                href="/admin/personal/asistencia/"
+                class="nav-link"
+            >
+
+                <span class="nav-icon">
+                    ✓
+                </span>
+
+                <span>
+                    Asistencia
+                </span>
+
+            </a>
+
+
+            <span class="nav-section">
+                SISTEMA
+            </span>
+
+
+            <a
+                href="/admin/"
+                class="nav-link"
+            >
+
+                <span class="nav-icon">
+                    ⚙
+                </span>
+
+                <span>
+                    Administración
+                </span>
+
+            </a>
+
+        </nav>
+
+
+        <!-- ========================================================= -->
+        <!-- NAVEGACIÓN EMPLEADO -->
+        <!-- ========================================================= -->
+
+        {% else %}
+
+        <nav class="sidebar-nav">
+
+            <span class="nav-section">
+                MI PORTAL
+            </span>
+
+
+            <a
+                href="{% url 'dashboard_empleado' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'dashboard_empleado' %}active{% endif %}"
+            >
+
+                <span class="nav-icon">
+                    ⌂
+                </span>
+
+                <span>
+                    Inicio
+                </span>
+
+            </a>
+
+
+            <a
+                href="{% url 'mis_permisos' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'mis_permisos' %}active{% endif %}"
+            >
+
+                <span class="nav-icon">
+                    📋
+                </span>
+
+                <span>
+                    Mis permisos
+                </span>
+
+            </a>
+
+
+            <a
+                href="{% url 'solicitar_permiso' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'solicitar_permiso' %}active{% endif %}"
+            >
+
+                <span class="nav-icon">
+                    ＋
+                </span>
+
+                <span>
+                    Solicitar permiso
+                </span>
+
+            </a>
+
+
+            <a
+                href="{% url 'mis_liquidaciones' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'mis_liquidaciones' %}active{% endif %}"
+            >
+
+                <span class="nav-icon">
+                    💰
+                </span>
+
+                <span>
+                    Mis liquidaciones
+                </span>
+
+            </a>
+
+        </nav>
+
+        {% endif %}
+
+
+        <!-- ========================================================= -->
+        <!-- USUARIO SIDEBAR -->
+        <!-- ========================================================= -->
+
+        <div class="sidebar-user">
+
+            <div class="user-avatar">
+
+                {{ request.user.username|first|upper }}
+
+            </div>
+
+
+            <div class="user-data">
+
+                <strong>
+
+                    {% if request.user.empleado %}
+                        {{ request.user.empleado.nombre_completo }}
+                    {% else %}
+                        {{ request.user.username }}
+                    {% endif %}
+
+                </strong>
+
+
+                <span>
+
+                    {% if es_gestion %}
+                        Gestión RRHH
+                    {% else %}
+                        Empleado
+                    {% endif %}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <a
+            href="{% url 'logout' %}"
+            class="logout-link"
+        >
+
+            <span>
+                ⏻
+            </span>
+
+            Cerrar sesión
+
+        </a>
+
+    </aside>
+
+
+    <!-- ============================================================= -->
+    <!-- ÁREA PRINCIPAL -->
+    <!-- ============================================================= -->
+
+    <div class="main-area">
+
+        <!-- ========================================================= -->
+        <!-- TOPBAR -->
+        <!-- ========================================================= -->
+
+        <header class="topbar">
+
+            <div class="topbar-left">
+
+                <button
+                    class="menu-button"
+                    id="menuButton"
+                    type="button"
+                >
+                    ☰
+                </button>
+
+
+                <div class="topbar-search">
+
+                    <span>
+                        ⌕
+                    </span>
+
+                    <input
+                        type="text"
+                        placeholder="Buscar en el sistema..."
+                        disabled
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="topbar-right">
+
+                <div class="notification-button">
+                    🔔
+                </div>
+
+
+                <div class="topbar-profile">
+
+                    <div class="profile-avatar">
+
+                        {{ request.user.username|first|upper }}
+
+                    </div>
+
+
+                    <div class="profile-info">
+
+                        <strong>
+
+                            {% if request.user.empleado %}
+                                {{ request.user.empleado.nombre_completo }}
+                            {% else %}
+                                {{ request.user.username }}
+                            {% endif %}
+
+                        </strong>
+
+
+                        <span>
+
+                            {% if es_gestion %}
+                                RRHH / Gestión
+                            {% else %}
+                                Trabajador
+                            {% endif %}
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- ========================================================= -->
+        <!-- CONTENIDO -->
+        <!-- ========================================================= -->
+
+        <main class="main-content">
+
+            {% if messages %}
+
+                <div class="messages">
+
+                    {% for message in messages %}
+
+                        <div
+                            class="message {% if message.tags %}message-{{ message.tags }}{% endif %}"
+                        >
+
+                            {{ message }}
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% endif %}
+
+
+            {% block content %}
+            {% endblock %}
+
+        </main>
+
+    </div>
+
+</div>
+
+
+{% else %}
+
+<!-- ================================================================= -->
+<!-- USUARIO NO AUTENTICADO -->
+<!-- ================================================================= -->
+
+<div class="public-layout">
+
+    {% if messages %}
+
+        <div class="public-messages">
+
+            {% for message in messages %}
+
+                <div
+                    class="message {% if message.tags %}message-{{ message.tags }}{% endif %}"
+                >
+                    {{ message }}
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    {% endif %}
+
+
+    <main class="public-content">
+
+        {% block public_content %}
+        {% endblock %}
+
+    </main>
+
+</div>
+
+{% endif %}
+
+
+<script>
+
+    const menuButton =
+        document.getElementById('menuButton');
+
+    const sidebar =
+        document.getElementById('sidebar');
+
+
+    if (menuButton && sidebar) {
+
+        menuButton.addEventListener(
+            'click',
+            function () {
+
+                sidebar.classList.toggle(
+                    'sidebar-open'
+                );
+
+            }
+        );
+
+    }
+
+</script>
+
+
+{% block extra_js %}
 {% endblock %}
 
-{% block branding %}
-<h1 id="site-name">
-    Gestor de Personal - Recursos Humanos
-</h1>
-{% endblock %}
+</body>
 
-{% block nav-global %}
-<style>
-    #header {
-        background: #1f4e78;
-    }
-
-    #branding h1,
-    #branding h1 a:link,
-    #branding h1 a:visited {
-        color: white;
-    }
-
-    .module h2,
-    .module caption,
-    .inline-group h2 {
-        background: #1f4e78;
-    }
-
-    div.breadcrumbs {
-        background: #163a5c;
-    }
-
-    a:link,
-    a:visited {
-        color: #1f4e78;
-    }
-
-    .button,
-    input[type=submit],
-    input[type=button],
-    .submit-row input,
-    a.button {
-        background: #1f4e78;
-    }
-
-    .button:hover,
-    input[type=submit]:hover,
-    input[type=button]:hover {
-        background: #163a5c;
-    }
-</style>
-{% endblock %}
+</html>

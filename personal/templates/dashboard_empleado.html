@@ -1,0 +1,385 @@
+{% extends "base_site.html" %}
+
+{% block title %}
+Mi portal
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <h1>
+            Hola, {{ empleado.nombre_completo }} 👋
+        </h1>
+
+        <p>
+            Bienvenido a tu portal de Recursos Humanos.
+        </p>
+    </div>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- INDICADORES -->
+<!-- ============================================================= -->
+
+<div class="stats-grid employee-stats">
+
+    <div class="stat-card stat-warning">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ⏳
+            </div>
+
+            <span class="stat-label">
+                Permisos pendientes
+            </span>
+
+        </div>
+
+        <strong>
+            {{ permisos_pendientes }}
+        </strong>
+
+        <span class="stat-subtext">
+            Solicitudes en revisión
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-success">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ✓
+            </div>
+
+            <span class="stat-label">
+                Permisos aprobados
+            </span>
+
+        </div>
+
+        <strong>
+            {{ permisos_aprobados }}
+        </strong>
+
+        <span class="stat-subtext">
+            Solicitudes autorizadas
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-danger">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ✕
+            </div>
+
+            <span class="stat-label">
+                Permisos rechazados
+            </span>
+
+        </div>
+
+        <strong>
+            {{ permisos_rechazados }}
+        </strong>
+
+        <span class="stat-subtext">
+            Solicitudes no aprobadas
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-purple">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                $
+            </div>
+
+            <span class="stat-label">
+                Última liquidación
+            </span>
+
+        </div>
+
+        <strong>
+
+            {% if ultima_liquidacion %}
+                ${{ ultima_liquidacion.neto|floatformat:0 }}
+            {% else %}
+                Sin información
+            {% endif %}
+
+        </strong>
+
+        <span class="stat-subtext">
+            Última remuneración registrada
+        </span>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- ACCIONES RÁPIDAS -->
+<!-- ============================================================= -->
+
+<div class="section-title">
+
+    <div>
+        <h2>
+            Acciones rápidas
+        </h2>
+
+        <p>
+            Accede rápidamente a las funciones más utilizadas.
+        </p>
+    </div>
+
+</div>
+
+
+<div class="action-grid">
+
+    <a
+        class="action-card action-card-green"
+        href="{% url 'solicitar_permiso' %}"
+    >
+
+        <div class="action-icon">
+            ＋
+        </div>
+
+        <div>
+
+            <h3>
+                Solicitar permiso
+            </h3>
+
+            <p>
+                Genera una nueva solicitud para revisión de RRHH.
+            </p>
+
+        </div>
+
+        <span class="action-arrow">
+            →
+        </span>
+
+    </a>
+
+
+    <a
+        class="action-card action-card-orange"
+        href="{% url 'mis_permisos' %}"
+    >
+
+        <div class="action-icon">
+            📋
+        </div>
+
+        <div>
+
+            <h3>
+                Mis permisos
+            </h3>
+
+            <p>
+                Revisa el estado de todas tus solicitudes.
+            </p>
+
+        </div>
+
+        <span class="action-arrow">
+            →
+        </span>
+
+    </a>
+
+
+    <a
+        class="action-card action-card-blue"
+        href="{% url 'mis_liquidaciones' %}"
+    >
+
+        <div class="action-icon">
+            💳
+        </div>
+
+        <div>
+
+            <h3>
+                Mis liquidaciones
+            </h3>
+
+            <p>
+                Consulta tu historial de remuneraciones.
+            </p>
+
+        </div>
+
+        <span class="action-arrow">
+            →
+        </span>
+
+    </a>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- ÚLTIMAS SOLICITUDES -->
+<!-- ============================================================= -->
+
+<div class="card recent-card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h2>
+                Últimas solicitudes
+            </h2>
+
+            <p>
+                Revisa tus solicitudes de permiso más recientes.
+            </p>
+
+        </div>
+
+        <a href="{% url 'mis_permisos' %}">
+            Ver todas
+        </a>
+
+    </div>
+
+
+    {% if ultimos_permisos %}
+
+        <div class="table-responsive">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Fecha inicio</th>
+                        <th>Fecha término</th>
+                        <th>Días</th>
+                        <th>Estado</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for permiso in ultimos_permisos %}
+
+                        <tr>
+
+                            <td>
+
+                                <strong>
+                                    {{ permiso.get_tipo_display }}
+                                </strong>
+
+                            </td>
+
+                            <td>
+                                {{ permiso.fecha_inicio|date:"d/m/Y" }}
+                            </td>
+
+                            <td>
+                                {{ permiso.fecha_fin|date:"d/m/Y" }}
+                            </td>
+
+                            <td>
+                                {{ permiso.dias }}
+                            </td>
+
+                            <td>
+
+                                {% if permiso.estado == 'pendiente' %}
+
+                                    <span class="status-badge status-pending">
+                                        Pendiente
+                                    </span>
+
+                                {% elif permiso.estado == 'aprobado' %}
+
+                                    <span class="status-badge status-approved">
+                                        Aprobado
+                                    </span>
+
+                                {% elif permiso.estado == 'rechazado' %}
+
+                                    <span class="status-badge status-rejected">
+                                        Rechazado
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="status-badge">
+                                        {{ permiso.get_estado_display }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {% else %}
+
+        <div class="empty-state">
+
+            <div class="empty-icon">
+                📄
+            </div>
+
+            <h3>
+                Aún no tienes solicitudes
+            </h3>
+
+            <p>
+                Cuando solicites un permiso, podrás revisar su estado aquí.
+            </p>
+
+            <a
+                href="{% url 'solicitar_permiso' %}"
+                class="btn"
+            >
+                Solicitar permiso
+            </a>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

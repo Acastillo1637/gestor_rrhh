@@ -1,11 +1,52 @@
-# -----------------------------------------------------------------------------
-# Rutas de la aplicación personal y relación de cada URL con su vista.
-# -----------------------------------------------------------------------------
 from django.urls import path
+
 from . import views
 
-# Rutas disponibles para la gestión de empleados.
+
 urlpatterns = [
+
+    # -------------------------------------------------------------------------
+    # Autenticación
+    # -------------------------------------------------------------------------
+
+    path(
+        '',
+        views.inicio,
+        name='inicio'
+    ),
+
+    path(
+        'login/',
+        views.iniciar_sesion,
+        name='login'
+    ),
+
+    path(
+        'logout/',
+        views.cerrar_sesion,
+        name='logout'
+    ),
+
+    # -------------------------------------------------------------------------
+    # Dashboards
+    # -------------------------------------------------------------------------
+
+    path(
+        'inicio/gestion/',
+        views.dashboard_gestion,
+        name='dashboard_gestion'
+    ),
+
+    path(
+        'inicio/empleado/',
+        views.dashboard_empleado,
+        name='dashboard_empleado'
+    ),
+
+    # -------------------------------------------------------------------------
+    # Empleados
+    # -------------------------------------------------------------------------
+
     path(
         'empleados/',
         views.listar_empleados,
@@ -23,9 +64,84 @@ urlpatterns = [
         views.editar_empleado,
         name='editar_empleado'
     ),
+
+    # -------------------------------------------------------------------------
+    # Gestión de permisos
+    # -------------------------------------------------------------------------
+
     path(
-    'ajax/puestos/',
-    views.obtener_puestos_por_departamento,
-    name='obtener_puestos_por_departamento'
+        'permisos/',
+        views.gestion_permisos,
+        name='gestion_permisos'
+    ),
+
+    path(
+        'permisos/<int:permiso_id>/aprobar/',
+        views.aprobar_permiso,
+        name='aprobar_permiso'
+    ),
+
+    path(
+        'permisos/<int:permiso_id>/rechazar/',
+        views.rechazar_permiso,
+        name='rechazar_permiso'
+    ),
+
+    # -------------------------------------------------------------------------
+    # Permisos de empleado
+    # -------------------------------------------------------------------------
+
+    path(
+        'permisos/solicitar/',
+        views.solicitar_permiso,
+        name='solicitar_permiso'
+    ),
+
+    path(
+        'permisos/mis-permisos/',
+        views.mis_permisos,
+        name='mis_permisos'
+    ),
+
+    # -------------------------------------------------------------------------
+    # Gestión de nómina
+    # -------------------------------------------------------------------------
+
+    path(
+        'nomina/',
+        views.gestion_nomina,
+        name='gestion_nomina'
+    ),
+
+    path(
+        'nomina/nueva/',
+        views.crear_liquidacion,
+        name='crear_liquidacion'
+    ),
+
+    path(
+        'nomina/<int:liquidacion_id>/pagar/',
+        views.marcar_liquidacion_pagada,
+        name='marcar_liquidacion_pagada'
+    ),
+
+    # -------------------------------------------------------------------------
+    # Liquidaciones del empleado
+    # -------------------------------------------------------------------------
+
+    path(
+        'liquidaciones/',
+        views.mis_liquidaciones,
+        name='mis_liquidaciones'
+    ),
+
+    # -------------------------------------------------------------------------
+    # AJAX
+    # -------------------------------------------------------------------------
+
+    path(
+        'ajax/puestos/',
+        views.obtener_puestos_por_departamento,
+        name='obtener_puestos_por_departamento'
     ),
 ]

@@ -1,0 +1,99 @@
+{% extends "base_site.html" %}
+
+{% block title %}
+Mis liquidaciones
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <h1>
+            Mis liquidaciones
+        </h1>
+
+        <p>
+            Consulta el historial de tus remuneraciones.
+        </p>
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    {% if liquidaciones %}
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Periodo</th>
+                    <th>Salario base</th>
+                    <th>Bonificación</th>
+                    <th>Descuentos</th>
+                    <th>Neto</th>
+                    <th>Estado</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for liquidacion in liquidaciones %}
+
+                    <tr>
+
+                        <td>
+                            {{ liquidacion.mes_ano|date:"m/Y" }}
+                        </td>
+
+                        <td>
+                            ${{ liquidacion.salario_base }}
+                        </td>
+
+                        <td>
+                            ${{ liquidacion.bonificacion }}
+                        </td>
+
+                        <td>
+                            ${{ liquidacion.descuentos }}
+                        </td>
+
+                        <td>
+                            <strong>
+                                ${{ liquidacion.neto }}
+                            </strong>
+                        </td>
+
+                        <td>
+
+                            {% if liquidacion.pagado %}
+                                Pagado
+                            {% else %}
+                                Pendiente
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    {% else %}
+
+        <p>
+            Todavía no tienes liquidaciones registradas.
+        </p>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

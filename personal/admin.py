@@ -2,8 +2,9 @@
 # Configuración del panel de administración del sistema de RRHH.
 # -----------------------------------------------------------------------------
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django import forms
+from django.utils import timezone
 
 from .models import (
     Empleado,
@@ -29,7 +30,7 @@ admin.site.site_url = "/empleados/"
 
 
 # =============================================================================
-# EMPLEADO
+# FORMULARIO ADMIN DE EMPLEADO
 # =============================================================================
 
 class EmpleadoAdminForm(forms.ModelForm):
@@ -48,7 +49,7 @@ class EmpleadoAdminForm(forms.ModelForm):
             ('', 'Seleccione primero un departamento')
         ]
     )
-    
+
     class Meta:
         model = Empleado
         exclude = (
@@ -59,7 +60,9 @@ class EmpleadoAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Si estamos editando un empleado existente
+        # -------------------------------------------------------------
+        # Edición de empleado existente
+        # -------------------------------------------------------------
         if self.instance and self.instance.pk:
 
             try:
@@ -89,8 +92,9 @@ class EmpleadoAdminForm(forms.ModelForm):
             except Departamento.DoesNotExist:
                 pass
 
-        # Si el formulario viene enviado y hubo algún error,
-        # mantenemos los cargos del departamento seleccionado.
+        # -------------------------------------------------------------
+        # Mantener cargos después de un POST con error
+        # -------------------------------------------------------------
         if self.is_bound:
 
             departamento_id = self.data.get(
@@ -138,11 +142,15 @@ class EmpleadoAdminForm(forms.ModelForm):
         return empleado
 
 
+# =============================================================================
+# EMPLEADO
+# =============================================================================
+
 @admin.register(Empleado)
 class EmpleadoAdmin(admin.ModelAdmin):
 
     form = EmpleadoAdminForm
-    
+
     fields = (
         'usuario',
         'nombre_completo',
@@ -158,11 +166,11 @@ class EmpleadoAdmin(admin.ModelAdmin):
         'cargo_selector',
         'salario_mensual',
     )
-    
+
     class Media:
         js = (
-        'personal/js/empleado_admin.js',
-    )
+            'personal/js/empleado_admin.js',
+        )
 
     list_display = (
         'nombre_completo',
@@ -197,8 +205,7 @@ class EmpleadoAdmin(admin.ModelAdmin):
     )
 
     # -------------------------------------------------------------------------
-    # Muestra el último salario registrado.
-    # Si todavía no existe una nómina, utiliza el salario mensual del empleado.
+    # Último salario
     # -------------------------------------------------------------------------
 
     def ultimo_salario(self, obj):
@@ -215,7 +222,7 @@ class EmpleadoAdmin(admin.ModelAdmin):
     ultimo_salario.short_description = 'Último salario'
 
     # -------------------------------------------------------------------------
-    # Permisos del administrador
+    # Permisos
     # -------------------------------------------------------------------------
 
     def has_view_permission(self, request, obj=None):
@@ -258,12 +265,14 @@ class EmpleadoAdmin(admin.ModelAdmin):
         )
 
     # -------------------------------------------------------------------------
-    # Auditoría automática de cambios de salario
+    # Auditoría salarial + historial automático de puestos
     # -------------------------------------------------------------------------
 
     def save_model(self, request, obj, form, change):
 
         salario_anterior = None
+        cargo_anterior = None
+        departamento_anterior = None
 
         if change:
 
@@ -275,12 +284,24 @@ class EmpleadoAdmin(admin.ModelAdmin):
                 empleado_anterior.salario_mensual
             )
 
+            cargo_anterior = (
+                empleado_anterior.cargo
+            )
+
+            departamento_anterior = (
+                empleado_anterior.departamento
+            )
+
         super().save_model(
             request,
             obj,
             form,
             change
         )
+
+        # ---------------------------------------------------------------------
+        # Historial salarial
+        # ---------------------------------------------------------------------
 
         if (
             change
@@ -292,6 +313,70 @@ class EmpleadoAdmin(admin.ModelAdmin):
                 salario_anterior=salario_anterior,
                 salario_nuevo=obj.salario_mensual,
                 modificado_por=request.user.username
+            )
+
+        # ---------------------------------------------------------------------
+        # Buscar puesto correspondiente
+        # ---------------------------------------------------------------------
+
+        puesto_nuevo = Puesto.objects.filter(
+            nombre=obj.cargo,
+            departamento__nombre=obj.departamento
+        ).first()
+
+        if not puesto_nuevo:
+            return
+
+        # ---------------------------------------------------------------------
+        # Empleado nuevo
+        # ---------------------------------------------------------------------
+
+        if not change:
+
+            EmpleadoPuesto.objects.create(
+                empleado=obj,
+                puesto=puesto_nuevo,
+                fecha_inicio=(
+                    obj.fecha_contratacion
+                    or timezone.localdate()
+                ),
+                es_actual=True
+            )
+
+            return
+
+        # ---------------------------------------------------------------------
+        # Cambio de cargo o departamento
+        # ---------------------------------------------------------------------
+
+        if (
+            cargo_anterior != obj.cargo
+            or departamento_anterior != obj.departamento
+        ):
+
+            puesto_actual = (
+                EmpleadoPuesto.objects
+                .filter(
+                    empleado=obj,
+                    es_actual=True
+                )
+                .first()
+            )
+
+            if puesto_actual:
+
+                puesto_actual.es_actual = False
+                puesto_actual.fecha_fin = (
+                    timezone.localdate()
+                )
+
+                puesto_actual.save()
+
+            EmpleadoPuesto.objects.create(
+                empleado=obj,
+                puesto=puesto_nuevo,
+                fecha_inicio=timezone.localdate(),
+                es_actual=True
             )
 
 
@@ -432,6 +517,20 @@ class EmpleadoPuestoAdmin(admin.ModelAdmin):
 @admin.register(Salario)
 class SalarioAdmin(admin.ModelAdmin):
 
+    fields = (
+        'empleado',
+        'mes_ano',
+        'salario_base',
+        'bonificacion',
+        'descuentos',
+        'neto',
+        'pagado',
+    )
+
+    readonly_fields = (
+        'neto',
+    )
+
     list_display = (
         'empleado',
         'mes_ano',
@@ -512,6 +611,128 @@ class PermisoAdmin(admin.ModelAdmin):
         'aprobado',
         'fecha_inicio',
     )
+
+    ordering = (
+        '-fecha_inicio',
+    )
+
+    actions = (
+        'aprobar_permisos',
+        'rechazar_permisos',
+    )
+
+    # -------------------------------------------------------------------------
+    # Aprobar solicitudes seleccionadas
+    # -------------------------------------------------------------------------
+
+    @admin.action(
+        description='Aprobar permisos seleccionados'
+    )
+    def aprobar_permisos(
+        self,
+        request,
+        queryset
+    ):
+
+        autorizado = (
+            request.user.is_superuser
+            or request.user.groups.filter(
+                name='RRHH'
+            ).exists()
+            or request.user.groups.filter(
+                name='GERENTES'
+            ).exists()
+        )
+
+        if not autorizado:
+
+            self.message_user(
+                request,
+                'No tienes permisos para aprobar solicitudes.',
+                level=messages.ERROR
+            )
+
+            return
+
+        cantidad = queryset.update(
+            estado='aprobado',
+            aprobado=True
+        )
+
+        self.message_user(
+            request,
+            f'{cantidad} permiso(s) aprobado(s) correctamente.',
+            level=messages.SUCCESS
+        )
+
+    # -------------------------------------------------------------------------
+    # Rechazar solicitudes seleccionadas
+    # -------------------------------------------------------------------------
+
+    @admin.action(
+        description='Rechazar permisos seleccionados'
+    )
+    def rechazar_permisos(
+        self,
+        request,
+        queryset
+    ):
+
+        autorizado = (
+            request.user.is_superuser
+            or request.user.groups.filter(
+                name='RRHH'
+            ).exists()
+            or request.user.groups.filter(
+                name='GERENTES'
+            ).exists()
+        )
+
+        if not autorizado:
+
+            self.message_user(
+                request,
+                'No tienes permisos para rechazar solicitudes.',
+                level=messages.ERROR
+            )
+
+            return
+
+        cantidad = queryset.update(
+            estado='rechazado',
+            aprobado=False
+        )
+
+        self.message_user(
+            request,
+            f'{cantidad} permiso(s) rechazado(s) correctamente.',
+            level=messages.WARNING
+        )
+
+    # -------------------------------------------------------------------------
+    # Mantener sincronizado Estado / Aprobado
+    # -------------------------------------------------------------------------
+
+    def save_model(
+        self,
+        request,
+        obj,
+        form,
+        change
+    ):
+
+        if obj.estado == 'aprobado':
+            obj.aprobado = True
+
+        else:
+            obj.aprobado = False
+
+        super().save_model(
+            request,
+            obj,
+            form,
+            change
+        )
 
 
 # =============================================================================

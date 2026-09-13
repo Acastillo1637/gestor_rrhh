@@ -1,0 +1,206 @@
+{% extends "base_site.html" %}
+
+{% block title %}
+Nueva liquidación
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            Nueva liquidación
+        </h1>
+
+        <p>
+            Registra una nueva remuneración para un empleado.
+        </p>
+
+    </div>
+
+
+    <a
+        href="{% url 'gestion_nomina' %}"
+        class="btn btn-secondary"
+    >
+        ← Volver a nómina
+    </a>
+
+</div>
+
+
+<div class="employee-form-container">
+
+    <div class="card employee-form-card">
+
+        <div class="form-section-header">
+
+            <div class="form-section-icon">
+                💳
+            </div>
+
+            <div>
+
+                <h2>
+                    Datos de la liquidación
+                </h2>
+
+                <p>
+                    El neto será calculado automáticamente.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <form
+            method="post"
+            class="employee-form"
+        >
+
+            {% csrf_token %}
+
+
+            {% if formulario.non_field_errors %}
+
+                <div class="form-alert">
+
+                    {{ formulario.non_field_errors }}
+
+                </div>
+
+            {% endif %}
+
+
+            <div class="employee-form-grid">
+
+
+                <div class="form-group form-group-full">
+
+                    <label>
+                        Empleado
+                    </label>
+
+                    {{ formulario.empleado }}
+
+                    {{ formulario.empleado.errors }}
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Periodo
+                    </label>
+
+                    {{ formulario.mes_ano }}
+
+                    {{ formulario.mes_ano.errors }}
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Salario base
+                    </label>
+
+                    <div class="salary-input-wrapper">
+
+                        <span>$</span>
+
+                        {{ formulario.salario_base }}
+
+                    </div>
+
+                    {{ formulario.salario_base.errors }}
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Bonificación
+                    </label>
+
+                    <div class="salary-input-wrapper">
+
+                        <span>$</span>
+
+                        {{ formulario.bonificacion }}
+
+                    </div>
+
+                    {{ formulario.bonificacion.errors }}
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Descuentos
+                    </label>
+
+                    <div class="salary-input-wrapper">
+
+                        <span>$</span>
+
+                        {{ formulario.descuentos }}
+
+                    </div>
+
+                    {{ formulario.descuentos.errors }}
+
+                </div>
+
+
+                <div class="form-group form-group-full">
+
+                    <label class="checkbox-field">
+
+                        {{ formulario.pagado }}
+
+                        <span>
+                            Marcar esta liquidación como pagada
+                        </span>
+
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <div class="employee-form-actions">
+
+                <a
+                    href="{% url 'gestion_nomina' %}"
+                    class="btn btn-secondary"
+                >
+                    Cancelar
+                </a>
+
+
+                <button
+                    type="submit"
+                    class="btn"
+                >
+                    Guardar liquidación →
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

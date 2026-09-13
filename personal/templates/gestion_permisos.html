@@ -1,0 +1,428 @@
+{% extends "base_site.html" %}
+
+{% block title %}
+Gestión de permisos
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <h1>
+            Gestión de permisos
+        </h1>
+
+        <p>
+            Revisa y administra las solicitudes enviadas por los empleados.
+        </p>
+    </div>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- INDICADORES -->
+<!-- ============================================================= -->
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                📋
+            </div>
+
+            <span class="stat-label">
+                Total solicitudes
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_permisos }}
+        </strong>
+
+        <span class="stat-subtext">
+            Solicitudes registradas
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-warning">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ⏳
+            </div>
+
+            <span class="stat-label">
+                Pendientes
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_pendientes }}
+        </strong>
+
+        <span class="stat-subtext">
+            Esperando revisión
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-success">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ✓
+            </div>
+
+            <span class="stat-label">
+                Aprobados
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_aprobados }}
+        </strong>
+
+        <span class="stat-subtext">
+            Solicitudes autorizadas
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-danger">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ✕
+            </div>
+
+            <span class="stat-label">
+                Rechazados
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_rechazados }}
+        </strong>
+
+        <span class="stat-subtext">
+            Solicitudes no aprobadas
+        </span>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- TABLA -->
+<!-- ============================================================= -->
+
+<div class="card permissions-card">
+
+    <div class="card-header">
+
+        <div>
+            <h2>
+                Solicitudes de permisos
+            </h2>
+
+            <p>
+                Busca, filtra y procesa las solicitudes de los empleados.
+            </p>
+        </div>
+
+    </div>
+
+
+    <!-- FILTROS -->
+
+    <form
+        method="get"
+        class="permissions-filters"
+    >
+
+        <input
+            type="text"
+            name="busqueda"
+            value="{{ busqueda }}"
+            placeholder="Buscar empleado..."
+        >
+
+
+        <select name="tipo">
+
+            <option value="">
+                Todos los tipos
+            </option>
+
+            {% for valor, nombre in tipos_permiso %}
+
+                <option
+                    value="{{ valor }}"
+                    {% if valor == tipo_seleccionado %}
+                        selected
+                    {% endif %}
+                >
+                    {{ nombre }}
+                </option>
+
+            {% endfor %}
+
+        </select>
+
+
+        <select name="estado">
+
+            <option value="">
+                Todos los estados
+            </option>
+
+            <option
+                value="pendiente"
+                {% if estado_seleccionado == 'pendiente' %}
+                    selected
+                {% endif %}
+            >
+                Pendientes
+            </option>
+
+            <option
+                value="aprobado"
+                {% if estado_seleccionado == 'aprobado' %}
+                    selected
+                {% endif %}
+            >
+                Aprobados
+            </option>
+
+            <option
+                value="rechazado"
+                {% if estado_seleccionado == 'rechazado' %}
+                    selected
+                {% endif %}
+            >
+                Rechazados
+            </option>
+
+        </select>
+
+
+        <button
+            type="submit"
+            class="btn"
+        >
+            Filtrar
+        </button>
+
+
+        <a
+            href="{% url 'gestion_permisos' %}"
+            class="btn btn-secondary"
+        >
+            Limpiar
+        </a>
+
+    </form>
+
+
+    <!-- TABLA -->
+
+    <div class="table-responsive permissions-table">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Empleado</th>
+                    <th>Tipo</th>
+                    <th>Inicio</th>
+                    <th>Término</th>
+                    <th>Días</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for permiso in permisos %}
+
+                    <tr>
+
+                        <td>
+
+                            <div class="employee-cell">
+
+                                <div class="employee-avatar">
+                                    {{ permiso.empleado.nombre_completo|first|upper }}
+                                </div>
+
+                                <div>
+                                    <strong>
+                                        {{ permiso.empleado.nombre_completo }}
+                                    </strong>
+
+                                    <span>
+                                        {{ permiso.empleado.cargo }}
+                                    </span>
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <td>
+                            {{ permiso.get_tipo_display }}
+                        </td>
+
+
+                        <td>
+                            {{ permiso.fecha_inicio|date:"d/m/Y" }}
+                        </td>
+
+
+                        <td>
+                            {{ permiso.fecha_fin|date:"d/m/Y" }}
+                        </td>
+
+
+                        <td>
+                            {{ permiso.dias }}
+                        </td>
+
+
+                        <td>
+
+                            {% if permiso.estado == 'pendiente' %}
+
+                                <span class="status-badge status-pending">
+                                    Pendiente
+                                </span>
+
+                            {% elif permiso.estado == 'aprobado' %}
+
+                                <span class="status-badge status-approved">
+                                    Aprobado
+                                </span>
+
+                            {% elif permiso.estado == 'rechazado' %}
+
+                                <span class="status-badge status-rejected">
+                                    Rechazado
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            {% if permiso.estado == 'pendiente' %}
+
+                                <div class="permission-actions">
+
+                                    <form
+                                        method="post"
+                                        action="{% url 'aprobar_permiso' permiso.id %}"
+                                    >
+
+                                        {% csrf_token %}
+
+                                        <button
+                                            type="submit"
+                                            class="permission-btn approve"
+                                        >
+                                            Aprobar
+                                        </button>
+
+                                    </form>
+
+
+                                    <form
+                                        method="post"
+                                        action="{% url 'rechazar_permiso' permiso.id %}"
+                                    >
+
+                                        {% csrf_token %}
+
+                                        <button
+                                            type="submit"
+                                            class="permission-btn reject"
+                                        >
+                                            Rechazar
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                            {% else %}
+
+                                <span class="processed-label">
+                                    Procesado
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td colspan="7">
+
+                            <div class="empty-state">
+
+                                <div class="empty-icon">
+                                    📋
+                                </div>
+
+                                <h3>
+                                    No hay solicitudes
+                                </h3>
+
+                                <p>
+                                    No existen permisos que coincidan con los filtros.
+                                </p>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
