@@ -2591,3 +2591,520 @@ button:hover,
     }
 
 }
+/* ==========================================================================
+   DASHBOARD DE GESTIÓN RRHH
+   ========================================================================== */
+
+.page-eyebrow {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: var(--primary);
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: 1.3px;
+}
+
+
+.dashboard-management-header {
+    margin-bottom: 25px;
+}
+
+
+.dashboard-header-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+}
+
+
+/* KPI PRIMARIO */
+
+.stat-primary .stat-icon {
+    background: var(--primary-soft);
+    color: var(--primary);
+}
+
+
+.stat-primary::after {
+    background: var(--primary-soft);
+}
+
+
+/* TÍTULOS */
+
+.dashboard-section-title {
+    margin-top: 30px;
+}
+
+
+/* ==========================================================================
+   ACCIONES RÁPIDAS RRHH
+   ========================================================================== */
+
+.management-actions-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 16px;
+
+    margin-bottom: 25px;
+}
+
+
+.management-action-card {
+    position: relative;
+
+    min-height: 125px;
+
+    display: flex;
+    align-items: flex-start;
+
+    gap: 15px;
+
+    padding: 20px;
+
+    background: white;
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    box-shadow: var(--shadow);
+
+    overflow: hidden;
+
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s,
+        border-color 0.2s;
+}
+
+
+.management-action-card:hover {
+    transform: translateY(-4px);
+
+    border-color:
+        rgba(22, 119, 255, 0.30);
+
+    box-shadow: var(--shadow-large);
+}
+
+
+.management-action-icon {
+    width: 46px;
+    height: 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border-radius: 12px;
+
+    font-size: 19px;
+}
+
+
+.action-employees .management-action-icon {
+    background: var(--primary-soft);
+}
+
+
+.action-permissions .management-action-icon {
+    background: var(--warning-soft);
+}
+
+
+.action-payroll .management-action-icon {
+    background: var(--purple-soft);
+}
+
+
+.management-action-content {
+    padding-right: 18px;
+}
+
+
+.management-action-content h3 {
+    margin: 2px 0 7px;
+
+    font-size: 14px;
+}
+
+
+.management-action-content p {
+    margin: 0;
+
+    color: var(--text-secondary);
+
+    font-size: 11px;
+
+    line-height: 1.55;
+}
+
+
+.management-action-arrow {
+    position: absolute;
+
+    right: 17px;
+    bottom: 15px;
+
+    color: var(--text-light);
+
+    font-size: 18px;
+
+    transition:
+        transform 0.2s,
+        color 0.2s;
+}
+
+
+.management-action-card:hover
+.management-action-arrow {
+    transform: translateX(4px);
+
+    color: var(--primary);
+}
+
+
+.management-notification-badge {
+    position: absolute;
+
+    top: 13px;
+    right: 13px;
+
+    min-width: 23px;
+    height: 23px;
+
+    padding: 0 7px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 20px;
+
+    background: var(--danger);
+
+    color: white;
+
+    font-size: 10px;
+    font-weight: 800;
+}
+
+
+/* ==========================================================================
+   GRID CENTRAL
+   ========================================================================== */
+
+.management-dashboard-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.55fr)
+        minmax(280px, 0.8fr);
+
+    gap: 18px;
+
+    margin-bottom: 18px;
+}
+
+
+/* ==========================================================================
+   DEPARTAMENTOS
+   ========================================================================== */
+
+.department-list {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.department-item {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 14px 0;
+
+    border-bottom:
+        1px solid var(--border);
+}
+
+
+.department-item:first-child {
+    padding-top: 2px;
+}
+
+
+.department-item:last-child {
+    border-bottom: 0;
+}
+
+
+.department-info {
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+}
+
+
+.department-icon {
+    width: 38px;
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border-radius: 10px;
+
+    background: var(--primary-soft);
+
+    font-size: 16px;
+}
+
+
+.department-info > div:last-child {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.department-info strong {
+    font-size: 12px;
+}
+
+
+.department-info span {
+    margin-top: 3px;
+
+    color: var(--text-secondary);
+
+    font-size: 9px;
+}
+
+
+.department-total {
+    display: flex;
+    align-items: baseline;
+
+    gap: 5px;
+}
+
+
+.department-total strong {
+    color: var(--primary);
+
+    font-size: 20px;
+}
+
+
+.department-total span {
+    color: var(--text-secondary);
+
+    font-size: 9px;
+}
+
+
+/* ==========================================================================
+   RESUMEN PERMISOS
+   ========================================================================== */
+
+.permission-summary-highlight {
+    min-height: 110px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+
+    padding: 18px;
+
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #fff8e7,
+            #fffdf8
+        );
+
+    border:
+        1px solid #f9e4b7;
+}
+
+
+.permission-highlight-icon {
+    width: 46px;
+    height: 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border-radius: 12px;
+
+    background: white;
+
+    color: var(--warning);
+
+    font-size: 20px;
+
+    box-shadow:
+        0 5px 15px rgba(239, 155, 23, 0.10);
+}
+
+
+.permission-summary-highlight > div:last-child {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.permission-summary-highlight span {
+    color: #94600c;
+
+    font-size: 10px;
+}
+
+
+.permission-summary-highlight strong {
+    margin-top: 3px;
+
+    color: #9d6409;
+
+    font-size: 30px;
+}
+
+
+.dashboard-review-button {
+    min-height: 40px;
+
+    margin-top: 15px;
+
+    padding: 0 13px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-radius: 8px;
+
+    background: var(--warning-soft);
+
+    color: #9b630a;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    transition:
+        background 0.2s,
+        transform 0.2s;
+}
+
+
+.dashboard-review-button:hover {
+    background: #ffe4ad;
+
+    transform: translateY(-1px);
+}
+
+
+.dashboard-all-clear {
+    min-height: 40px;
+
+    margin-top: 15px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 0 13px;
+
+    border-radius: 8px;
+
+    background: var(--success-soft);
+
+    color: var(--success);
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+
+/* ==========================================================================
+   SOLICITUDES RECIENTES
+   ========================================================================== */
+
+.dashboard-recent-permissions {
+    margin-bottom: 25px;
+}
+
+
+/* ==========================================================================
+   RESPONSIVE DASHBOARD RRHH
+   ========================================================================== */
+
+@media (max-width: 1150px) {
+
+    .management-actions-grid {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+
+    .management-dashboard-grid {
+        grid-template-columns:
+            1fr;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .dashboard-header-actions {
+        width: 100%;
+    }
+
+
+    .dashboard-header-actions .btn {
+        flex: 1;
+    }
+
+
+    .management-actions-grid {
+        grid-template-columns:
+            1fr;
+    }
+
+}
+
+
+@media (max-width: 500px) {
+
+    .dashboard-header-actions {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+}

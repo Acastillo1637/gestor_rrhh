@@ -2,6 +2,12 @@
 # Lógica de las páginas del sistema de Recursos Humanos.
 # -----------------------------------------------------------------------------
 
+from django.contrib.auth.models import User, Group
+from django.utils.crypto import get_random_string
+from django.utils.text import slugify
+from django.db import transaction
+from django.urls import reverse
+
 from django.shortcuts import (
     render,
     redirect,
@@ -44,6 +50,7 @@ from .models import (
     Puesto,
     Permiso,
     Salario,
+    Notificacion,
 )
 
 
@@ -80,10 +87,134 @@ def contexto_rol(request):
         and hasattr(request.user, 'empleado')
     )
 
+    if not request.user.is_authenticated:
+        notificaciones = Notificacion.objects.none()
+    elif es_gestion:
+        # RRHH y Gerencia ven la actividad general del sistema.
+        notificaciones = Notificacion.objects.filter(
+            usuario__isnull=True
+        )
+    else:
+        # Los trabajadores solamente ven sus propias notificaciones.
+        notificaciones = Notificacion.objects.filter(
+            usuario=request.user
+        )
+
+    notificaciones_no_leidas = notificaciones.filter(
+        leida=False
+    ).count()
+
+    ultimas_notificaciones = notificaciones[:8]
+
     return {
         'es_gestion': es_gestion,
         'es_empleado': es_empleado,
+        'notificaciones_no_leidas': notificaciones_no_leidas,
+        'ultimas_notificaciones': ultimas_notificaciones,
     }
+
+
+def crear_notificacion(
+    mensaje,
+    tipo='sistema',
+    usuario=None,
+    url=''
+):
+    """
+    Crea una notificación.
+
+    usuario=None  -> visible para RRHH / Gerencia.
+    usuario=User  -> visible solamente para ese trabajador.
+    """
+
+    return Notificacion.objects.create(
+        usuario=usuario,
+        mensaje=mensaje,
+        tipo=tipo,
+        url=url,
+    )
+
+
+def crear_usuario_para_empleado(empleado):
+    """
+    Crea automáticamente una cuenta de acceso para un empleado.
+
+    Retorna:
+        usuario creado
+        contraseña temporal
+    """
+
+    # ---------------------------------------------------------
+    # CREAR NOMBRE DE USUARIO
+    # ---------------------------------------------------------
+
+    # Ejemplo:
+    # Juan Pérez González -> juan.perez.gonzalez
+    username_base = slugify(
+        empleado.nombre_completo
+    ).replace("-", ".")
+
+    if not username_base:
+        username_base = "empleado"
+
+    username = username_base
+    contador = 1
+
+    # Evita usuarios repetidos
+    while User.objects.filter(username=username).exists():
+        username = f"{username_base}{contador}"
+        contador += 1
+
+    # ---------------------------------------------------------
+    # GENERAR CONTRASEÑA TEMPORAL
+    # ---------------------------------------------------------
+
+    caracteres = (
+        "ABCDEFGHJKLMNPQRSTUVWXYZ"
+        "abcdefghijkmnopqrstuvwxyz"
+        "23456789"
+        "@#$"
+    )
+
+    password_temporal = get_random_string(
+        12,
+        allowed_chars=caracteres
+    )
+
+    # ---------------------------------------------------------
+    # CREAR USUARIO DJANGO
+    # ---------------------------------------------------------
+
+    usuario = User.objects.create_user(
+        username=username,
+        email=empleado.email or "",
+        password=password_temporal,
+        is_active=True,
+    )
+
+    # Es trabajador normal, NO administrador
+    usuario.is_staff = False
+    usuario.is_superuser = False
+    usuario.save()
+
+    # ---------------------------------------------------------
+    # GRUPO EMPLEADO
+    # ---------------------------------------------------------
+
+    grupo_empleado, _ = Group.objects.get_or_create(
+        name="EMPLEADO"
+    )
+
+    usuario.groups.add(grupo_empleado)
+
+    # ---------------------------------------------------------
+    # VINCULAR CUENTA CON EMPLEADO
+    # ---------------------------------------------------------
+
+    empleado.usuario = usuario
+    empleado.save(update_fields=["usuario"])
+
+    return usuario, password_temporal
 
 
 # =============================================================================
@@ -478,14 +609,58 @@ def crear_empleado(request):
 
         if formulario.is_valid():
 
-            formulario.save()
+            try:
+                # Si falla la creación del usuario, también se revierte
+                # la creación del empleado para no dejar datos incompletos.
+                with transaction.atomic():
 
-            messages.success(
-                request,
-                'Empleado creado correctamente.'
-            )
+                    empleado = formulario.save()
 
-            return redirect('listar_empleados')
+                    usuario = None
+                    password_temporal = None
+
+                    if not empleado.usuario:
+                        usuario, password_temporal = crear_usuario_para_empleado(
+                            empleado
+                        )
+
+                crear_notificacion(
+                    mensaje=(
+                        f'{request.user.username} creó al empleado '
+                        f'{empleado.nombre_completo}.'
+                    ),
+                    tipo='empleado',
+                    url=reverse(
+                        'editar_empleado',
+                        args=[empleado.id]
+                    )
+                )
+
+                if usuario and password_temporal:
+                    messages.success(
+                        request,
+                        (
+                            f'Empleado creado correctamente. '
+                            f'Usuario: {usuario.username} | '
+                            f'Contraseña temporal: {password_temporal}'
+                        )
+                    )
+                else:
+                    messages.success(
+                        request,
+                        'Empleado creado correctamente.'
+                    )
+
+                return redirect('listar_empleados')
+
+            except Exception as error:
+                messages.error(
+                    request,
+                    (
+                        'No fue posible crear el empleado y su cuenta de acceso. '
+                        f'Detalle: {error}'
+                    )
+                )
 
     else:
 
@@ -557,6 +732,18 @@ def editar_empleado(
                     salario_nuevo=salario_nuevo,
                     modificado_por=request.user.username
                 )
+
+            crear_notificacion(
+                mensaje=(
+                    f'{request.user.username} editó al empleado '
+                    f'{empleado_editado.nombre_completo}.'
+                ),
+                tipo='empleado',
+                url=reverse(
+                    'editar_empleado',
+                    args=[empleado_editado.id]
+                )
+            )
 
             messages.success(
                 request,
@@ -728,6 +915,23 @@ def aprobar_permiso(
 
     permiso.save()
 
+    crear_notificacion(
+        mensaje=(
+            f'{request.user.username} aprobó el permiso de '
+            f'{permiso.empleado.nombre_completo}.'
+        ),
+        tipo='permiso',
+        url=reverse('gestion_permisos')
+    )
+
+    if permiso.empleado.usuario:
+        crear_notificacion(
+            mensaje='Tu solicitud de permiso fue aprobada.',
+            tipo='permiso',
+            usuario=permiso.empleado.usuario,
+            url=reverse('mis_permisos')
+        )
+
     messages.success(
         request,
         (
@@ -775,6 +979,23 @@ def rechazar_permiso(
     permiso.aprobado = False
 
     permiso.save()
+
+    crear_notificacion(
+        mensaje=(
+            f'{request.user.username} rechazó el permiso de '
+            f'{permiso.empleado.nombre_completo}.'
+        ),
+        tipo='permiso',
+        url=reverse('gestion_permisos')
+    )
+
+    if permiso.empleado.usuario:
+        crear_notificacion(
+            mensaje='Tu solicitud de permiso fue rechazada.',
+            tipo='permiso',
+            usuario=permiso.empleado.usuario,
+            url=reverse('mis_permisos')
+        )
 
     messages.success(
         request,
@@ -825,6 +1046,22 @@ def solicitar_permiso(request):
             permiso.aprobado = False
 
             permiso.save()
+
+            crear_notificacion(
+                mensaje=(
+                    f'{empleado.nombre_completo} solicitó un permiso '
+                    f'de tipo {permiso.get_tipo_display()}.'
+                ),
+                tipo='permiso',
+                url=reverse('gestion_permisos')
+            )
+
+            crear_notificacion(
+                mensaje='Tu solicitud de permiso fue registrada.',
+                tipo='permiso',
+                usuario=request.user,
+                url=reverse('mis_permisos')
+            )
 
             messages.success(
                 request,
@@ -1036,6 +1273,26 @@ def crear_liquidacion(request):
 
             liquidacion = formulario.save()
 
+            crear_notificacion(
+                mensaje=(
+                    f'{request.user.username} creó la liquidación de '
+                    f'{liquidacion.empleado.nombre_completo}.'
+                ),
+                tipo='nomina',
+                url=reverse('gestion_nomina')
+            )
+
+            if liquidacion.empleado.usuario:
+                crear_notificacion(
+                    mensaje=(
+                        f'Ya está disponible tu liquidación de '
+                        f'{liquidacion.mes_ano:%m/%Y}.'
+                    ),
+                    tipo='nomina',
+                    usuario=liquidacion.empleado.usuario,
+                    url=reverse('mis_liquidaciones')
+                )
+
             messages.success(
                 request,
                 (
@@ -1110,6 +1367,26 @@ def marcar_liquidacion_pagada(
 
     liquidacion.save()
 
+    crear_notificacion(
+        mensaje=(
+            f'{request.user.username} marcó como pagada la liquidación de '
+            f'{liquidacion.empleado.nombre_completo}.'
+        ),
+        tipo='nomina',
+        url=reverse('gestion_nomina')
+    )
+
+    if liquidacion.empleado.usuario:
+        crear_notificacion(
+            mensaje=(
+                f'Tu liquidación de {liquidacion.mes_ano:%m/%Y} '
+                f'fue marcada como pagada.'
+            ),
+            tipo='nomina',
+            usuario=liquidacion.empleado.usuario,
+            url=reverse('mis_liquidaciones')
+        )
+
     messages.success(
         request,
         (
@@ -1163,6 +1440,60 @@ def mis_liquidaciones(request):
         request,
         'mis_liquidaciones.html',
         contexto
+    )
+
+
+# =============================================================================
+# NOTIFICACIONES
+# =============================================================================
+
+@login_required(login_url='login')
+def ver_notificacion(request, notificacion_id):
+
+    if usuario_autorizado(request.user):
+        notificacion = get_object_or_404(
+            Notificacion,
+            id=notificacion_id,
+            usuario__isnull=True
+        )
+    else:
+        notificacion = get_object_or_404(
+            Notificacion,
+            id=notificacion_id,
+            usuario=request.user
+        )
+
+    if not notificacion.leida:
+        notificacion.leida = True
+        notificacion.save(update_fields=['leida'])
+
+    if notificacion.url:
+        return redirect(notificacion.url)
+
+    return redirect('inicio')
+
+
+@login_required(login_url='login')
+def marcar_notificaciones_leidas(request):
+
+    if request.method != 'POST':
+        return redirect('inicio')
+
+    if usuario_autorizado(request.user):
+        notificaciones = Notificacion.objects.filter(
+            usuario__isnull=True,
+            leida=False
+        )
+    else:
+        notificaciones = Notificacion.objects.filter(
+            usuario=request.user,
+            leida=False
+        )
+
+    notificaciones.update(leida=True)
+
+    return redirect(
+        request.POST.get('next') or 'inicio'
     )
 
 

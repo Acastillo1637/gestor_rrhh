@@ -135,6 +135,23 @@ urlpatterns = [
         name='mis_liquidaciones'
     ),
 
+
+    # -------------------------------------------------------------------------
+    # Notificaciones
+    # -------------------------------------------------------------------------
+
+    path(
+        'notificaciones/<int:notificacion_id>/ver/',
+        views.ver_notificacion,
+        name='ver_notificacion'
+    ),
+
+    path(
+        'notificaciones/marcar-leidas/',
+        views.marcar_notificaciones_leidas,
+        name='marcar_notificaciones_leidas'
+    ),
+
     # -------------------------------------------------------------------------
     # AJAX
     # -------------------------------------------------------------------------

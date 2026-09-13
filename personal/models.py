@@ -440,3 +440,63 @@ class HistorialSalario(models.Model):
             f"Auditoría: {self.empleado.nombre_completo} - "
             f"{self.fecha_modificacion:%Y-%m-%d %H:%M}"
         )
+
+# =============================================================================
+# NOTIFICACIONES DEL SISTEMA
+# =============================================================================
+
+class Notificacion(models.Model):
+
+    TIPOS = [
+        ('empleado', 'Empleado'),
+        ('permiso', 'Permiso'),
+        ('nomina', 'Nómina'),
+        ('asistencia', 'Asistencia'),
+        ('evaluacion', 'Evaluación'),
+        ('sistema', 'Sistema'),
+    ]
+
+    # Si usuario es NULL, la notificación es para RRHH / Gerencia.
+    # Si tiene usuario, solamente la verá ese trabajador.
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='notificaciones'
+    )
+
+    mensaje = models.CharField(
+        max_length=255
+    )
+
+    tipo = models.CharField(
+        max_length=20,
+        choices=TIPOS,
+        default='sistema'
+    )
+
+    url = models.CharField(
+        max_length=255,
+        blank=True
+    )
+
+    leida = models.BooleanField(
+        default=False
+    )
+
+    fecha = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        ordering = ['-fecha']
+
+    def __str__(self):
+        destinatario = (
+            self.usuario.username
+            if self.usuario
+            else 'RRHH / Gerencia'
+        )
+
+        return f"{destinatario}: {self.mensaje}"

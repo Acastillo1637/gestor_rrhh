@@ -26,6 +26,136 @@
     {% block extra_css %}
     {% endblock %}
 
+    <style>
+        /* Solo estilos de la campana de notificaciones. */
+        .notifications-wrap {
+            position: relative;
+        }
+
+        .notification-button {
+            position: relative;
+            cursor: pointer;
+            border: 0;
+            font: inherit;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -6px;
+            right: -7px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 18px;
+            text-align: center;
+        }
+
+        .notifications-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            width: min(380px, calc(100vw - 32px));
+            max-height: 470px;
+            overflow: hidden;
+            z-index: 1000;
+            background: #fff;
+            border: 1px solid rgba(15, 23, 42, .10);
+            border-radius: 14px;
+            box-shadow: 0 16px 40px rgba(15, 23, 42, .18);
+        }
+
+        .notifications-wrap.open .notifications-dropdown {
+            display: block;
+        }
+
+        .notifications-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px 18px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #0f172a;
+        }
+
+        .notifications-header span {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .notifications-list {
+            max-height: 340px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            display: flex;
+            gap: 12px;
+            padding: 14px 18px;
+            color: #0f172a;
+            text-decoration: none;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .notification-item:hover {
+            background: #f8fafc;
+        }
+
+        .notification-unread {
+            background: #eff6ff;
+        }
+
+        .notification-item-icon {
+            flex: 0 0 auto;
+            padding-top: 2px;
+        }
+
+        .notification-item-content {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 0;
+        }
+
+        .notification-item-content strong {
+            font-size: 13px;
+            line-height: 1.4;
+            font-weight: 600;
+        }
+
+        .notification-item-content small {
+            color: #64748b;
+            font-size: 11px;
+        }
+
+        .notifications-empty {
+            padding: 28px 18px;
+            color: #64748b;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .notifications-footer {
+            padding: 10px 14px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .notifications-footer button {
+            border: 0;
+            background: transparent;
+            color: #2563eb;
+            font-weight: 600;
+            cursor: pointer;
+        }
+    </style>
+
 </head>
 
 
@@ -361,8 +491,104 @@
 
             <div class="topbar-right">
 
-                <div class="notification-button">
-                    🔔
+                <div class="notifications-wrap" id="notificationsWrap">
+
+                    <button
+                        class="notification-button"
+                        id="notificationButton"
+                        type="button"
+                        aria-label="Notificaciones"
+                        aria-expanded="false"
+                    >
+                        🔔
+
+                        {% if notificaciones_no_leidas %}
+                            <span class="notification-badge">
+                                {{ notificaciones_no_leidas }}
+                            </span>
+                        {% endif %}
+                    </button>
+
+                    <div
+                        class="notifications-dropdown"
+                        id="notificationsDropdown"
+                    >
+
+                        <div class="notifications-header">
+                            <strong>Notificaciones</strong>
+
+                            {% if notificaciones_no_leidas %}
+                                <span>
+                                    {{ notificaciones_no_leidas }} sin leer
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="notifications-list">
+
+                            {% for notificacion in ultimas_notificaciones %}
+
+                                <a
+                                    href="{% url 'ver_notificacion' notificacion.id %}"
+                                    class="notification-item {% if not notificacion.leida %}notification-unread{% endif %}"
+                                >
+                                    <span class="notification-item-icon">
+                                        {% if notificacion.tipo == 'empleado' %}
+                                            👤
+                                        {% elif notificacion.tipo == 'permiso' %}
+                                            📋
+                                        {% elif notificacion.tipo == 'nomina' %}
+                                            💳
+                                        {% else %}
+                                            🔔
+                                        {% endif %}
+                                    </span>
+
+                                    <span class="notification-item-content">
+                                        <strong>
+                                            {{ notificacion.mensaje }}
+                                        </strong>
+
+                                        <small>
+                                            {{ notificacion.fecha_creacion|date:"d/m/Y H:i" }}
+                                        </small>
+                                    </span>
+                                </a>
+
+                            {% empty %}
+
+                                <div class="notifications-empty">
+                                    No tienes notificaciones.
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                        {% if notificaciones_no_leidas %}
+
+                            <form
+                                method="post"
+                                action="{% url 'marcar_notificaciones_leidas' %}"
+                                class="notifications-footer"
+                            >
+                                {% csrf_token %}
+
+                                <input
+                                    type="hidden"
+                                    name="next"
+                                    value="{{ request.get_full_path }}"
+                                >
+
+                                <button type="submit">
+                                    Marcar todas como leídas
+                                </button>
+                            </form>
+
+                        {% endif %}
+
+                    </div>
+
                 </div>
 
 
@@ -501,6 +727,50 @@
                 sidebar.classList.toggle(
                     'sidebar-open'
                 );
+
+            }
+        );
+
+    }
+
+
+    const notificationsWrap =
+        document.getElementById('notificationsWrap');
+
+    const notificationButton =
+        document.getElementById('notificationButton');
+
+
+    if (notificationsWrap && notificationButton) {
+
+        notificationButton.addEventListener(
+            'click',
+            function (event) {
+
+                event.stopPropagation();
+
+                const isOpen =
+                    notificationsWrap.classList.toggle('open');
+
+                notificationButton.setAttribute(
+                    'aria-expanded',
+                    isOpen ? 'true' : 'false'
+                );
+
+            }
+        );
+
+        document.addEventListener(
+            'click',
+            function (event) {
+
+                if (!notificationsWrap.contains(event.target)) {
+                    notificationsWrap.classList.remove('open');
+                    notificationButton.setAttribute(
+                        'aria-expanded',
+                        'false'
+                    );
+                }
 
             }
         );
