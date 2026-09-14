@@ -144,6 +144,24 @@ urlpatterns = [
         name='marcar_liquidacion_pagada'
     ),
 
+
+    # -------------------------------------------------------------------------
+    # Gestión de asistencia
+    # -------------------------------------------------------------------------
+
+    path(
+        'asistencia/',
+        views.gestion_asistencia,
+        name='gestion_asistencia'
+    ),
+
+
+    path(
+    'mi-asistencia/',
+    views.mi_asistencia,
+    name='mi_asistencia'
+    ),
+
     # -------------------------------------------------------------------------
     # Liquidaciones del empleado
     # -------------------------------------------------------------------------

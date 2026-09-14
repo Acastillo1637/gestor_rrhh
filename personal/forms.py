@@ -10,6 +10,7 @@ from .models import (
     Puesto,
     Permiso,
     Salario,
+    Asistencia,
 )
 
 
@@ -302,3 +303,76 @@ class NominaForm(forms.ModelForm):
                 'nombre_completo'
             )
         )
+
+# =============================================================================
+# ASISTENCIA
+# =============================================================================
+
+class AsistenciaForm(forms.ModelForm):
+
+    class Meta:
+        model = Asistencia
+
+        fields = [
+            'empleado',
+            'fecha',
+            'hora_entrada',
+            'hora_salida',
+        ]
+
+        widgets = {
+            'empleado': forms.Select(
+                attrs={
+                    'class': 'form-control',
+                }
+            ),
+
+            'fecha': forms.DateInput(
+                attrs={
+                    'class': 'form-control',
+                    'type': 'date',
+                }
+            ),
+
+            'hora_entrada': forms.TimeInput(
+                attrs={
+                    'class': 'form-control',
+                    'type': 'time',
+                }
+            ),
+
+            'hora_salida': forms.TimeInput(
+                attrs={
+                    'class': 'form-control',
+                    'type': 'time',
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        self.fields['empleado'].queryset = (
+            Empleado.objects
+            .filter(estado_laboral__iexact='activo')
+            .order_by('nombre_completo')
+        )
+
+    def clean(self):
+
+        cleaned_data = super().clean()
+
+        hora_entrada = cleaned_data.get('hora_entrada')
+        hora_salida = cleaned_data.get('hora_salida')
+
+        if (
+            hora_entrada
+            and hora_salida
+            and hora_salida <= hora_entrada
+        ):
+            raise forms.ValidationError(
+                'La hora de salida debe ser posterior a la hora de entrada.'
+            )
+
+        return cleaned_data

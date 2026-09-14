@@ -1,0 +1,414 @@
+{% extends "base_site.html" %}
+
+{% block title %}
+Gestión de asistencia
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div class="page-header-info">
+        <h1>Gestión de asistencia</h1>
+        <p>Consulta y revisa la asistencia de los empleados.</p>
+    </div>
+
+    <form method="get" class="attendance-filters">
+
+        <div class="filter-group">
+            <label for="fecha_desde">Desde</label>
+            <input
+                type="date"
+                id="fecha_desde"
+                name="fecha_desde"
+                value="{{ fecha_desde }}"
+            >
+        </div>
+
+        <div class="filter-group">
+            <label for="fecha_hasta">Hasta</label>
+            <input
+                type="date"
+                id="fecha_hasta"
+                name="fecha_hasta"
+                value="{{ fecha_hasta }}"
+            >
+        </div>
+
+        <div class="filter-group">
+            <label for="empleado">Usuario</label>
+            <select id="empleado" name="empleado">
+
+                <option value="">
+                    Todos
+                </option>
+
+                {% for empleado in empleados %}
+
+                    <option
+                        value="{{ empleado.id }}"
+                        {% if empleado_seleccionado == empleado.id|stringformat:"s" %}selected{% endif %}
+                    >
+                        {{ empleado.nombre_completo }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+        </div>
+
+        <div class="filter-group">
+    <label for="departamento">
+        Departamento
+    </label>
+
+    <select
+        id="departamento"
+        name="departamento"
+    >
+        <option value="">
+            Todos
+        </option>
+
+        {% for departamento in departamentos %}
+
+            <option
+                value="{{ departamento }}"
+                {% if departamento_seleccionado == departamento %}selected{% endif %}
+            >
+                {{ departamento }}
+            </option>
+
+        {% endfor %}
+    </select>
+</div>
+
+        <button
+            type="submit"
+            class="filter-button"
+        >
+            Filtrar
+        </button>
+
+        <a
+            href="{% url 'gestion_asistencia' %}"
+            class="filter-clear"
+        >
+            Limpiar
+        </a>
+
+    </form>
+
+</div>
+
+<div class="content-grid">
+
+    <section class="card">
+        <div class="card-header">
+            <h2>Registros de asistencia</h2>
+        </div>
+
+        <div class="table-responsive">
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th>Empleado</th>
+                        <th>Fecha</th>
+                        <th>Entrada</th>
+                        <th>Salida</th>
+                        <th>Minutos trabajados</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for asistencia in asistencias %}
+
+                        <tr class="{% if asistencia.estado == 'atraso' %}fila-atraso{% endif %}">
+                            <td>
+                                {{ asistencia.empleado.nombre_completo }}
+                            </td>
+
+                            <td>
+                                {{ asistencia.fecha|date:"d/m/Y" }}
+                            </td>
+
+                            <td>
+                                {% if asistencia.hora_entrada %}
+                                    {{ asistencia.hora_entrada|time:"H:i" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if asistencia.hora_salida %}
+                                    {{ asistencia.hora_salida|time:"H:i" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ asistencia.minutos_trabajados }}
+                            </td>
+
+                            <td>
+                                {% if asistencia.estado == 'atraso' %}
+                                    <span class="estado estado-atraso">
+                                        Atraso
+                                    </span>
+                                {% elif asistencia.estado == 'presente' %}
+                                    <span class="estado estado-presente">
+                                        Presente
+                                    </span>
+                                {% elif asistencia.estado == 'ausente' %}
+                                    <span class="estado estado-ausente">
+                                        Ausente
+                                    </span>
+                                {% else %}
+                                    <span class="estado">
+                                        {{ asistencia.get_estado_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                    {% empty %}
+
+                        <tr>
+                            <td colspan="6" class="empty-row">
+                                No existen registros de asistencia.
+                            </td>
+                        </tr>
+
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</div>
+
+<style>
+    .page-header {
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .page-header-info {
+        flex-shrink: 0;
+    }
+
+    .attendance-filters {
+        display: flex;
+        align-items: flex-end;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-left: auto;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .filter-group label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+    }
+
+    .filter-group input,
+    .filter-group select {
+        width: 125px;
+        height: 38px;
+        padding: 0 8px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        background: #ffffff;
+    }
+
+    .filter-group select {
+        width: 135px;
+    }
+
+    .filter-button {
+        height: 38px;
+        padding: 0 15px;
+        border: 0;
+        border-radius: 10px;
+        background: #2563eb;
+        color: #ffffff;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .filter-clear {
+    height: 38px;
+    padding: 0 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background: #2563eb;
+    color: #ffffff;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    }
+
+    .filter-button,
+    .filter-clear {
+        transition: transform 0.2s ease;
+    }
+
+    .filter-button:hover,
+    .filter-clear:hover {
+        transform: translateY(-1px);
+    }
+
+    .page-header h1 {
+        margin: 0 0 6px;
+    }
+
+    .page-header p {
+        margin: 0;
+        color: #64748b;
+    }
+
+    .content-grid {
+        display: grid;
+        gap: 24px;
+    }
+
+    .card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 24px;
+    }
+
+    .card-header {
+        margin-bottom: 20px;
+    }
+
+    .card-header h2 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        background: #ffffff;
+    }
+
+    .form-actions {
+        grid-column: 1 / -1;
+    }
+
+    .btn-primary {
+        border: 0;
+        border-radius: 10px;
+        padding: 11px 18px;
+        background: #2563eb;
+        color: white;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .attendance-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .attendance-table th,
+    .attendance-table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #e5e7eb;
+        text-align: left;
+    }
+
+    .attendance-table th {
+        font-size: 13px;
+        color: #475569;
+        background: #f8fafc;
+    }
+
+    .fila-atraso {
+        background: #fef2f2;
+    }
+
+    .estado {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .estado-atraso {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .estado-presente {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .estado-ausente {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .field-error,
+    .alert-error {
+        color: #b91c1c;
+        font-size: 13px;
+    }
+
+    .empty-row {
+        text-align: center;
+        color: #94a3b8;
+        padding: 28px !important;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+{% endblock %}
