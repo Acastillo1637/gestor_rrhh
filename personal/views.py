@@ -5,8 +5,10 @@
 from django.contrib.auth.models import User, Group
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
+from django.utils import timezone
 from django.db import transaction
 from django.urls import reverse
+from datetime import datetime, time, timedelta
 
 from django.shortcuts import (
     render,
@@ -50,6 +52,7 @@ from .models import (
     Puesto,
     Permiso,
     Salario,
+    Asistencia,
     Notificacion,
 )
 
@@ -1537,4 +1540,253 @@ def obtener_puestos_por_departamento(request):
     return JsonResponse(
         data,
         safe=False
+    )
+
+
+# =============================================================================
+# GESTIÓN DE ASISTENCIA - RRHH / GERENCIA
+# =============================================================================
+@login_required(login_url='login')
+@user_passes_test(
+    usuario_rrhh,
+    login_url='login'
+)
+@login_required(login_url='login')
+@user_passes_test(
+    usuario_rrhh,
+    login_url='login'
+)
+def gestion_asistencia(request):
+
+    asistencias = (
+        Asistencia.objects
+        .select_related('empleado')
+        .order_by('-fecha', 'empleado__nombre_completo')
+    )
+
+    # ---------------------------------------------------------
+    # FILTROS
+    # ---------------------------------------------------------
+
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    empleado_id = request.GET.get('empleado', '')
+    departamento = request.GET.get('departamento', '')
+
+    if fecha_desde:
+        asistencias = asistencias.filter(
+            fecha__gte=fecha_desde
+        )
+
+    if fecha_hasta:
+        asistencias = asistencias.filter(
+            fecha__lte=fecha_hasta
+        )
+
+    if empleado_id:
+        asistencias = asistencias.filter(
+            empleado_id=empleado_id
+        )
+
+    if departamento:
+        asistencias = asistencias.filter(
+            empleado__departamento=departamento
+        )
+
+    # ---------------------------------------------------------
+    # OPCIONES PARA LOS FILTROS
+    # ---------------------------------------------------------
+
+    empleados = (
+        Empleado.objects
+        .filter(estado_laboral__iexact='activo')
+        .order_by('nombre_completo')
+    )
+
+    departamentos = (
+        Empleado.objects
+        .filter(estado_laboral__iexact='activo')
+        .exclude(departamento__isnull=True)
+        .exclude(departamento='')
+        .values_list('departamento', flat=True)
+        .distinct()
+        .order_by('departamento')
+    )
+
+    # ---------------------------------------------------------
+    # LÍMITE DE EDICIÓN RRHH
+    # ---------------------------------------------------------
+
+    fecha_limite_edicion = (
+        timezone.localdate()
+        - timedelta(days=14)
+    )
+
+    contexto = {
+        'asistencias': asistencias,
+
+        'empleados': empleados,
+        'departamentos': departamentos,
+
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'empleado_seleccionado': empleado_id,
+        'departamento_seleccionado': departamento,
+
+        'fecha_limite_edicion': fecha_limite_edicion,
+
+        **contexto_rol(request),
+    }
+
+    return render(
+        request,
+        'gestion_asistencia.html',
+        contexto
+    )
+
+# =============================================================================
+# MI ASISTENCIA - EMPLEADO 
+# =============================================================================
+
+@login_required(login_url='login')
+def mi_asistencia(request):
+
+    try:
+        empleado = request.user.empleado
+
+    except Empleado.DoesNotExist:
+
+        messages.error(
+            request,
+            'Tu usuario no está asociado a un empleado.'
+        )
+
+        return redirect('dashboard_empleado')
+
+    hoy = timezone.localdate()
+
+    asistencia_hoy = (
+        Asistencia.objects
+        .filter(
+            empleado=empleado,
+            fecha=hoy
+        )
+        .first()
+    )
+
+    if request.method == 'POST':
+
+        accion = request.POST.get('accion')
+
+        ahora = timezone.localtime()
+        hora_actual = ahora.time().replace(
+            microsecond=0
+        )
+
+        # ---------------------------------------------------------
+        # MARCAR ENTRADA
+        # ---------------------------------------------------------
+
+        if accion == 'entrada':
+
+            if asistencia_hoy and asistencia_hoy.hora_entrada:
+
+                messages.warning(
+                    request,
+                    'Ya registraste tu entrada de hoy.'
+                )
+
+            else:
+
+                if not asistencia_hoy:
+
+                    asistencia_hoy = Asistencia.objects.create(
+                        empleado=empleado,
+                        fecha=hoy
+                    )
+
+                asistencia_hoy.hora_entrada = hora_actual
+
+                hora_limite = time(9, 0)
+
+                if hora_actual > hora_limite:
+                    asistencia_hoy.estado = 'atraso'
+                else:
+                    asistencia_hoy.estado = 'presente'
+
+                asistencia_hoy.save()
+
+                messages.success(
+                    request,
+                    'Entrada registrada correctamente.'
+                )
+
+        # ---------------------------------------------------------
+        # MARCAR SALIDA
+        # ---------------------------------------------------------
+
+        elif accion == 'salida':
+
+            if not asistencia_hoy or not asistencia_hoy.hora_entrada:
+
+                messages.error(
+                    request,
+                    'Debes registrar tu entrada antes de marcar la salida.'
+                )
+
+            elif asistencia_hoy.hora_salida:
+
+                messages.warning(
+                    request,
+                    'Ya registraste tu salida de hoy.'
+                )
+
+            else:
+
+                asistencia_hoy.hora_salida = hora_actual
+
+                entrada = datetime.combine(
+                    hoy,
+                    asistencia_hoy.hora_entrada
+                )
+
+                salida = datetime.combine(
+                    hoy,
+                    asistencia_hoy.hora_salida
+                )
+
+                diferencia = salida - entrada
+
+                asistencia_hoy.minutos_trabajados = int(
+                    diferencia.total_seconds() / 60
+                )
+
+                asistencia_hoy.save()
+
+                messages.success(
+                    request,
+                    'Salida registrada correctamente.'
+                )
+
+        return redirect('mi_asistencia')
+
+    mis_asistencias = (
+        Asistencia.objects
+        .filter(
+            empleado=empleado
+        )
+        .order_by('-fecha')[:30]
+    )
+
+    contexto = {
+        'empleado': empleado,
+        'asistencia_hoy': asistencia_hoy,
+        'mis_asistencias': mis_asistencias,
+        **contexto_rol(request),
+    }
+
+    return render(
+        request,
+        'mi_asistencia.html',
+        contexto
     )

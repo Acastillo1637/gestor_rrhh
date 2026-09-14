@@ -273,8 +273,8 @@
 
 
             <a
-                href="/admin/personal/asistencia/"
-                class="nav-link"
+                href="{% url 'gestion_asistencia' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'gestion_asistencia' %}active{% endif %}"
             >
 
                 <span class="nav-icon">
@@ -367,6 +367,22 @@
 
                 <span>
                     Solicitar permiso
+                </span>
+
+            </a>
+
+
+            <a
+                href="{% url 'mi_asistencia' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'mi_asistencia' %}active{% endif %}"
+            >
+
+                <span class="nav-icon">
+                    ✓
+                </span>
+
+                <span>
+                    Mi asistencia
                 </span>
 
             </a>

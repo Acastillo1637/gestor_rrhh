@@ -1,0 +1,217 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Mi asistencia</h1>
+        <p>Registra tu entrada y salida de la jornada.</p>
+    </div>
+</div>
+
+
+<div class="content-card">
+
+    <div class="card-header">
+        <div>
+            <h2>Asistencia de hoy</h2>
+            <p>{{ empleado.nombre_completo }}</p>
+        </div>
+    </div>
+
+    <div style="
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+        margin-bottom: 25px;
+    ">
+
+        <div>
+            <strong>Entrada</strong>
+            <p style="font-size: 22px; margin-top: 8px;">
+                {% if asistencia_hoy and asistencia_hoy.hora_entrada %}
+                    {{ asistencia_hoy.hora_entrada|time:"H:i" }}
+                {% else %}
+                    --:--
+                {% endif %}
+            </p>
+        </div>
+
+        <div>
+            <strong>Salida</strong>
+            <p style="font-size: 22px; margin-top: 8px;">
+                {% if asistencia_hoy and asistencia_hoy.hora_salida %}
+                    {{ asistencia_hoy.hora_salida|time:"H:i" }}
+                {% else %}
+                    --:--
+                {% endif %}
+            </p>
+        </div>
+
+        <div>
+            <strong>Estado</strong>
+
+            <p style="margin-top: 8px;">
+                {% if asistencia_hoy %}
+
+                    {% if asistencia_hoy.estado == 'atraso' %}
+                        <span style="color: #dc2626; font-weight: 700;">
+                            Atraso
+                        </span>
+                    {% else %}
+                        <span style="color: #16a34a; font-weight: 700;">
+                            {{ asistencia_hoy.get_estado_display }}
+                        </span>
+                    {% endif %}
+
+                {% else %}
+                    Sin registro
+                {% endif %}
+            </p>
+        </div>
+
+    </div>
+
+
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+
+        <form method="post">
+            {% csrf_token %}
+
+            <input
+                type="hidden"
+                name="accion"
+                value="entrada"
+            >
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+                {% if asistencia_hoy and asistencia_hoy.hora_entrada %}
+                    disabled
+                {% endif %}
+            >
+                Marcar entrada
+            </button>
+        </form>
+
+
+        <form method="post">
+            {% csrf_token %}
+
+            <input
+                type="hidden"
+                name="accion"
+                value="salida"
+            >
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+                {% if not asistencia_hoy or not asistencia_hoy.hora_entrada or asistencia_hoy.hora_salida %}
+                    disabled
+                {% endif %}
+            >
+                Marcar salida
+            </button>
+        </form>
+
+    </div>
+
+</div>
+
+
+<div class="content-card" style="margin-top: 25px;">
+
+    <div class="card-header">
+        <div>
+            <h2>Mis últimos registros</h2>
+            <p>Historial reciente de asistencia.</p>
+        </div>
+    </div>
+
+
+    <div style="overflow-x: auto;">
+
+        <table class="data-table">
+
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Entrada</th>
+                    <th>Salida</th>
+                    <th>Minutos trabajados</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for asistencia in mis_asistencias %}
+
+                    <tr>
+
+                        <td>
+                            {{ asistencia.fecha|date:"d/m/Y" }}
+                        </td>
+
+                        <td>
+                            {% if asistencia.hora_entrada %}
+                                {{ asistencia.hora_entrada|time:"H:i" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if asistencia.hora_salida %}
+                                {{ asistencia.hora_salida|time:"H:i" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {{ asistencia.minutos_trabajados }}
+                        </td>
+
+                        <td>
+
+                            {% if asistencia.estado == 'atraso' %}
+
+                                <span style="
+                                    color: #dc2626;
+                                    font-weight: 700;
+                                ">
+                                    Atraso
+                                </span>
+
+                            {% else %}
+
+                                {{ asistencia.get_estado_display }}
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+                        <td colspan="5">
+                            No tienes registros de asistencia.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
