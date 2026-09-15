@@ -1,4 +1,4 @@
-from django.urls import path
+﻿from django.urls import path
 
 from . import views
 
@@ -111,6 +111,20 @@ urlpatterns = [
         'nomina/',
         views.gestion_nomina,
         name='gestion_nomina'
+    ),
+
+    # Endpoint de descarga; el nombre permite enlazarlo desde la plantilla.
+    # Descarga PDF con los mismos permisos y filtros que Excel.
+    path(
+        'nomina/exportar-pdf/',
+        views.exportar_nomina_pdf,
+        name='exportar_nomina_pdf'
+    ),
+
+    path(
+        'nomina/exportar-excel/',
+        views.exportar_nomina_excel,
+        name='exportar_nomina_excel'
     ),
 
     path(

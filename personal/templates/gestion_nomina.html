@@ -1,4 +1,4 @@
-{% extends "base_site.html" %}
+﻿{% extends "base_site.html" %}
 
 {% block title %}
 Gestión de nómina
@@ -21,16 +21,43 @@ Gestión de nómina
     </div>
 
 
-    {% if puede_gestionar %}
+    {# Agrupa exportación y creación junto al título de nómina. #}
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
 
-        <a
-            href="{% url 'crear_liquidacion' %}"
-            class="btn"
-        >
-            + Nueva liquidación
-        </a>
+        {# Coincide con usuario_autorizado: superusuario, RRHH y GERENTES. #}
+        {% if es_gestion %}
 
-    {% endif %}
+            {# urlencode conserva espacios y caracteres especiales de los filtros. #}
+            <a
+                href="{% url 'exportar_nomina_excel' %}?busqueda={{ busqueda|urlencode }}&amp;estado_pago={{ estado_pago_seleccionado|urlencode }}"
+                class="btn"
+            >
+                Exportar Excel
+            </a>
+
+            {# PDF conserva los filtros y se muestra a los mismos roles que Excel. #}
+            <a
+                href="{% url 'exportar_nomina_pdf' %}?busqueda={{ busqueda|urlencode }}&amp;estado_pago={{ estado_pago_seleccionado|urlencode }}"
+                class="btn"
+            >
+                Exportar PDF
+            </a>
+
+        {% endif %}
+
+        {# La creación conserva su permiso original: superusuario o RRHH. #}
+        {% if puede_gestionar %}
+
+            <a
+                href="{% url 'crear_liquidacion' %}"
+                class="btn"
+            >
+                + Nueva liquidación
+            </a>
+
+        {% endif %}
+
+    </div>
 
 </div>
 

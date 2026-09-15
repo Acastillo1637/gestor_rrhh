@@ -33,7 +33,10 @@ from django.db.models import (
     Count,
 )
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+# Generación del libro Excel y estilos de sus encabezados.
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
 
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -1255,6 +1258,355 @@ def gestion_nomina(request):
 # =============================================================================
 # CREAR LIQUIDACIÓN
 # =============================================================================
+
+@login_required(login_url='login')
+@user_passes_test(
+    usuario_autorizado,
+    login_url='login'
+)
+def exportar_nomina_excel(request):
+    """Descarga las liquidaciones filtradas sin modificar empleados ni pagos.
+
+    Los decoradores exigen sesión y el rol autorizado: superusuario, RRHH
+    o GERENTES. Sin filtros incluye todos los registros de Salario;
+    los empleados sin liquidaciones no generan filas en este reporte.
+    """
+
+    # Obtiene también el empleado en la misma consulta para evitar consultas por fila.
+    liquidaciones = (
+        Salario.objects
+        .select_related('empleado')
+        .all()
+    )
+
+    # Lee los mismos filtros GET que utiliza la pantalla de nómina.
+    busqueda = request.GET.get(
+        'busqueda',
+        ''
+    )
+
+    estado_pago = request.GET.get(
+        'estado_pago',
+        ''
+    )
+
+    # Filtra por nombre y estado; un estado desconocido no restringe los resultados.
+    if busqueda:
+
+        liquidaciones = (
+            liquidaciones.filter(
+                empleado__nombre_completo__icontains=busqueda
+            )
+        )
+
+    if estado_pago == 'pagado':
+
+        liquidaciones = (
+            liquidaciones.filter(
+                pagado=True
+            )
+        )
+
+    elif estado_pago == 'pendiente':
+
+        liquidaciones = (
+            liquidaciones.filter(
+                pagado=False
+            )
+        )
+
+    # Mantiene el orden de la pantalla: periodo reciente primero y luego nombre.
+    liquidaciones = liquidaciones.order_by(
+        '-mes_ano',
+        'empleado__nombre_completo'
+    )
+
+    # Crea el archivo en memoria y define las diez columnas del reporte.
+    libro = Workbook()
+    hoja = libro.active
+    hoja.title = 'Nómina'
+
+    hoja.append([
+        'Empleado',
+        'DNI',
+        'Departamento',
+        'Cargo',
+        'Periodo',
+        'Salario base',
+        'Bonificación',
+        'Descuentos',
+        'Neto',
+        'Estado de pago',
+    ])
+
+    # Destaca y centra los encabezados, incluso cuando no hay resultados.
+    for celda in hoja[1]:
+
+        celda.font = Font(bold=True)
+        celda.alignment = Alignment(
+            horizontal='center'
+        )
+
+    # Escribe una fila por liquidación; conserva fechas e importes como valores nativos.
+    for liquidacion in liquidaciones:
+
+        hoja.append([
+            liquidacion.empleado.nombre_completo,
+            liquidacion.empleado.dni or '',
+            liquidacion.empleado.departamento,
+            liquidacion.empleado.cargo,
+            liquidacion.mes_ano,
+            liquidacion.salario_base,
+            liquidacion.bonificacion,
+            liquidacion.descuentos,
+            liquidacion.neto,
+            'Pagado' if liquidacion.pagado else 'Pendiente',
+        ])
+
+        fila = hoja.max_row
+
+        # Conserva ceros iniciales del DNI y evita interpretar nombres como fórmulas.
+        for columna in range(1, 5):
+
+            hoja.cell(
+                row=fila,
+                column=columna
+            ).data_type = 's'
+
+        # Muestra mes/año sin convertir la fecha en texto.
+        hoja.cell(
+            row=fila,
+            column=5
+        ).number_format = 'mm/yyyy'
+
+        # F-I: formato monetario visual; no redondea el valor almacenado.
+        for columna in range(6, 10):
+
+            hoja.cell(
+                row=fila,
+                column=columna
+            ).number_format = '$#,##0'
+
+    # Anchos fijos legibles para nombres, identificadores e importes.
+    anchos = {
+        'A': 35,
+        'B': 20,
+        'C': 25,
+        'D': 30,
+        'E': 15,
+        'F': 20,
+        'G': 20,
+        'H': 20,
+        'I': 20,
+        'J': 20,
+    }
+
+    for columna, ancho in anchos.items():
+
+        hoja.column_dimensions[columna].width = ancho
+
+    # El tipo MIME identifica un Excel; Content-Disposition fuerza su descarga.
+    respuesta = HttpResponse(
+        content_type=(
+            'application/vnd.openxmlformats-officedocument.'
+            'spreadsheetml.sheet'
+        )
+    )
+
+    respuesta['Content-Disposition'] = (
+        'attachment; filename="reporte_nomina.xlsx"'
+    )
+
+    # Serializa el libro directamente en la respuesta, sin guardar archivos en disco.
+    libro.save(respuesta)
+
+    return respuesta
+
+
+@login_required(login_url='login')
+@user_passes_test(
+    usuario_autorizado,
+    login_url='login'
+)
+def exportar_nomina_pdf(request):
+    """Descarga la nómina filtrada en PDF sin modificar empleados ni pagos."""
+
+    # Importaciones locales: la dependencia PDF se usa solo en esta descarga.
+    from pathlib import Path
+    from xml.sax.saxutils import escape
+    from django.utils import timezone
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, LongTable, Table, TableStyle,
+    )
+
+    # Conserva los filtros y el orden utilizados por la pantalla y el Excel.
+    liquidaciones = Salario.objects.select_related('empleado').all()
+    busqueda = request.GET.get('busqueda', '')
+    estado_pago = request.GET.get('estado_pago', '')
+
+    if busqueda:
+        liquidaciones = liquidaciones.filter(
+            empleado__nombre_completo__icontains=busqueda
+        )
+
+    if estado_pago == 'pagado':
+        liquidaciones = liquidaciones.filter(pagado=True)
+    elif estado_pago == 'pendiente':
+        liquidaciones = liquidaciones.filter(pagado=False)
+
+    liquidaciones = liquidaciones.order_by(
+        '-mes_ano', 'empleado__nombre_completo'
+    )
+
+    respuesta = HttpResponse(content_type='application/pdf')
+    respuesta['Content-Disposition'] = (
+        'attachment; filename="reporte_nomina.pdf"'
+    )
+
+    # A4 horizontal deja espacio para las diez columnas y los saltos de página.
+    documento = SimpleDocTemplate(
+        respuesta, pagesize=landscape(A4),
+        leftMargin=24, rightMargin=24, topMargin=42, bottomMargin=38,
+        title='Reporte de nómina',
+    )
+    # Paleta y jerarquía visual comunes para encabezados, cifras y estados.
+    azul = colors.HexColor('#19364B')
+    verde = colors.HexColor('#087F8C')
+    texto = ParagraphStyle(
+        'TextoNomina', fontName='Helvetica', fontSize=8, leading=11,
+        textColor=azul,
+    )
+    importe = ParagraphStyle('ImporteNomina', parent=texto, alignment=2)
+    neto = ParagraphStyle('NetoNomina', parent=importe, fontName='Helvetica-Bold')
+    pagado = ParagraphStyle('PagadoNomina', parent=texto, textColor=colors.HexColor('#16704A'), fontName='Helvetica-Bold')
+    pendiente = ParagraphStyle('PendienteNomina', parent=texto, textColor=colors.HexColor('#975B11'), fontName='Helvetica-Bold')
+    resumen_estilo = ParagraphStyle('ResumenNomina', parent=texto, fontSize=11, leading=16)
+    etiqueta = ParagraphStyle('EtiquetaNomina', parent=texto, fontSize=8, textColor=verde, spaceAfter=6)
+    titulo = ParagraphStyle('TituloNomina', parent=texto, fontName='Helvetica-Bold', fontSize=26, leading=30)
+    encabezado = ParagraphStyle(
+        'EncabezadoNomina', parent=texto,
+        fontName='Helvetica-Bold', textColor=colors.white,
+    )
+
+    # Paragraph ajusta textos largos; escape impide interpretarlos como etiquetas.
+    elementos = [
+        Paragraph('GESTIÓN DE RECURSOS HUMANOS', etiqueta),
+        Paragraph('Reporte de nómina', titulo),
+        Spacer(1, 8),
+        Paragraph(
+            'Generado: ' + timezone.localtime().strftime('%d/%m/%Y %H:%M'),
+            texto,
+        ),
+        Paragraph(
+            'Búsqueda: ' + escape(busqueda or 'Todas')
+            + ' | Estado: ' + {
+                'pagado': 'Pagado', 'pendiente': 'Pendiente',
+            }.get(estado_pago, 'Todos'),
+            texto,
+        ),
+        Spacer(1, 12),
+    ]
+    columnas = [
+        'Empleado', 'DNI', 'Departamento', 'Cargo', 'Periodo',
+        'Salario base', 'Bonificación', 'Descuentos', 'Neto', 'Estado de pago',
+    ]
+    # Los títulos monetarios se alinean con sus importes.
+    encabezado_importe = ParagraphStyle('EncabezadoImporte', parent=encabezado, alignment=2)
+    filas = [[
+        Paragraph(nombre, encabezado_importe if 5 <= i <= 8 else encabezado)
+        for i, nombre in enumerate(columnas)
+    ]]
+    total_neto = 0
+
+    for liquidacion in liquidaciones:
+        empleado = liquidacion.empleado
+        datos = [
+            empleado.nombre_completo, empleado.dni or '',
+            empleado.departamento, empleado.cargo,
+            liquidacion.mes_ano.strftime('%m/%Y'),
+            f'${liquidacion.salario_base:,.0f}',
+            f'${liquidacion.bonificacion:,.0f}',
+            f'${liquidacion.descuentos:,.0f}',
+            f'${liquidacion.neto:,.0f}',
+            'Pagado' if liquidacion.pagado else 'Pendiente',
+        ]
+        # Alinea cifras a la derecha y distingue estados con texto y color.
+        estilos = [texto] * 5 + [importe] * 3 + [neto, pagado if liquidacion.pagado else pendiente]
+        filas.append([
+            Paragraph(escape(str(valor)), estilo)
+            for valor, estilo in zip(datos, estilos)
+        ])
+        total_neto += liquidacion.neto
+
+    # Repite la cabecera al cambiar de página; los anchos suman el espacio útil.
+    tabla = LongTable(
+        filas, colWidths=[125, 65, 95, 95, 48, 75, 75, 70, 75, 70],
+        repeatRows=1, hAlign='LEFT',
+    )
+    tabla.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), azul),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F2F5F8')]),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LINEBELOW', (0, 1), (-1, -1), 0.25, colors.HexColor('#DCE5EC')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+        ('TOPPADDING', (0, 0), (-1, -1), 7),
+        ('LINEBELOW', (0, 0), (-1, 0), 0.5, colors.HexColor('#24364B')),
+    ]))
+    elementos.append(tabla)
+    if len(filas) == 1:
+        elementos.append(Paragraph('No hay liquidaciones para estos filtros.', texto))
+    # Resumen destacado al inicio, calculado sobre las mismas filas exportadas.
+    resumen = Table([[
+        Paragraph(f'Liquidaciones: {len(filas) - 1}', resumen_estilo),
+        Paragraph(f'Total neto: ${total_neto:,.0f}', resumen_estilo),
+    ]], colWidths=[260, 533], hAlign='LEFT')
+    resumen.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#EAF4F5')),
+        ('LINEBEFORE', (0, 0), (0, -1), 3, verde),
+        ('TOPPADDING', (0, 0), (-1, -1), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+        ('LEFTPADDING', (0, 0), (-1, -1), 12),
+    ]))
+    elementos[6:6] = [resumen, Spacer(1, 16)]
+
+    # Recurso local incluido en el proyecto; no requiere red ni nuevas dependencias.
+    logo = Path(__file__).resolve().parent / 'static' / 'personal' / 'logo_rrhh.png'
+
+    def numerar_pagina(canvas, doc):
+        """Añade el número de página fuera de la tabla, en el margen inferior."""
+        canvas.saveState()
+        ancho, alto = doc.pagesize
+        # Logo en la primera página, a la derecha del título, sin deformarlo.
+        # Si falta el recurso, el reporte sigue disponible sin la imagen.
+        if doc.page == 1 and logo.is_file():
+            canvas.drawImage(
+                str(logo), ancho - 78, alto - 90,
+                width=48, height=48, preserveAspectRatio=True, mask='auto',
+            )
+        canvas.setFillColor(verde)
+        canvas.rect(24, alto - 25, ancho - 48, 3, fill=1, stroke=0)
+        if doc.page > 1:
+            canvas.setFont('Helvetica-Bold', 8)
+            canvas.setFillColor(azul)
+            canvas.drawString(24, alto - 37, 'REPORTE DE NÓMINA | Continuación')
+        canvas.setStrokeColor(colors.HexColor('#DCE5EC'))
+        canvas.line(24, 29, ancho - 24, 29)
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(azul)
+        canvas.drawString(24, 16, 'Gestión RRHH | Reporte de remuneraciones')
+        canvas.drawRightString(ancho - 24, 16, f'Página {doc.page}')
+        canvas.restoreState()
+
+    # Genera el documento directamente en la respuesta de descarga.
+    documento.build(
+        elementos, onFirstPage=numerar_pagina, onLaterPages=numerar_pagina
+    )
+    return respuesta
+
+
 
 @login_required(login_url='login')
 @user_passes_test(
