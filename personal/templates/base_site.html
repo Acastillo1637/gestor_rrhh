@@ -154,6 +154,181 @@
             font-weight: 600;
             cursor: pointer;
         }
+
+
+        /* ========================================================= */
+        /* MODAL DE MENSAJES */
+        /* ========================================================= */
+
+        .message-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(2px);
+        }
+
+        .message-modal {
+            position: relative;
+
+            width: 100%;
+            max-width: 500px;
+
+            background: #ffffff;
+            border-radius: 14px;
+
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+
+            overflow: hidden;
+        }
+
+        .message-modal-close {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+
+            width: 32px;
+            height: 32px;
+
+            border: 0;
+            background: transparent;
+
+            color: #64748b;
+            font-size: 26px;
+            line-height: 1;
+
+            cursor: pointer;
+        }
+
+        .message-modal-close:hover {
+            color: #0f172a;
+        }
+
+        .message-modal-icon {
+            width: 72px;
+            height: 72px;
+
+            margin: 38px auto 20px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+
+            font-size: 38px;
+            font-weight: 700;
+        }
+
+        .message-modal-success .message-modal-icon {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .message-modal-error .message-modal-icon {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .message-modal-warning .message-modal-icon {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .message-modal-info .message-modal-icon {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .message-modal-content {
+            padding: 0 32px 28px;
+            text-align: center;
+        }
+
+        .message-modal-content h3 {
+            margin: 0 0 10px;
+
+            color: #0f172a;
+
+            font-size: 21px;
+            font-weight: 700;
+        }
+
+        .message-modal-content p {
+            margin: 0;
+
+            color: #64748b;
+
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+
+            padding: 16px 20px;
+
+            border-top: 1px solid #e5e7eb;
+
+            background: #ffffff;
+        }
+
+        .message-modal-accept {
+            min-width: 110px;
+            height: 42px;
+
+            padding: 0 20px;
+
+            border: 0;
+            border-radius: 10px;
+
+            background: #2563eb;
+            color: #ffffff;
+
+            font: inherit;
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition:
+                transform 0.2s ease,
+                background 0.2s ease;
+        }
+
+        .message-modal-accept:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 600px) {
+
+            .message-modal {
+                max-width: 100%;
+            }
+
+            .message-modal-content {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+
+            .message-modal-footer {
+                justify-content: stretch;
+            }
+
+            .message-modal-accept {
+                width: 100%;
+            }
+        }
+
+
     </style>
 
 </head>
@@ -657,25 +832,81 @@
 
             {% if messages %}
 
-                <div class="messages">
+                {% for message in messages %}
 
-                    {% for message in messages %}
+                    <div
+                        class="message-modal-overlay"
+                        data-message-modal
+                    >
 
                         <div
-                            class="message {% if message.tags %}message-{{ message.tags }}{% endif %}"
+                            class="message-modal {% if message.tags %}message-modal-{{ message.tags }}{% endif %}"
+                            role="dialog"
+                            aria-modal="true"
                         >
 
-                            {{ message }}
+                            <button
+                                type="button"
+                                class="message-modal-close"
+                                data-close-message
+                                aria-label="Cerrar"
+                            >
+                                ×
+                            </button>
+
+                            <div class="message-modal-icon">
+
+                                {% if message.tags == 'success' %}
+                                    ✓
+                                {% elif message.tags == 'error' %}
+                                    !
+                                {% elif message.tags == 'warning' %}
+                                    !
+                                {% else %}
+                                    i
+                                {% endif %}
+
+                            </div>
+
+                            <div class="message-modal-content">
+
+                                <h3>
+                                    {{ message }}
+                                </h3>
+
+                                <p>
+                                    {% if message.tags == 'success' %}
+                                        La acción se realizó correctamente.
+                                    {% elif message.tags == 'error' %}
+                                        No fue posible realizar la acción.
+                                    {% elif message.tags == 'warning' %}
+                                        Revisa la información antes de continuar.
+                                    {% else %}
+                                        Información del sistema.
+                                    {% endif %}
+                                </p>
+
+                            </div>
+
+                            <div class="message-modal-footer">
+
+                                <button
+                                    type="button"
+                                    class="message-modal-accept"
+                                    data-close-message
+                                >
+                                    Aceptar
+                                </button>
+
+                            </div>
 
                         </div>
 
-                    {% endfor %}
+                    </div>
 
-                </div>
+                {% endfor %}
 
             {% endif %}
-
-
             {% block content %}
             {% endblock %}
 
@@ -792,6 +1023,32 @@
         );
 
     }
+
+    // =========================================================
+    // MODAL DE MENSAJES funcion x y aceptar
+    // =========================================================
+
+    const messageModals =
+        document.querySelectorAll('[data-message-modal]');
+
+    messageModals.forEach(function (modal) {
+
+        const closeButtons =
+            modal.querySelectorAll('[data-close-message]');
+
+        closeButtons.forEach(function (button) {
+
+            button.addEventListener(
+                'click',
+                function () {
+                    modal.remove();
+                }
+            );
+
+        });
+
+    });
+
 
 </script>
 
