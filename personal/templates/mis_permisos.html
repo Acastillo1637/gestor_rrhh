@@ -12,15 +12,7 @@
         Empleado:
         <strong>{{ empleado.nombre_completo }}</strong>
     </p>
-
-    {% if messages %}
-        {% for message in messages %}
-            <div class="mensaje">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
-
+    
     <div class="acciones">
 
         <a href="{% url 'solicitar_permiso' %}">

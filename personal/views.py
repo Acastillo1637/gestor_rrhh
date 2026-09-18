@@ -1040,7 +1040,6 @@ def solicitar_permiso(request):
 
         if formulario.is_valid():
 
-            tipo = formulario.cleaned_data['tipo']
             fecha_inicio = formulario.cleaned_data['fecha_inicio']
             fecha_fin = formulario.cleaned_data['fecha_fin']
 
@@ -1089,6 +1088,14 @@ def solicitar_permiso(request):
             )
 
             return redirect('mis_permisos')
+
+        else:
+            for errores in formulario.errors.values():
+                for error in errores:
+                    messages.error(
+                        request,
+                        str(error)
+                    )
 
     else:
 
