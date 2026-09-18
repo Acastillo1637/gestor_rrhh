@@ -1045,16 +1045,15 @@ def solicitar_permiso(request):
             fecha_fin = formulario.cleaned_data['fecha_fin']
 
             permiso_duplicado = Permiso.objects.filter(
-                empleado=empleado,
-                tipo=tipo,
-                fecha_inicio=fecha_inicio,
-                fecha_fin=fecha_fin
+            empleado=empleado,
+            fecha_inicio__lte=fecha_fin,
+            fecha_fin__gte=fecha_inicio
             ).exists()
 
             if permiso_duplicado:
                 messages.warning(
                     request,
-                    'Ya existe una solicitud de permiso para esas mismas fechas y tipo.'
+                    'Ya existe una solicitud de permiso que coincide con esas fechas.'
                 )
                 return redirect('mis_permisos')
 
