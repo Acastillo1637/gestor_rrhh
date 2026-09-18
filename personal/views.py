@@ -1040,6 +1040,24 @@ def solicitar_permiso(request):
 
         if formulario.is_valid():
 
+            tipo = formulario.cleaned_data['tipo']
+            fecha_inicio = formulario.cleaned_data['fecha_inicio']
+            fecha_fin = formulario.cleaned_data['fecha_fin']
+
+            permiso_duplicado = Permiso.objects.filter(
+                empleado=empleado,
+                tipo=tipo,
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin
+            ).exists()
+
+            if permiso_duplicado:
+                messages.warning(
+                    request,
+                    'Ya existe una solicitud de permiso para esas mismas fechas y tipo.'
+                )
+                return redirect('mis_permisos')
+
             permiso = formulario.save(
                 commit=False
             )
@@ -1551,11 +1569,7 @@ def obtener_puestos_por_departamento(request):
     usuario_rrhh,
     login_url='login'
 )
-@login_required(login_url='login')
-@user_passes_test(
-    usuario_rrhh,
-    login_url='login'
-)
+
 def gestion_asistencia(request):
 
     asistencias = (
