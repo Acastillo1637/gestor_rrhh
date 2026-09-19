@@ -3347,22 +3347,106 @@ body.message-modal-open { overflow: hidden; }
     content: none !important;
 }
 
-/* ==========================================================
-   BODY / HEADER
-   ========================================================== */
-
-body {
-    background: #080a0c !important;
-}
-
-#container {
-    background: #080a0c !important;
-}
-
 /* Evita la antigua apariencia azul de Django */
 
 html[data-theme="light"] #header,
 html[data-theme="dark"] #header,
 html[data-theme="auto"] #header {
     background: #0b0d0f !important;
+}
+
+/* ==========================================================
+   FONDO EXCLUSIVO DE LA CONSOLA DJANGO
+   ========================================================== */
+
+/* Todas las páginas del administrador */
+body[class*="app-"] {
+    background: #080a0c !important;
+}
+
+body[class*="app-"] #container,
+body[class*="app-"] #content,
+body[class*="app-"] #content-main,
+body[class*="app-"] .main {
+    background: #080a0c !important;
+}
+
+/* ==========================================================
+   VISTAS INTERNAS DE LA CONSOLA
+   ========================================================== */
+
+body[class*="app-"] #content {
+    color: #f5f5f5 !important;
+}
+
+body[class*="app-"] #content h1,
+body[class*="app-"] #content h2,
+body[class*="app-"] #content h3 {
+    color: #f5f5f5 !important;
+}
+
+/* Listados */
+body[class*="app-"] #changelist,
+body[class*="app-"] #changelist-form,
+body[class*="app-"] .results {
+    background: transparent !important;
+}
+
+/* Barra de búsqueda */
+body[class*="app-"] #toolbar {
+    background: #171717 !important;
+    border: 1px solid #292929 !important;
+}
+
+body[class*="app-"] #toolbar form input {
+    background: #101010 !important;
+    color: #f5f5f5 !important;
+    border: 1px solid #333 !important;
+}
+
+/* Acciones */
+body[class*="app-"] .actions {
+    background: #111 !important;
+    color: #f5f5f5 !important;
+}
+
+/* Tablas */
+body[class*="app-"] #result_list {
+    background: #111 !important;
+}
+
+body[class*="app-"] #result_list thead th {
+    background: #202020 !important;
+    color: #f5f5f5 !important;
+}
+
+body[class*="app-"] #result_list tbody tr {
+    background: #111 !important;
+}
+
+body[class*="app-"] #result_list tbody tr:nth-child(even) {
+    background: #1c1c1c !important;
+}
+
+body[class*="app-"] #result_list td,
+body[class*="app-"] #result_list th {
+    border-color: #303030 !important;
+}
+
+/* Paginador */
+body[class*="app-"] .paginator {
+    background: #111 !important;
+    color: #d0d0d0 !important;
+    border-color: #292929 !important;
+}
+
+/* Breadcrumbs */
+body[class*="app-"] div.breadcrumbs {
+    background: #101214 !important;
+    color: #aeb4bd !important;
+    border-bottom: 1px solid #25282c !important;
+}
+
+body[class*="app-"] div.breadcrumbs a {
+    color: #d5d9df !important;
 }
