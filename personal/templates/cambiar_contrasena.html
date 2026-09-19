@@ -1,0 +1,36 @@
+{% extends "base_site.html" %}
+
+{% block title %}
+Cambiar contrasena | Gestor de Personal
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <h1>Cambiar contrasena</h1>
+    <p>Actualiza la contrasena de tu cuenta.</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+
+        <form method="post">
+            {% csrf_token %}
+
+            {{ form.as_p }}
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    Cambiar contrasena
+                </button>
+
+                <a href="{% url 'inicio' %}" class="btn btn-secondary">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}

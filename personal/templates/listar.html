@@ -1,0 +1,434 @@
+{% extends "base_site.html" %}
+
+{% block title %}
+Empleados
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+        <h1>Empleados</h1>
+
+        <p>
+            Gestiona la información del personal de la empresa.
+        </p>
+    </div>
+
+    {% if puede_editar %}
+
+        <a
+            href="{% url 'crear_empleado' %}"
+            class="btn"
+        >
+            + Nuevo empleado
+        </a>
+
+    {% endif %}
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- INDICADORES -->
+<!-- ============================================================= -->
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                👥
+            </div>
+
+            <span class="stat-label">
+                Total empleados
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_empleados }}
+        </strong>
+
+        <span class="stat-subtext">
+            Personal registrado
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-success">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ✓
+            </div>
+
+            <span class="stat-label">
+                Empleados activos
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_activos }}
+        </strong>
+
+        <span class="stat-subtext">
+            Actualmente trabajando
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-danger">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ✕
+            </div>
+
+            <span class="stat-label">
+                Empleados inactivos
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_inactivos }}
+        </strong>
+
+        <span class="stat-subtext">
+            Renuncias o desvinculaciones
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-purple">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                $
+            </div>
+
+            <span class="stat-label">
+                Gasto mensual
+            </span>
+
+        </div>
+
+        <strong>
+            ${{ total_nomina|floatformat:0 }}
+        </strong>
+
+        <span class="stat-subtext">
+            Nómina de empleados activos
+        </span>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- FILTROS -->
+<!-- ============================================================= -->
+
+<div class="card employees-card">
+
+    <div class="card-header">
+
+        <div>
+            <h2>
+                Lista de empleados
+            </h2>
+
+            <p>
+                Busca y filtra los registros disponibles.
+            </p>
+        </div>
+
+    </div>
+
+
+    <form
+        method="get"
+        class="filters-form"
+    >
+
+        <div class="filter-search">
+
+            <input
+                type="text"
+                name="busqueda"
+                value="{{ busqueda }}"
+                placeholder="Buscar por nombre o cargo..."
+            >
+
+        </div>
+
+
+        <div class="filter-control">
+
+            <select name="departamento">
+
+                <option value="">
+                    Todos los departamentos
+                </option>
+
+                {% for departamento in departamentos %}
+
+                    <option
+                        value="{{ departamento }}"
+                        {% if departamento == departamento_seleccionado %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ departamento }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="filter-control">
+
+            <select name="cargo">
+
+                <option value="">
+                    Todos los cargos
+                </option>
+
+                {% for item in cargos %}
+
+                    <option
+                        value="{{ item }}"
+                        {% if item == cargo_seleccionado %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ item }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="filter-control">
+
+            <select name="estado">
+
+                <option value="">
+                    Todos los estados
+                </option>
+
+                <option
+                    value="activo"
+                    {% if estado_seleccionado == 'activo' %}
+                        selected
+                    {% endif %}
+                >
+                    Activos
+                </option>
+
+                <option
+                    value="inactivo"
+                    {% if estado_seleccionado == 'inactivo' %}
+                        selected
+                    {% endif %}
+                >
+                    Inactivos
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <button
+            type="submit"
+            class="btn"
+        >
+            Buscar
+        </button>
+
+
+        <a
+            href="{% url 'listar_empleados' %}"
+            class="btn btn-secondary"
+        >
+            Limpiar
+        </a>
+
+    </form>
+
+
+    <!-- ========================================================= -->
+    <!-- TABLA -->
+    <!-- ========================================================= -->
+
+    <div class="table-responsive employees-table">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Empleado</th>
+                    <th>Cargo</th>
+                    <th>Departamento</th>
+                    <th>Salario</th>
+                    <th>Estado</th>
+
+                    {% if puede_editar %}
+                        <th>Acciones</th>
+                    {% endif %}
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for empleado in lista_empleados %}
+
+                    <tr>
+
+                        <td>
+
+                            <div class="employee-cell">
+
+                                <div class="employee-avatar">
+
+                                    {{ empleado.nombre_completo|first|upper }}
+
+                                </div>
+
+                                <div>
+
+                                    <strong>
+                                        {{ empleado.nombre_completo }}
+                                    </strong>
+
+                                    {% if empleado.email %}
+
+                                        <span>
+                                            {{ empleado.email }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <td>
+                            {{ empleado.cargo }}
+                        </td>
+
+
+                        <td>
+                            {{ empleado.departamento }}
+                        </td>
+
+
+                        <td>
+
+                            <strong>
+                                ${{ empleado.salario_mensual|floatformat:0 }}
+                            </strong>
+
+                        </td>
+
+
+                        <td>
+
+                            {% if empleado.estado_laboral|lower == 'activo' %}
+
+                                <span class="status-badge status-approved">
+                                    Activo
+                                </span>
+
+                            {% else %}
+
+                                <span class="status-badge status-rejected">
+                                    {{ empleado.get_estado_laboral_display }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        {% if puede_editar %}
+
+                            <td>
+
+                                <a
+                                    href="{% url 'editar_empleado' empleado.id %}"
+                                    class="table-action"
+                                >
+                                    Editar
+                                </a>
+
+                            </td>
+
+                        {% endif %}
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="{% if puede_editar %}6{% else %}5{% endif %}"
+                        >
+
+                            <div class="empty-state">
+
+                                <div class="empty-icon">
+                                    👥
+                                </div>
+
+                                <h3>
+                                    No se encontraron empleados
+                                </h3>
+
+                                <p>
+                                    Prueba cambiando los filtros de búsqueda.
+                                </p>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base_site.html" %}
+
+{% block title %}Solicitar permiso{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <h1>Solicitar permiso</h1>
+
+    <p>
+        Empleado:
+        <strong>{{ empleado.nombre_completo }}</strong>
+    </p>
+
+    {# Los avisos Django se muestran una sola vez en el modal de base_site.html. #}
+
+    {% if formulario.non_field_errors %}
+        <div class="mensaje-error">
+            {{ formulario.non_field_errors }}
+        </div>
+    {% endif %}
+
+    <form method="post">
+
+        {% csrf_token %}
+
+        <div class="campo">
+            <label for="{{ formulario.tipo.id_for_label }}">
+                Tipo de permiso
+            </label>
+
+            {{ formulario.tipo }}
+
+            {% for error in formulario.tipo.errors %}
+                <p class="error">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <div class="campo">
+            <label for="{{ formulario.fecha_inicio.id_for_label }}">
+                Fecha de inicio
+            </label>
+
+            {{ formulario.fecha_inicio }}
+
+            {% for error in formulario.fecha_inicio.errors %}
+                <p class="error">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <div class="campo">
+            <label for="{{ formulario.fecha_fin.id_for_label }}">
+                Fecha de término
+            </label>
+
+            {{ formulario.fecha_fin }}
+
+            {% for error in formulario.fecha_fin.errors %}
+                <p class="error">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <div class="acciones">
+
+            <button type="submit">
+                Enviar solicitud
+            </button>
+
+            <a href="{% url 'mis_permisos' %}">
+                Ver mis permisos
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,435 @@
+﻿{% extends "base_site.html" %}
+
+{% block title %}
+Gestión de nómina
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            Gestión de nómina
+        </h1>
+
+        <p>
+            Administra las remuneraciones y pagos de los empleados.
+        </p>
+
+    </div>
+
+
+    {# Agrupa exportación y creación junto al título de nómina. #}
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+
+        {# Coincide con usuario_autorizado: superusuario, RRHH y GERENTES. #}
+        {% if es_gestion %}
+
+            {# urlencode conserva espacios y caracteres especiales de los filtros. #}
+            <a
+                href="{% url 'exportar_nomina_excel' %}?busqueda={{ busqueda|urlencode }}&amp;estado_pago={{ estado_pago_seleccionado|urlencode }}"
+                class="btn"
+            >
+                Exportar Excel
+            </a>
+
+            {# PDF conserva los filtros y se muestra a los mismos roles que Excel. #}
+            <a
+                href="{% url 'exportar_nomina_pdf' %}?busqueda={{ busqueda|urlencode }}&amp;estado_pago={{ estado_pago_seleccionado|urlencode }}"
+                class="btn"
+            >
+                Exportar PDF
+            </a>
+
+        {% endif %}
+
+        {# La creación conserva su permiso original: superusuario o RRHH. #}
+        {% if puede_gestionar %}
+
+            <a
+                href="{% url 'crear_liquidacion' %}"
+                class="btn"
+            >
+                + Nueva liquidación
+            </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- INDICADORES -->
+<!-- ============================================================= -->
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                📄
+            </div>
+
+            <span class="stat-label">
+                Liquidaciones
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_liquidaciones }}
+        </strong>
+
+        <span class="stat-subtext">
+            Registros encontrados
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-warning">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ⏳
+            </div>
+
+            <span class="stat-label">
+                Pendientes de pago
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_pendientes }}
+        </strong>
+
+        <span class="stat-subtext">
+            Aún no pagadas
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-success">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ✓
+            </div>
+
+            <span class="stat-label">
+                Pagadas
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_pagadas }}
+        </strong>
+
+        <span class="stat-subtext">
+            Pagos completados
+        </span>
+
+    </div>
+
+
+    <div class="stat-card stat-purple">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                $
+            </div>
+
+            <span class="stat-label">
+                Total neto
+            </span>
+
+        </div>
+
+        <strong>
+            ${{ total_neto|floatformat:0 }}
+        </strong>
+
+        <span class="stat-subtext">
+            Total de liquidaciones mostradas
+        </span>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- TABLA DE NÓMINA -->
+<!-- ============================================================= -->
+
+<div class="card payroll-card">
+
+    <div class="card-header">
+
+        <div>
+
+            <h2>
+                Liquidaciones
+            </h2>
+
+            <p>
+                Consulta y administra los registros de remuneraciones.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <form
+        method="get"
+        class="payroll-filters"
+    >
+
+        <input
+            type="text"
+            name="busqueda"
+            value="{{ busqueda }}"
+            placeholder="Buscar empleado..."
+        >
+
+
+        <select name="estado_pago">
+
+            <option value="">
+                Todos los estados
+            </option>
+
+            <option
+                value="pendiente"
+                {% if estado_pago_seleccionado == 'pendiente' %}
+                    selected
+                {% endif %}
+            >
+                Pendientes
+            </option>
+
+            <option
+                value="pagado"
+                {% if estado_pago_seleccionado == 'pagado' %}
+                    selected
+                {% endif %}
+            >
+                Pagadas
+            </option>
+
+        </select>
+
+
+        <button
+            type="submit"
+            class="btn"
+        >
+            Filtrar
+        </button>
+
+
+        <a
+            href="{% url 'gestion_nomina' %}"
+            class="btn btn-secondary"
+        >
+            Limpiar
+        </a>
+
+    </form>
+
+
+    <div class="table-responsive payroll-table">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Empleado</th>
+                    <th>Periodo</th>
+                    <th>Base</th>
+                    <th>Bonificación</th>
+                    <th>Descuentos</th>
+                    <th>Neto</th>
+                    <th>Estado</th>
+
+                    {% if puede_gestionar %}
+                        <th>Acciones</th>
+                    {% endif %}
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for liquidacion in liquidaciones %}
+
+                    <tr>
+
+                        <td>
+
+                            <div class="employee-cell">
+
+                                <div class="employee-avatar">
+
+                                    {{ liquidacion.empleado.nombre_completo|first|upper }}
+
+                                </div>
+
+                                <div>
+
+                                    <strong>
+                                        {{ liquidacion.empleado.nombre_completo }}
+                                    </strong>
+
+                                    <span>
+                                        {{ liquidacion.empleado.cargo }}
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <td>
+                            {{ liquidacion.mes_ano|date:"m/Y" }}
+                        </td>
+
+
+                        <td>
+                            ${{ liquidacion.salario_base|floatformat:0 }}
+                        </td>
+
+
+                        <td>
+                            ${{ liquidacion.bonificacion|floatformat:0 }}
+                        </td>
+
+
+                        <td>
+                            ${{ liquidacion.descuentos|floatformat:0 }}
+                        </td>
+
+
+                        <td>
+
+                            <strong>
+                                ${{ liquidacion.neto|floatformat:0 }}
+                            </strong>
+
+                        </td>
+
+
+                        <td>
+
+                            {% if liquidacion.pagado %}
+
+                                <span class="status-badge status-approved">
+                                    Pagado
+                                </span>
+
+                            {% else %}
+
+                                <span class="status-badge status-pending">
+                                    Pendiente
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        {% if puede_gestionar %}
+
+                            <td>
+
+                                {% if not liquidacion.pagado %}
+
+                                    <form
+                                        method="post"
+                                        action="{% url 'marcar_liquidacion_pagada' liquidacion.id %}"
+                                        class="inline-form"
+                                    >
+
+                                        {% csrf_token %}
+
+                                        <button
+                                            type="submit"
+                                            class="permission-btn approve"
+                                        >
+                                            Marcar pagada
+                                        </button>
+
+                                    </form>
+
+                                {% else %}
+
+                                    <span class="processed-label">
+                                        Procesado
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        {% endif %}
+
+                    </tr>
+
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="{% if puede_gestionar %}8{% else %}7{% endif %}"
+                        >
+
+                            <div class="empty-state">
+
+                                <div class="empty-icon">
+                                    💳
+                                </div>
+
+                                <h3>
+                                    No hay liquidaciones
+                                </h3>
+
+                                <p>
+                                    No existen registros que coincidan con los filtros.
+                                </p>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

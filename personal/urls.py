@@ -1,0 +1,183 @@
+﻿from django.urls import path
+
+from . import views
+
+
+urlpatterns = [
+
+    # -------------------------------------------------------------------------
+    # Autenticación
+    # -------------------------------------------------------------------------
+
+    path(
+        '',
+        views.inicio,
+        name='inicio'
+    ),
+
+    path(
+        'login/',
+        views.iniciar_sesion,
+        name='login'
+    ),
+    path(
+    'cambiar-contrasena/',
+    views.CambiarContrasenaView.as_view(),
+    name='cambiar_contrasena'
+),
+
+    path(
+        'logout/',
+        views.cerrar_sesion,
+        name='logout'
+    ),
+
+    # -------------------------------------------------------------------------
+    # Dashboards
+    # -------------------------------------------------------------------------
+
+    path(
+        'inicio/gestion/',
+        views.dashboard_gestion,
+        name='dashboard_gestion'
+    ),
+
+    path(
+        'inicio/empleado/',
+        views.dashboard_empleado,
+        name='dashboard_empleado'
+    ),
+
+    # -------------------------------------------------------------------------
+    # Empleados
+    # -------------------------------------------------------------------------
+
+    path(
+        'empleados/',
+        views.listar_empleados,
+        name='listar_empleados'
+    ),
+
+    path(
+        'empleados/nuevo/',
+        views.crear_empleado,
+        name='crear_empleado'
+    ),
+
+    path(
+        'empleados/<int:empleado_id>/editar/',
+        views.editar_empleado,
+        name='editar_empleado'
+    ),
+
+    # -------------------------------------------------------------------------
+    # Gestión de permisos
+    # -------------------------------------------------------------------------
+
+    path(
+        'permisos/',
+        views.gestion_permisos,
+        name='gestion_permisos'
+    ),
+
+    path(
+        'permisos/<int:permiso_id>/aprobar/',
+        views.aprobar_permiso,
+        name='aprobar_permiso'
+    ),
+
+    path(
+        'permisos/<int:permiso_id>/rechazar/',
+        views.rechazar_permiso,
+        name='rechazar_permiso'
+    ),
+
+    # -------------------------------------------------------------------------
+    # Permisos de empleado
+    # -------------------------------------------------------------------------
+
+    path(
+        'permisos/solicitar/',
+        views.solicitar_permiso,
+        name='solicitar_permiso'
+    ),
+
+    path(
+        'permisos/mis-permisos/',
+        views.mis_permisos,
+        name='mis_permisos'
+    ),
+
+    # -------------------------------------------------------------------------
+    # Gestión de nómina
+    # -------------------------------------------------------------------------
+
+    path(
+        'nomina/',
+        views.gestion_nomina,
+        name='gestion_nomina'
+    ),
+
+    # Endpoint de descarga; el nombre permite enlazarlo desde la plantilla.
+    # Descarga PDF con los mismos permisos y filtros que Excel.
+    path(
+        'nomina/exportar-pdf/',
+        views.exportar_nomina_pdf,
+        name='exportar_nomina_pdf'
+    ),
+
+    path(
+        'nomina/exportar-excel/',
+        views.exportar_nomina_excel,
+        name='exportar_nomina_excel'
+    ),
+
+    path(
+        'nomina/nueva/',
+        views.crear_liquidacion,
+        name='crear_liquidacion'
+    ),
+
+    path(
+        'nomina/<int:liquidacion_id>/pagar/',
+        views.marcar_liquidacion_pagada,
+        name='marcar_liquidacion_pagada'
+    ),
+
+    # -------------------------------------------------------------------------
+    # Liquidaciones del empleado
+    # -------------------------------------------------------------------------
+
+    path(
+        'liquidaciones/',
+        views.mis_liquidaciones,
+        name='mis_liquidaciones'
+    ),
+
+
+    # -------------------------------------------------------------------------
+    # Notificaciones
+    # -------------------------------------------------------------------------
+
+    path(
+        'notificaciones/<int:notificacion_id>/ver/',
+        views.ver_notificacion,
+        name='ver_notificacion'
+    ),
+
+    path(
+        'notificaciones/marcar-leidas/',
+        views.marcar_notificaciones_leidas,
+        name='marcar_notificaciones_leidas'
+    ),
+
+    # -------------------------------------------------------------------------
+    # AJAX
+    # -------------------------------------------------------------------------
+
+    path(
+        'ajax/puestos/',
+        views.obtener_puestos_por_departamento,
+        name='obtener_puestos_por_departamento'
+    ),
+]

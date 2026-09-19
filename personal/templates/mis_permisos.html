@@ -1,0 +1,99 @@
+{% extends "base_site.html" %}
+
+{% block title %}Mis permisos{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <h1>Mis permisos</h1>
+
+    <p>
+        Empleado:
+        <strong>{{ empleado.nombre_completo }}</strong>
+    </p>
+
+    {# Los avisos Django se muestran una sola vez en el modal de base_site.html. #}
+
+    <div class="acciones">
+
+        <a href="{% url 'solicitar_permiso' %}">
+            Nueva solicitud
+        </a>
+
+    </div>
+
+    <br>
+
+    {% if permisos %}
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Fecha inicio</th>
+                    <th>Fecha término</th>
+                    <th>Días</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for permiso in permisos %}
+
+                    <tr>
+
+                        <td>
+                            {{ permiso.get_tipo_display }}
+                        </td>
+
+                        <td>
+                            {{ permiso.fecha_inicio }}
+                        </td>
+
+                        <td>
+                            {{ permiso.fecha_fin }}
+                        </td>
+
+                        <td>
+                            {{ permiso.dias }}
+                        </td>
+
+                        <td>
+
+                            {% if permiso.estado == 'pendiente' %}
+                                Pendiente
+
+                            {% elif permiso.estado == 'aprobado' %}
+                                Aprobado
+
+                            {% elif permiso.estado == 'rechazado' %}
+                                Rechazado
+
+                            {% else %}
+                                {{ permiso.estado }}
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    {% else %}
+
+        <p>
+            No tienes solicitudes de permiso registradas.
+        </p>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

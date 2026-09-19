@@ -1,0 +1,182 @@
+{% extends "base_site.html" %}
+
+{% block title %}
+Iniciar sesión
+{% endblock %}
+
+
+{% block public_content %}
+
+<div class="login-page">
+
+    <div class="login-side">
+
+        <div class="login-brand">
+
+            <div class="login-brand-icon">
+                👥
+            </div>
+
+            <div>
+                <strong>Gestor de Personal</strong>
+                <span>Recursos Humanos</span>
+            </div>
+
+        </div>
+
+
+        <div class="login-intro">
+
+            <span class="login-badge">
+                RRHH
+            </span>
+
+            <h1>
+                El talento hace crecer grandes equipos
+            </h1>
+
+            <p>
+                Gestiona personas, permisos y remuneraciones
+                desde una plataforma simple y centralizada.
+            </p>
+
+
+            <div class="login-benefits">
+
+                <div>
+                    <span>✓</span>
+                    Gestión centralizada
+                </div>
+
+                <div>
+                    <span>✓</span>
+                    Procesos más simples
+                </div>
+
+                <div>
+                    <span>✓</span>
+                    Información segura
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="login-form-area">
+
+        <div class="login-card">
+
+            <div class="login-card-header">
+
+                <span class="login-small-title">
+                    GESTOR DE PERSONAL
+                </span>
+
+                <h2>
+                    Bienvenido
+                </h2>
+
+                <p>
+                    Inicia sesión para continuar.
+                </p>
+
+            </div>
+
+
+            {% if formulario.non_field_errors %}
+
+                <div class="login-error">
+
+                    {% for error in formulario.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+
+                </div>
+
+            {% endif %}
+
+
+            <form
+                method="post"
+                action="{% url 'login' %}"
+                autocomplete="off"
+            >
+
+                {% csrf_token %}
+
+
+                <div class="campo">
+
+                    <label for="{{ formulario.username.id_for_label }}">
+                        Usuario
+                    </label>
+
+                    {{ formulario.username }}
+
+                </div>
+
+
+                <div class="campo">
+
+                    <label for="{{ formulario.password.id_for_label }}">
+                        Contraseña
+                    </label>
+
+                    {{ formulario.password }}
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="login-button"
+                >
+                    Iniciar sesión
+                </button>
+
+            </form>
+
+
+            <div class="login-footer">
+
+                <span>
+                    Acceso seguro al sistema de Recursos Humanos
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script>
+
+    /*
+     * Chrome puede recuperar el formulario desde su caché
+     * al usar Atrás/Adelante. Ese formulario puede contener
+     * un token CSRF anterior al inicio de sesión.
+     */
+    window.addEventListener(
+        'pageshow',
+        function (event) {
+
+            if (event.persisted) {
+                window.location.reload();
+            }
+
+        }
+    );
+
+</script>
+
+{% endblock %}

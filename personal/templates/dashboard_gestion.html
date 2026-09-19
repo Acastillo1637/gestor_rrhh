@@ -1,0 +1,621 @@
+{% extends "base_site.html" %}
+
+{% block title %}
+Dashboard RRHH
+{% endblock %}
+
+{% block content %}
+
+<!-- ============================================================= -->
+<!-- ENCABEZADO -->
+<!-- ============================================================= -->
+
+<div class="page-header dashboard-management-header">
+
+    <div>
+
+        <span class="page-eyebrow">
+            PANEL DE GESTIÓN
+        </span>
+
+        <h1>
+            Resumen general
+        </h1>
+
+        <p>
+            Monitorea empleados, remuneraciones y solicitudes desde un solo lugar.
+        </p>
+
+    </div>
+
+    <div class="dashboard-header-actions">
+
+        <a
+            href="{% url 'listar_empleados' %}"
+            class="btn btn-secondary"
+        >
+            Ver empleados
+        </a>
+
+        {% if request.user.is_superuser or request.user.groups.all %}
+
+            <a
+                href="{% url 'crear_empleado' %}"
+                class="btn"
+            >
+                + Nuevo empleado
+            </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- KPIs -->
+<!-- ============================================================= -->
+
+<div class="stats-grid management-stats">
+
+    <!-- TOTAL EMPLEADOS -->
+
+    <div class="stat-card stat-primary">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                👥
+            </div>
+
+            <span class="stat-label">
+                Total empleados
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_empleados }}
+        </strong>
+
+        <span class="stat-subtext">
+            Personal registrado
+        </span>
+
+    </div>
+
+
+    <!-- ACTIVOS -->
+
+    <div class="stat-card stat-success">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ✓
+            </div>
+
+            <span class="stat-label">
+                Empleados activos
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_activos }}
+        </strong>
+
+        <span class="stat-subtext">
+            Actualmente trabajando
+        </span>
+
+    </div>
+
+
+    <!-- INACTIVOS -->
+
+    <div class="stat-card stat-danger">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                ✕
+            </div>
+
+            <span class="stat-label">
+                Empleados inactivos
+            </span>
+
+        </div>
+
+        <strong>
+            {{ total_inactivos }}
+        </strong>
+
+        <span class="stat-subtext">
+            Personal desvinculado
+        </span>
+
+    </div>
+
+
+    <!-- NÓMINA -->
+
+    <div class="stat-card stat-purple">
+
+        <div class="stat-top">
+
+            <div class="stat-icon">
+                $
+            </div>
+
+            <span class="stat-label">
+                Gasto mensual
+            </span>
+
+        </div>
+
+        <strong>
+            ${{ total_nomina|floatformat:0 }}
+        </strong>
+
+        <span class="stat-subtext">
+            Salarios de empleados activos
+        </span>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- ACCIONES RÁPIDAS -->
+<!-- ============================================================= -->
+
+<div class="section-title dashboard-section-title">
+
+    <div>
+
+        <h2>
+            Acciones rápidas
+        </h2>
+
+        <p>
+            Accede directamente a las tareas principales de Recursos Humanos.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="management-actions-grid">
+
+    <!-- EMPLEADOS -->
+
+    <a
+        href="{% url 'listar_empleados' %}"
+        class="management-action-card action-employees"
+    >
+
+        <div class="management-action-icon">
+            👤
+        </div>
+
+        <div class="management-action-content">
+
+            <h3>
+                Gestionar empleados
+            </h3>
+
+            <p>
+                Consulta, crea y modifica información del personal.
+            </p>
+
+        </div>
+
+        <span class="management-action-arrow">
+            →
+        </span>
+
+    </a>
+
+
+    <!-- PERMISOS -->
+
+    <a
+        href="{% url 'gestion_permisos' %}"
+        class="management-action-card action-permissions"
+    >
+
+        <div class="management-action-icon">
+            📋
+        </div>
+
+        <div class="management-action-content">
+
+            <h3>
+                Gestionar permisos
+            </h3>
+
+            <p>
+                Revisa y procesa las solicitudes de los trabajadores.
+            </p>
+
+        </div>
+
+        {% if permisos_pendientes > 0 %}
+
+            <span class="management-notification-badge">
+                {{ permisos_pendientes }}
+            </span>
+
+        {% endif %}
+
+        <span class="management-action-arrow">
+            →
+        </span>
+
+    </a>
+
+
+    <!-- NÓMINA -->
+
+    <a
+        href="{% url 'gestion_nomina' %}"
+        class="management-action-card action-payroll"
+    >
+
+        <div class="management-action-icon">
+            💳
+        </div>
+
+        <div class="management-action-content">
+
+            <h3>
+                Gestión de nómina
+            </h3>
+
+            <p>
+                Registra y controla las remuneraciones del personal.
+            </p>
+
+        </div>
+
+        <span class="management-action-arrow">
+            →
+        </span>
+
+    </a>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- CONTENIDO PRINCIPAL -->
+<!-- ============================================================= -->
+
+<div class="management-dashboard-grid">
+
+    <!-- ========================================================= -->
+    <!-- EMPLEADOS POR DEPARTAMENTO -->
+    <!-- ========================================================= -->
+
+    <div class="card dashboard-departments-card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h2>
+                    Empleados por departamento
+                </h2>
+
+                <p>
+                    Distribución actual del personal.
+                </p>
+
+            </div>
+
+            <a href="{% url 'listar_empleados' %}">
+                Ver empleados
+            </a>
+
+        </div>
+
+
+        <div class="department-list">
+
+            {% for departamento in departamentos %}
+
+                <div class="department-item">
+
+                    <div class="department-info">
+
+                        <div class="department-icon">
+                            🏢
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                {{ departamento.departamento }}
+                            </strong>
+
+                            <span>
+                                Departamento
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="department-total">
+
+                        <strong>
+                            {{ departamento.total }}
+                        </strong>
+
+                        <span>
+                            empleado{% if departamento.total != 1 %}s{% endif %}
+                        </span>
+
+                    </div>
+
+                </div>
+
+            {% empty %}
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+                        🏢
+                    </div>
+
+                    <h3>
+                        Sin departamentos
+                    </h3>
+
+                    <p>
+                        Aún no existen empleados asociados a departamentos.
+                    </p>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================= -->
+    <!-- PERMISOS -->
+    <!-- ========================================================= -->
+
+    <div class="card dashboard-permissions-summary">
+
+        <div class="card-header">
+
+            <div>
+
+                <h2>
+                    Solicitudes de permisos
+                </h2>
+
+                <p>
+                    Estado actual de las solicitudes.
+                </p>
+
+            </div>
+
+            <a href="{% url 'gestion_permisos' %}">
+                Gestionar
+            </a>
+
+        </div>
+
+
+        <div class="permission-summary-highlight">
+
+            <div class="permission-highlight-icon">
+                ⏳
+            </div>
+
+            <div>
+
+                <span>
+                    Pendientes de revisión
+                </span>
+
+                <strong>
+                    {{ permisos_pendientes }}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        {% if permisos_pendientes > 0 %}
+
+            <a
+                href="{% url 'gestion_permisos' %}?estado=pendiente"
+                class="dashboard-review-button"
+            >
+                Revisar solicitudes pendientes
+                <span>→</span>
+            </a>
+
+        {% else %}
+
+            <div class="dashboard-all-clear">
+
+                <span>
+                    ✓
+                </span>
+
+                No existen solicitudes pendientes.
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================= -->
+<!-- ÚLTIMAS SOLICITUDES -->
+<!-- ============================================================= -->
+
+<div class="card dashboard-recent-permissions">
+
+    <div class="card-header">
+
+        <div>
+
+            <h2>
+                Últimas solicitudes
+            </h2>
+
+            <p>
+                Actividad reciente relacionada con permisos.
+            </p>
+
+        </div>
+
+        <a href="{% url 'gestion_permisos' %}">
+            Ver todas
+        </a>
+
+    </div>
+
+
+    {% if ultimos_permisos %}
+
+        <div class="table-responsive">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Empleado</th>
+                        <th>Tipo</th>
+                        <th>Fecha inicio</th>
+                        <th>Días</th>
+                        <th>Estado</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for permiso in ultimos_permisos %}
+
+                        <tr>
+
+                            <td>
+
+                                <div class="employee-cell">
+
+                                    <div class="employee-avatar">
+
+                                        {{ permiso.empleado.nombre_completo|first|upper }}
+
+                                    </div>
+
+                                    <div>
+
+                                        <strong>
+                                            {{ permiso.empleado.nombre_completo }}
+                                        </strong>
+
+                                        <span>
+                                            {{ permiso.empleado.cargo }}
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <td>
+                                {{ permiso.get_tipo_display }}
+                            </td>
+
+
+                            <td>
+                                {{ permiso.fecha_inicio|date:"d/m/Y" }}
+                            </td>
+
+
+                            <td>
+                                {{ permiso.dias }}
+                            </td>
+
+
+                            <td>
+
+                                {% if permiso.estado == 'pendiente' %}
+
+                                    <span class="status-badge status-pending">
+                                        Pendiente
+                                    </span>
+
+                                {% elif permiso.estado == 'aprobado' %}
+
+                                    <span class="status-badge status-approved">
+                                        Aprobado
+                                    </span>
+
+                                {% elif permiso.estado == 'rechazado' %}
+
+                                    <span class="status-badge status-rejected">
+                                        Rechazado
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {% else %}
+
+        <div class="empty-state">
+
+            <div class="empty-icon">
+                📋
+            </div>
+
+            <h3>
+                No hay solicitudes recientes
+            </h3>
+
+            <p>
+                Las solicitudes de los empleados aparecerán en esta sección.
+            </p>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}
