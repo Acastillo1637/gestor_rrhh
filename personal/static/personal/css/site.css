@@ -3147,3 +3147,222 @@ body.message-modal-open { overflow: hidden; }
 .login-error .errorlist,
 .form-alert .errorlist,
 .mensaje-error .errorlist { margin: 0; font-size: inherit; }
+
+/* ==========================================================
+   HEADER CONSOLA DEL SISTEMA
+   ========================================================== */
+
+#header {
+    height: 72px !important;
+    min-height: 72px !important;
+
+    padding: 0 28px !important;
+
+    display: flex !important;
+    align-items: center !important;
+
+    background: #0b0d0f !important;
+    border-bottom: 1px solid #25282c !important;
+
+    box-sizing: border-box !important;
+}
+
+/* Quitar cualquier resto visual de Django */
+
+#header,
+#branding,
+#user-tools {
+    background-image: none !important;
+}
+
+/* ==========================================================
+   BRANDING
+   ========================================================== */
+
+#branding {
+    flex: 1 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.system-brand {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+}
+
+.system-brand-title {
+    color: #f5f7fa;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.system-brand-subtitle {
+    color: #8c939d;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+/* ==========================================================
+   USUARIO
+   ========================================================== */
+
+#user-tools {
+    padding: 0 !important;
+    margin: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+
+    font-size: inherit !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+}
+
+.system-user-tools {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+/* ==========================================================
+   NOTIFICACIONES
+   ========================================================== */
+
+.system-notification {
+    position: relative;
+
+    width: 36px;
+    height: 36px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    background: transparent;
+    border: none;
+
+    color: #aeb4bd;
+
+    cursor: pointer;
+
+    border-radius: 8px;
+
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.system-notification:hover {
+    background: #181b1f;
+    color: #ffffff;
+}
+
+.notification-bell {
+    font-size: 17px;
+}
+
+.notification-dot {
+    position: absolute;
+
+    top: 6px;
+    right: 6px;
+
+    width: 7px;
+    height: 7px;
+
+    background: #ff4d4f;
+
+    border: 2px solid #0b0d0f;
+    border-radius: 50%;
+}
+
+/* ==========================================================
+   AVATAR
+   ========================================================== */
+
+.system-user-avatar {
+    width: 38px;
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #303646;
+
+    border: 1px solid #41495c;
+    border-radius: 50%;
+
+    color: #ffffff;
+
+    font-size: 15px;
+    font-weight: 700;
+
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* ==========================================================
+   NOMBRE
+   ========================================================== */
+
+.system-username {
+    color: #f5f5f5;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.system-user-arrow {
+    color: #8f969f;
+
+    font-size: 16px;
+
+    margin-left: -5px;
+}
+
+/* ==========================================================
+   QUITAR ELEMENTOS ANTIGUOS DEL HEADER DJANGO
+   ========================================================== */
+
+#user-tools > a {
+    display: none !important;
+}
+
+#user-tools strong {
+    display: none !important;
+}
+
+/* Quitar el icono extraño de la esquina superior izquierda */
+
+#branding::before,
+#branding::after,
+#header::before,
+#header::after {
+    display: none !important;
+    content: none !important;
+}
+
+/* ==========================================================
+   BODY / HEADER
+   ========================================================== */
+
+body {
+    background: #080a0c !important;
+}
+
+#container {
+    background: #080a0c !important;
+}
+
+/* Evita la antigua apariencia azul de Django */
+
+html[data-theme="light"] #header,
+html[data-theme="dark"] #header,
+html[data-theme="auto"] #header {
+    background: #0b0d0f !important;
+}

@@ -1,0 +1,695 @@
+/* =========================================================
+   GESTOR RRHH - CONSOLA DE ADMINISTRACIÓN
+   Dashboard principal
+   ========================================================= */
+
+/* ---------- VARIABLES ---------- */
+
+:root {
+    --sys-bg: #0b0b0c;
+    --sys-sidebar: #141414;
+    --sys-card: #171717;
+    --sys-card-hover: #1d1d1d;
+    --sys-border: #292929;
+
+    --sys-text: #f5f5f5;
+    --sys-muted: #929292;
+
+    --sys-green: #20c76a;
+    --sys-yellow: #f5b800;
+    --sys-blue: #3b82f6;
+    --sys-red: #ef4444;
+
+    --sys-radius: 14px;
+}
+
+
+/* =========================================================
+   CONTENIDO GENERAL
+   ========================================================= */
+
+body.system-dashboard {
+    background: var(--sys-bg);
+}
+
+body.system-dashboard #content {
+    padding: 0 !important;
+}
+
+body.system-dashboard #content-main {
+    width: 100%;
+}
+
+.system-dashboard-container {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 34px 38px 60px;
+
+    background: var(--sys-bg);
+    color: var(--sys-text);
+}
+
+
+/* =========================================================
+   ENCABEZADO
+   ========================================================= */
+
+.dashboard-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 30px;
+
+    margin-bottom: 30px;
+}
+
+.dashboard-heading h1 {
+    margin: 0 0 8px;
+
+    color: var(--sys-text);
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.dashboard-heading h2 {
+    margin: 0 0 8px;
+
+    color: var(--sys-text);
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.dashboard-heading p {
+    max-width: 650px;
+    margin: 0;
+
+    color: var(--sys-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   ESTADO DEL SISTEMA
+   ========================================================= */
+
+.system-health {
+    min-width: 230px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    padding: 15px 18px;
+
+    background: var(--sys-card);
+    border: 1px solid var(--sys-border);
+    border-radius: var(--sys-radius);
+}
+
+.health-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    background: #102419;
+    border-radius: 10px;
+
+    color: var(--sys-green);
+    font-size: 20px;
+}
+
+.system-health span,
+.system-health strong,
+.system-health small {
+    display: block;
+}
+
+.system-health > div:last-child > span {
+    margin-bottom: 3px;
+
+    color: var(--sys-muted);
+    font-size: 11px;
+}
+
+.system-health strong {
+    color: var(--sys-text);
+    font-size: 13px;
+}
+
+.system-health small {
+    margin-top: 3px;
+
+    color: #686868;
+    font-size: 10px;
+}
+
+.status-dot {
+    display: inline-block;
+
+    width: 7px;
+    height: 7px;
+    margin-right: 5px;
+
+    background: var(--sys-green);
+    border-radius: 50%;
+}
+
+
+/* =========================================================
+   TARJETAS DE MÉTRICAS
+   ========================================================= */
+
+/* =========================================================
+   TARJETAS DE MÉTRICAS
+   ========================================================= */
+
+.system-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.system-stats .stat-card {
+    position: relative;
+    box-sizing: border-box;
+
+    display: flex;
+    align-items: center;
+
+    min-width: 0;
+    min-height: 135px;
+    padding: 22px;
+
+    background: var(--sys-card);
+    border: 1px solid var(--sys-border);
+    border-radius: var(--sys-radius);
+
+    color: var(--sys-text);
+    text-decoration: none !important;
+
+    transition:
+        transform 0.15s ease,
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.system-stats .stat-card:hover {
+    transform: translateY(-2px);
+    background: var(--sys-card-hover);
+    border-color: #3a3a3a;
+}
+
+.system-stats .stat-card > div:last-child {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.system-stats .stat-card > div:last-child > span {
+    display: block;
+    margin-bottom: 18px;
+
+    color: #cfcfcf;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.system-stats .stat-card strong {
+    display: block;
+    margin-bottom: 6px;
+
+    color: var(--sys-text);
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.system-stats .stat-card small {
+    display: block;
+
+    color: var(--sys-muted);
+    font-size: 11px;
+}
+
+.system-stats .stat-icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 32px;
+    height: 32px;
+
+    border-radius: 8px;
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+/* Colores de cada tarjeta */
+
+.system-stats .stat-card.blue .stat-icon {
+    background: rgba(59, 130, 246, 0.13);
+    color: #60a5fa;
+}
+
+.system-stats .stat-card.green .stat-icon {
+    background: rgba(32, 199, 106, 0.13);
+    color: #4ade80;
+}
+
+.system-stats .stat-card.yellow .stat-icon {
+    background: rgba(245, 184, 0, 0.13);
+    color: #facc15;
+}
+
+.system-stats .stat-card.red .stat-icon {
+    background: rgba(239, 68, 68, 0.13);
+    color: #f87171;
+}
+/* =========================================================
+   GRID CENTRAL
+   ========================================================= */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: 20px;
+
+    margin-bottom: 24px;
+}
+
+.dashboard-panel {
+    overflow: hidden;
+
+    background: var(--sys-card);
+    border: 1px solid var(--sys-border);
+    border-radius: var(--sys-radius);
+}
+
+.panel-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+
+    padding: 18px 20px;
+
+    border-bottom: 1px solid var(--sys-border);
+}
+
+.panel-heading h3 {
+    margin: 0;
+
+    color: var(--sys-text);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.panel-heading a {
+    color: #b8b8b8;
+    font-size: 11px;
+    text-decoration: none;
+}
+
+.panel-heading a:hover {
+    color: white;
+}
+
+
+/* =========================================================
+   TABLA ACTIVIDAD
+   ========================================================= */
+
+.activity-table-wrapper {
+    overflow-x: auto;
+}
+
+.activity-table {
+    width: 100%;
+
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.activity-table th {
+    padding: 11px 16px;
+
+    background: #131313;
+    border-bottom: 1px solid var(--sys-border);
+
+    color: #777;
+    font-size: 10px;
+    font-weight: 600;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.activity-table td {
+    padding: 13px 16px;
+
+    border-bottom: 1px solid #242424;
+
+    color: #d6d6d6;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.activity-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.activity-table tbody tr:hover {
+    background: #1b1b1b;
+}
+
+
+/* =========================================================
+   ESTADOS
+   ========================================================= */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 4px 8px;
+
+    border-radius: 999px;
+
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.status-success {
+    background: rgba(32, 199, 106, 0.14);
+    color: #4ade80;
+}
+
+.status-warning {
+    background: rgba(245, 184, 0, 0.14);
+    color: #facc15;
+}
+
+.status-danger {
+    background: rgba(239, 68, 68, 0.14);
+    color: #f87171;
+}
+
+
+/* =========================================================
+   USUARIOS POR ROL
+   ========================================================= */
+
+.role-panel-content {
+    padding: 18px 20px;
+}
+
+.role-total {
+    margin-bottom: 20px;
+}
+
+.role-total strong {
+    display: block;
+
+    color: var(--sys-text);
+    font-size: 28px;
+}
+
+.role-total span {
+    color: var(--sys-muted);
+    font-size: 11px;
+}
+
+.role-item {
+    margin-bottom: 17px;
+}
+
+.role-item:last-child {
+    margin-bottom: 0;
+}
+
+.role-info {
+    display: flex;
+    justify-content: space-between;
+
+    margin-bottom: 7px;
+
+    color: #d5d5d5;
+    font-size: 11px;
+}
+
+.role-bar {
+    width: 100%;
+    height: 5px;
+
+    overflow: hidden;
+
+    background: #292929;
+    border-radius: 10px;
+}
+
+.role-bar span {
+    display: block;
+    height: 100%;
+
+    background: #777;
+    border-radius: inherit;
+}
+
+
+/* =========================================================
+   ACCIONES RÁPIDAS
+   ========================================================= */
+
+.quick-actions-title {
+    margin: 0 0 13px;
+
+    color: var(--sys-text);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.quick-card {
+    display: block;
+
+    min-height: 145px;
+    padding: 20px;
+
+    background: var(--sys-card);
+    border: 1px solid var(--sys-border);
+    border-radius: var(--sys-radius);
+
+    color: inherit;
+    text-decoration: none !important;
+
+    transition:
+        transform 0.15s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+.quick-card:hover {
+    transform: translateY(-2px);
+
+    background: var(--sys-card-hover);
+    border-color: #3a3a3a;
+}
+
+.quick-card h3 {
+    margin: 14px 0 7px;
+
+    color: var(--sys-text);
+    font-size: 13px;
+}
+
+.quick-card p {
+    min-height: 36px;
+    margin: 0 0 15px;
+
+    color: var(--sys-muted);
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.quick-card ul {
+    margin: 0 0 14px;
+    padding-left: 16px;
+
+    color: #a7a7a7;
+    font-size: 10px;
+    line-height: 1.8;
+}
+
+.quick-card .quick-button {
+    color: #d7d7d7;
+    font-size: 10px;
+}
+
+.quick-icon {
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    font-size: 15px;
+}
+
+.blue-icon {
+    background: rgba(59, 130, 246, 0.13);
+    color: #60a5fa;
+}
+
+.green-icon {
+    background: rgba(32, 199, 106, 0.13);
+    color: #4ade80;
+}
+
+.yellow-icon {
+    background: rgba(245, 184, 0, 0.13);
+    color: #facc15;
+}
+
+.red-icon {
+    background: rgba(239, 68, 68, 0.13);
+    color: #f87171;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+    .system-stats,
+    .quick-actions {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+
+    .system-dashboard-container {
+        padding: 20px 16px 40px;
+    }
+
+    .dashboard-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .system-health {
+        min-width: 0;
+    }
+
+    .system-stats,
+    .quick-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-heading h1 {
+        font-size: 25px;
+    }
+}
+
+/* ========================================
+   USUARIOS POR ROL
+======================================== */
+
+.role-summary {
+    padding: 22px;
+}
+
+.role-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding-bottom: 18px;
+    margin-bottom: 18px;
+
+    border-bottom: 1px solid #2b2b2b;
+}
+
+.role-total span {
+    color: #8d8d8d;
+    font-size: 12px;
+}
+
+.role-total strong {
+    color: #ffffff;
+    font-size: 24px;
+}
+
+.role-item {
+    margin-bottom: 22px;
+}
+
+.role-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 9px;
+}
+
+.role-info span {
+    color: #d5d5d5;
+    font-size: 13px;
+}
+
+.role-info strong {
+    color: #ffffff;
+    font-size: 13px;
+}
+
+.role-progress {
+    height: 6px;
+
+    background: #292929;
+    border-radius: 20px;
+
+    overflow: hidden;
+}
+
+.role-progress-bar {
+    height: 100%;
+    border-radius: 20px;
+}
+
+.employee-role {
+    width: 67%;
+    background: #3b82f6;
+}
+
+.superuser-role {
+    width: 22%;
+    background: #22c55e;
+}

@@ -1,0 +1,48 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}
+Gestor RRHH | Consola del Sistema
+{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'personal/css/site.css' %}">
+    <link rel="stylesheet" href="{% static 'personal/css/system_sidebar.css' %}">
+{% endblock %}
+
+{% block branding %}
+<div class="system-brand">
+    <div class="system-brand-title">Gestor RRHH</div>
+    <div class="system-brand-subtitle">Consola del Sistema</div>
+</div>
+{% endblock %}
+
+{% block usertools %}
+{% if has_permission %}
+<div class="system-user-tools">
+
+    <button class="system-notification" type="button" title="Notificaciones">
+        <span class="notification-bell">♟</span>
+        <span class="notification-dot"></span>
+    </button>
+
+    <div class="system-user-avatar">
+        {{ request.user.username|first|upper }}
+    </div>
+
+    <span class="system-username">
+        {{ request.user.username }}
+    </span>
+
+    <span class="system-user-arrow">⌄</span>
+
+</div>
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block nav-sidebar %}
+    {% include "admin/nav_sidebar.html" %}
+{% endblock %}

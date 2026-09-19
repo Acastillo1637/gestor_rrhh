@@ -1,0 +1,178 @@
+{% load i18n static %}
+
+<button
+    type="button"
+    id="custom-sidebar-toggle"
+    class="custom-sidebar-toggle"
+    title="Contraer menú"
+    aria-label="Contraer menú"
+>
+    ‹
+</button>
+
+<div class="system-sidebar-menu">
+
+    <!-- =========================
+         GENERAL
+    ========================== -->
+    <div class="sidebar-section">
+
+        <span class="sidebar-section-title">GENERAL</span>
+
+        <a href="{% url 'admin:index' %}"
+           class="system-sidebar-link {% if request.path == '/admin/' %}active{% endif %}">
+            <span class="sidebar-menu-icon blue">▦</span>
+            <span class="sidebar-menu-text">Dashboard</span>
+        </a>
+
+        <a href="{% url 'admin:auth_user_changelist' %}"
+           class="system-sidebar-link {% if '/admin/auth/user/' in request.path %}active{% endif %}">
+            <span class="sidebar-menu-icon blue">♙</span>
+            <span class="sidebar-menu-text">Usuarios</span>
+        </a>
+
+        <a href="{% url 'admin:auth_group_changelist' %}"
+           class="system-sidebar-link {% if '/admin/auth/group/' in request.path %}active{% endif %}">
+            <span class="sidebar-menu-icon green">◇</span>
+            <span class="sidebar-menu-text">Roles y permisos</span>
+        </a>
+
+    </div>
+
+
+    <!-- =========================
+         SEGURIDAD
+    ========================== -->
+    <div class="sidebar-section">
+
+        <span class="sidebar-section-title">SEGURIDAD</span>
+
+        <a href="#"
+           class="system-sidebar-link disabled-link"
+           title="Disponible próximamente">
+            <span class="sidebar-menu-icon yellow">▤</span>
+            <span class="sidebar-menu-text">Auditoría</span>
+        </a>
+
+        <a href="#"
+           class="system-sidebar-link disabled-link"
+           title="Disponible próximamente">
+            <span class="sidebar-menu-icon red">!</span>
+            <span class="sidebar-menu-text">Alertas de seguridad</span>
+        </a>
+
+    </div>
+
+
+    <!-- =========================
+         SISTEMA
+    ========================== -->
+    <div class="sidebar-section">
+
+        <span class="sidebar-section-title">SISTEMA</span>
+
+        <a href="#"
+           class="system-sidebar-link disabled-link"
+           title="Disponible próximamente">
+            <span class="sidebar-menu-icon purple">⚙</span>
+            <span class="sidebar-menu-text">Configuración</span>
+        </a>
+
+        <a href="{% url 'admin:index' %}"
+           class="system-sidebar-link">
+            <span class="sidebar-menu-icon green">●</span>
+            <span class="sidebar-menu-text">Estado del sistema</span>
+        </a>
+
+    </div>
+
+
+    <!-- =========================
+         PARTE INFERIOR
+    ========================== -->
+    <div class="sidebar-bottom">
+
+        <div class="sidebar-divider"></div>
+
+        <a href="/inicio/gestion/"
+           class="system-sidebar-link"
+           title="Volver al portal RRHH">
+            <span class="sidebar-menu-icon">←</span>
+            <span class="sidebar-menu-text">Volver al portal RRHH</span>
+        </a>
+
+    </div>
+
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const boton = document.getElementById("custom-sidebar-toggle");
+    const sidebar = document.querySelector(".system-sidebar-menu");
+
+    if (!boton) {
+        console.error("ERROR: No encontré el botón del sidebar");
+        return;
+    }
+
+    if (!sidebar) {
+        console.error("ERROR: No encontré .system-sidebar-menu");
+        return;
+    }
+
+    console.log("Sidebar personalizado cargado correctamente");
+
+    function cambiarEstado(collapsed) {
+
+        document.body.classList.toggle(
+            "system-sidebar-is-collapsed",
+            collapsed
+        );
+
+        sidebar.classList.toggle(
+            "system-sidebar-collapsed",
+            collapsed
+        );
+
+        boton.innerHTML = collapsed ? "›" : "‹";
+        boton.title = collapsed
+            ? "Desplegar menú"
+            : "Contraer menú";
+
+        localStorage.setItem(
+            "systemSidebarCollapsed",
+            collapsed
+        );
+    }
+
+    /* Recuperar estado anterior */
+    const estadoGuardado =
+        localStorage.getItem("systemSidebarCollapsed") === "true";
+
+    cambiarEstado(estadoGuardado);
+
+
+    /* CLICK */
+    boton.addEventListener("click", function (event) {
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const collapsed =
+            !sidebar.classList.contains(
+                "system-sidebar-collapsed"
+            );
+
+        cambiarEstado(collapsed);
+
+        console.log(
+            collapsed
+                ? "Sidebar contraído"
+                : "Sidebar desplegado"
+        );
+    });
+
+});
+</script>

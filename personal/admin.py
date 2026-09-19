@@ -3,6 +3,8 @@
 # -----------------------------------------------------------------------------
 
 from django.contrib import admin, messages
+from django.contrib.auth.models import User, Group
+from django.contrib.admin.models import LogEntry
 from django import forms
 from django.utils import timezone
 
@@ -23,10 +25,69 @@ from .models import (
 # Personalización general del panel admin
 # -----------------------------------------------------------------------------
 
-admin.site.site_header = "Gestor de Personal - Recursos Humanos"
-admin.site.site_title = "RRHH"
-admin.site.index_title = "Administración de Personal"
-admin.site.site_url = "/empleados/"
+admin.site.site_header = "Gestor RRHH"
+admin.site.site_title = "Gestor RRHH"
+admin.site.index_title = "Administración del Sistema"
+admin.site.site_url = "/inicio/gestion/"
+
+
+_original_admin_index = admin.site.index
+
+
+def system_admin_index(request, extra_context=None):
+
+    extra_context = extra_context or {}
+
+    total_users = User.objects.count()
+    active_users = User.objects.filter(is_active=True).count()
+    total_groups = Group.objects.count()
+    audit_events = LogEntry.objects.count()
+
+    role_stats = []
+
+    for group in Group.objects.all().order_by("name"):
+        role_stats.append({
+            "name": group.name,
+            "total": group.user_set.count(),
+        })
+
+    superusers = User.objects.filter(
+        is_superuser=True
+    ).count()
+
+    if superusers:
+        role_stats.append({
+            "name": "Superusuarios",
+            "total": superusers,
+        })
+
+    extra_context.update({
+        "system_stats": {
+            "users": total_users,
+            "active_users": active_users,
+            "groups": total_groups,
+            "audit_events": audit_events,
+        },
+
+        "role_stats": role_stats,
+
+        "recent_actions": (
+            LogEntry.objects
+            .select_related(
+                "user",
+                "content_type"
+            )
+            .order_by("-action_time")[:6]
+        ),
+    })
+
+    return _original_admin_index(
+        request,
+        extra_context=extra_context
+    )
+
+
+admin.site.index = system_admin_index
 
 
 # =============================================================================
