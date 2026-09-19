@@ -458,39 +458,8 @@ textarea {
 }
 
 
-.topbar-search {
-
-    display: flex;
-    align-items: center;
-
-    gap: 10px;
-
-    width: 360px;
-
-    padding: 0 14px;
-
-    background: #f4f7fa;
-
-    border:
-        1px solid #edf0f4;
-
-    border-radius: 9px;
-}
 
 
-.topbar-search input {
-
-    height: 38px;
-
-    width: 100%;
-
-    border: 0;
-    outline: none;
-
-    background: transparent;
-
-    color: var(--text-secondary);
-}
 
 
 .notification-button {
@@ -1306,50 +1275,12 @@ button:hover,
    MESSAGES
    ========================================================================== */
 
-.messages {
-
-    margin-bottom: 20px;
-}
 
 
-.message {
-
-    padding: 13px 16px;
-
-    border-radius: 9px;
-
-    margin-bottom: 10px;
-
-    background: var(--primary-soft);
-
-    color: var(--primary-dark);
-
-    border:
-        1px solid
-        rgba(22, 119, 255, 0.15);
-}
 
 
-.message-success {
-
-    background: var(--success-soft);
-
-    color: #137c46;
-
-    border-color:
-        rgba(25, 165, 90, 0.15);
-}
 
 
-.message-error {
-
-    background: var(--danger-soft);
-
-    color: #ad3035;
-
-    border-color:
-        rgba(229, 72, 77, 0.15);
-}
 
 
 .error,
@@ -1382,19 +1313,6 @@ button:hover,
 }
 
 
-.public-messages {
-
-    position: fixed;
-
-    top: 20px;
-    left: 50%;
-
-    transform: translateX(-50%);
-
-    z-index: 1000;
-
-    min-width: 350px;
-}
 
 
 .login-page {
@@ -1707,23 +1625,7 @@ button:hover,
 }
 
 
-.login-error {
 
-    margin-bottom: 20px;
-
-    padding: 12px 14px;
-
-    border-radius: 8px;
-
-    color: #b83236;
-
-    background: #ffeaea;
-
-    border:
-        1px solid #ffd0d2;
-
-    font-size: 12px;
-}
 
 
 .login-footer {
@@ -1763,10 +1665,6 @@ button:hover,
     }
 
 
-    .topbar-search {
-
-        width: 260px;
-    }
 }
 
 
@@ -1808,10 +1706,6 @@ button:hover,
     }
 
 
-    .topbar-search {
-
-        display: none;
-    }
 
 
     .main-content {
@@ -2309,21 +2203,7 @@ button:hover,
     list-style: none;
 }
 
-.form-alert {
-    background: #fff1f2;
 
-    border: 1px solid #fecdd3;
-
-    color: #be123c;
-
-    border-radius: 8px;
-
-    padding: 12px 14px;
-
-    margin-bottom: 20px;
-
-    font-size: 11px;
-}
 
 
 /* BOTONES */
@@ -3108,3 +2988,162 @@ button:hover,
     }
 
 }
+/* Avisos Django: estilos aislados del resto de los formularios y botones. */
+body.message-modal-open { overflow: hidden; }
+
+.message-modal {
+    width: min(480px, calc(100% - 32px));
+    max-width: calc(100% - 32px);
+    max-height: calc(100dvh - 32px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 22px;
+    background: #fff;
+    color: #24364b;
+    font-family: inherit;
+    box-shadow: 0 28px 90px rgba(15, 32, 53, 0.3);
+    overflow-y: auto;
+}
+
+.message-modal::backdrop {
+    background: rgba(15, 32, 53, 0.48);
+    backdrop-filter: blur(3px);
+}
+
+.message-modal-header {
+    padding: 26px 24px 20px;
+    text-align: center;
+    background: linear-gradient(135deg, #f2f7ff, #fbfdff);
+    border-bottom: 1px solid #edf2f8;
+}
+
+.message-modal-brand {
+    display: block;
+    margin-bottom: 9px;
+    color: #4776aa;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.message-modal-header h2 {
+    margin: 0;
+    color: #19364b;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.message-modal-body { padding: 24px 28px 8px; overflow-wrap: anywhere; }
+
+.message-modal-item {
+    --notice-color: var(--notice-info);
+    --notice-soft: var(--notice-info-soft);
+    padding: 18px;
+    border-radius: 14px;
+    background: #f8fafc;
+    text-align: center;
+}
+
+.message-modal-item:only-child { background: transparent; padding: 0 4px 8px; }
+.message-modal-item + .message-modal-item { margin-top: 14px; }
+
+.message-modal-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    color: var(--notice-color);
+    background: var(--notice-soft);
+    font-size: 27px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.message-modal-item:only-child .message-modal-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    box-shadow: 0 0 0 7px #f8fbfa;
+    font-size: 34px;
+}
+
+.message-modal-item strong { display: block; margin-bottom: 9px; font-size: 17px; }
+.message-modal-item p { margin: 0; color: #52647a; font-size: 14px; white-space: pre-line; line-height: 1.75; }
+.message-modal-success { --notice-color: var(--notice-success); --notice-soft: var(--notice-success-soft); }
+.message-modal-error { --notice-color: var(--notice-error); --notice-soft: var(--notice-error-soft); }
+.message-modal-warning { --notice-color: var(--notice-warning); --notice-soft: var(--notice-warning-soft); }
+
+.message-modal-footer { padding: 18px 28px 28px; display: flex; justify-content: center; }
+.message-modal-footer .btn {
+    width: 100%;
+    max-width: 240px;
+    min-height: 46px;
+    border: 0;
+    border-radius: 12px;
+    color: #fff;
+    background: linear-gradient(135deg, #1677ff, #1263d4);
+    box-shadow: 0 6px 16px rgba(22, 119, 255, 0.2);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.message-modal-footer .btn:hover { filter: brightness(0.96); }
+.message-modal-footer .btn:focus-visible { outline: 3px solid #8cbcff; outline-offset: 4px; }
+
+@media (prefers-reduced-motion: no-preference) {
+    .message-modal[open] { animation: message-modal-enter 0.18s ease-out; }
+    @keyframes message-modal-enter {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+}
+
+/* Paleta compartida: modal, validación de formularios y campana. */
+:root {
+    --notice-text: #24364b;
+    --notice-muted: #52647a;
+    --notice-info: #2369c8;
+    --notice-info-soft: #edf5ff;
+    --notice-success: #178657;
+    --notice-success-soft: #e7f7ef;
+    --notice-error: #c93540;
+    --notice-error-soft: #ffedf0;
+    --notice-warning: #a56708;
+    --notice-warning-soft: #fff4d9;
+}
+
+/* Los errores generales conservan su lugar y comparten el mismo diseño. */
+.login-error,
+.form-alert,
+.mensaje-error {
+    padding: 14px 16px;
+    margin: 0 0 18px;
+    border: 1px solid #f6cbd1;
+    border-left: 4px solid var(--notice-error);
+    border-radius: 12px;
+    color: var(--notice-error);
+    background: var(--notice-error-soft);
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+/* Campo inválido: texto cercano al control, sin crear otro aviso emergente. */
+.error,
+.errorlist {
+    color: var(--notice-error);
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.errorlist { list-style: none; padding: 0; margin: 6px 0 0; }
+.errorlist li + li { margin-top: 4px; }
+.error .errorlist { margin: 0; }
+.login-error .errorlist,
+.form-alert .errorlist,
+.mensaje-error .errorlist { margin: 0; font-size: inherit; }

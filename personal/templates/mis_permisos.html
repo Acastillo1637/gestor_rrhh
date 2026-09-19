@@ -13,13 +13,7 @@
         <strong>{{ empleado.nombre_completo }}</strong>
     </p>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="mensaje">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
+    {# Los avisos Django se muestran una sola vez en el modal de base_site.html. #}
 
     <div class="acciones">
 
