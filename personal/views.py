@@ -82,45 +82,6 @@ def usuario_rrhh(user):
     )
 
 
-def contexto_rol(request):
-
-    es_gestion = (
-        request.user.is_authenticated
-        and usuario_autorizado(request.user)
-    )
-
-    es_empleado = (
-        request.user.is_authenticated
-        and hasattr(request.user, 'empleado')
-    )
-
-    if not request.user.is_authenticated:
-        notificaciones = Notificacion.objects.none()
-    elif es_gestion:
-        # RRHH y Gerencia ven la actividad general del sistema.
-        notificaciones = Notificacion.objects.filter(
-            usuario__isnull=True
-        )
-    else:
-        # Los trabajadores solamente ven sus propias notificaciones.
-        notificaciones = Notificacion.objects.filter(
-            usuario=request.user
-        )
-
-    notificaciones_no_leidas = notificaciones.filter(
-        leida=False
-    ).count()
-
-    ultimas_notificaciones = notificaciones[:8]
-
-    return {
-        'es_gestion': es_gestion,
-        'es_empleado': es_empleado,
-        'notificaciones_no_leidas': notificaciones_no_leidas,
-        'ultimas_notificaciones': ultimas_notificaciones,
-    }
-
-
 def crear_notificacion(
     mensaje,
     tipo='sistema',
@@ -386,7 +347,6 @@ def dashboard_gestion(request):
         'ultimos_permisos': ultimos_permisos,
         'departamentos': departamentos,
 
-        **contexto_rol(request),
     }
 
     return render(
@@ -454,7 +414,6 @@ def dashboard_empleado(request):
         'ultima_liquidacion': ultima_liquidacion,
         'ultimos_permisos': ultimos_permisos,
 
-        **contexto_rol(request),
     }
 
     return render(
@@ -597,7 +556,6 @@ def listar_empleados(request):
         'estado_seleccionado': estado,
         'puede_editar': puede_editar,
 
-        **contexto_rol(request),
     }
 
     return render(
@@ -687,7 +645,6 @@ def crear_empleado(request):
         'formulario': formulario,
         'titulo': 'Nuevo empleado',
 
-        **contexto_rol(request),
     }
 
     return render(
@@ -779,7 +736,6 @@ def editar_empleado(
         'formulario': formulario,
         'titulo': 'Editar empleado',
 
-        **contexto_rol(request),
     }
 
     return render(
@@ -886,7 +842,6 @@ def gestion_permisos(request):
         'tipos_permiso':
             Permiso.TIPOS,
 
-        **contexto_rol(request),
     }
 
     return render(
@@ -1120,7 +1075,6 @@ def solicitar_permiso(request):
         'empleado': empleado,
         'titulo': 'Solicitar permiso',
 
-        **contexto_rol(request),
     }
 
     return render(
@@ -1163,7 +1117,6 @@ def mis_permisos(request):
         'permisos': permisos,
         'titulo': 'Mis permisos',
 
-        **contexto_rol(request),
     }
 
     return render(
@@ -1283,7 +1236,6 @@ def gestion_nomina(request):
         'puede_gestionar':
             puede_gestionar,
 
-        **contexto_rol(request),
     }
 
     return render(
@@ -1707,7 +1659,6 @@ def crear_liquidacion(request):
         'titulo':
             'Nueva liquidación',
 
-        **contexto_rol(request),
     }
 
     return render(
@@ -1823,7 +1774,6 @@ def mis_liquidaciones(request):
         'liquidaciones': liquidaciones,
         'titulo': 'Mis liquidaciones',
 
-        **contexto_rol(request),
     }
 
     return render(
@@ -2018,7 +1968,6 @@ def gestion_asistencia(request):
 
         'fecha_limite_edicion': fecha_limite_edicion,
 
-        **contexto_rol(request),
     }
 
     return render(
@@ -2165,7 +2114,6 @@ def mi_asistencia(request):
         'empleado': empleado,
         'asistencia_hoy': asistencia_hoy,
         'mis_asistencias': mis_asistencias,
-        **contexto_rol(request),
     }
 
     return render(
