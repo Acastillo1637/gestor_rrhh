@@ -143,6 +143,10 @@
         }
 
         .notifications-footer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px 16px;
             padding: 10px 14px;
             border-top: 1px solid #e5e7eb;
             text-align: center;
@@ -157,7 +161,39 @@
         }
 
 
+        /* En celular, alinear el panel con la barra superior evita que se salga. */
+        @media (max-width: 600px) {
+            .notifications-wrap { position: static; }
+            .notifications-dropdown { right: 16px; }
+        }
+        .notifications-footer form { margin: 0; }
+        .notifications-footer button:hover { text-decoration: underline; }
+
         /* ========================================================= */
+        /* Acciones compactas y accesibles también sin hover (pantallas táctiles). */
+        .notification-link { display: flex; flex: 1; min-width: 0; gap: 12px; color: inherit; text-decoration: none; }
+        .notification-item { align-items: center; gap: 8px; }
+        .notification-item-content { overflow-wrap: anywhere; }
+        .notification-item:not(.notification-unread) strong { font-weight: 400; }
+        .notification-state { font-size: 10px; color: var(--notice-muted); }
+        .notification-actions { display: flex; flex: 0 0 auto; gap: 2px; }
+        .notification-actions form { margin: 0; }
+        .notification-actions button { width: 30px; height: 32px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 7px; background: transparent; color: #2563eb; cursor: pointer; }
+        .notification-actions .notification-delete { color: #b91c1c; }
+        .notification-actions button:hover { background: #e8eef7; }
+        .notification-actions button:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
+        .notification-actions button:disabled { opacity: .5; cursor: wait; }
+        #deleteNotificationDialog { border: 0; padding: 28px; margin: auto; width: min(440px, calc(100vw - 32px)); box-sizing: border-box; }
+        #deleteNotificationDialog::backdrop { background: rgba(15,23,42,.55); backdrop-filter: blur(2px); }
+        #deleteNotificationDialog h3 { margin: 0 0 14px; color: #20334d; }
+        #deleteNotificationDialog p { color: #64748b; line-height: 1.5; }
+        .notification-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+        .notification-dialog-actions button { border: 0; border-radius: 8px; padding: 10px 18px; cursor: pointer; }
+        .notification-dialog-actions [data-confirm-delete] { background: #b91c1c; color: white; }
+        #notificationDeleteError { color: #b91c1c; }
+        #notificationActionStatus { position: fixed; bottom: 16px; right: 16px; z-index: 1100; max-width: calc(100vw - 32px); background: white; color: #20334d; border-radius: 10px; box-shadow: 0 6px 24px #0002; }
+        #notificationActionStatus:not(:empty) { padding: 12px 16px; }
+
         /* MODAL DE MENSAJES */
         /* ========================================================= */
 
@@ -707,78 +743,7 @@
                         id="notificationsDropdown"
                     >
 
-                        <div class="notifications-header">
-                            <strong>Notificaciones</strong>
-
-                            {% if notificaciones_no_leidas %}
-                                <span>
-                                    {{ notificaciones_no_leidas }} sin leer
-                                </span>
-                            {% endif %}
-                        </div>
-
-                        <div class="notifications-list">
-
-                            {% for notificacion in ultimas_notificaciones %}
-
-                                <a
-                                    href="{% url 'ver_notificacion' notificacion.id %}"
-                                    class="notification-item {% if not notificacion.leida %}notification-unread{% endif %}"
-                                >
-                                    <span class="notification-item-icon">
-                                        {% if notificacion.tipo == 'empleado' %}
-                                            👤
-                                        {% elif notificacion.tipo == 'permiso' %}
-                                            📋
-                                        {% elif notificacion.tipo == 'nomina' %}
-                                            💳
-                                        {% else %}
-                                            🔔
-                                        {% endif %}
-                                    </span>
-
-                                    <span class="notification-item-content">
-                                        <strong>
-                                            {{ notificacion.mensaje }}
-                                        </strong>
-
-                                        <small>
-                                            {{ notificacion.fecha_creacion|date:"d/m/Y H:i" }}
-                                        </small>
-                                    </span>
-                                </a>
-
-                            {% empty %}
-
-                                <div class="notifications-empty">
-                                    No tienes notificaciones.
-                                </div>
-
-                            {% endfor %}
-
-                        </div>
-
-                        {% if notificaciones_no_leidas %}
-
-                            <form
-                                method="post"
-                                action="{% url 'marcar_notificaciones_leidas' %}"
-                                class="notifications-footer"
-                            >
-                                {% csrf_token %}
-
-                                <input
-                                    type="hidden"
-                                    name="next"
-                                    value="{{ request.get_full_path }}"
-                                >
-
-                                <button type="submit">
-                                    Marcar todas como leídas
-                                </button>
-                            </form>
-
-                        {% endif %}
+                        {% include 'includes/notification_panel.html' %}
 
                     </div>
 
@@ -1012,6 +977,12 @@
 
     if (notificationsWrap && notificationButton) {
 
+        // Tras el POST, el servidor vuelve a renderizar el contador y la lista.
+        if (window.location.hash === '#notificaciones') {
+            notificationsWrap.classList.add('open');
+            notificationButton.setAttribute('aria-expanded', 'true');
+        }
+
         notificationButton.addEventListener(
             'click',
             function (event) {
@@ -1033,7 +1004,8 @@
             'click',
             function (event) {
 
-                if (!notificationsWrap.contains(event.target)) {
+                // Cancelar en el modal no debe activar el cierre por clic fuera del panel.
+                if (!notificationsWrap.contains(event.target) && !event.target.closest('#deleteNotificationDialog')) {
                     notificationsWrap.classList.remove('open');
                     notificationButton.setAttribute(
                         'aria-expanded',
@@ -1074,6 +1046,21 @@
 
 </script>
 
+
+{% if user.is_authenticated %}
+{# Fuera del desplegable: showModal() centra la confirmación y bloquea el fondo. #}
+<dialog id="deleteNotificationDialog" class="message-modal" aria-labelledby="deleteNotificationTitle" aria-describedby="deleteNotificationDescription">
+    <h3 id="deleteNotificationTitle">Eliminar notificación</h3>
+    <p id="deleteNotificationDescription">¿Estás seguro de que deseas eliminar esta notificación?</p>
+    <p id="notificationDeleteError" role="alert"></p>
+    <div class="notification-dialog-actions">
+        <button type="button" data-cancel-delete>Cancelar</button>
+        <button type="button" data-confirm-delete>Eliminar</button>
+    </div>
+</dialog>
+<div id="notificationActionStatus" role="status" aria-live="polite"></div>
+<script src="{% static 'personal/js/notification_actions.js' %}"></script>
+{% endif %}
 
 {% block extra_js %}
 {% endblock %}

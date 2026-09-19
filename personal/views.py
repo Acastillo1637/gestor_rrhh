@@ -41,6 +41,11 @@ from django.http import JsonResponse, HttpResponse
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 
+from django.template.loader import render_to_string
+from django.middleware.csrf import get_token
+from .context_processors import contexto_rol
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 
@@ -1789,6 +1794,7 @@ def mis_liquidaciones(request):
 
 @login_required(login_url='login')
 def ver_notificacion(request, notificacion_id):
+    """Abre el destino sin cambiar el estado: la lectura se guarda mediante POST."""
 
     if usuario_autorizado(request.user):
         notificacion = get_object_or_404(
@@ -1803,21 +1809,28 @@ def ver_notificacion(request, notificacion_id):
             usuario=request.user
         )
 
-    if not notificacion.leida:
-        notificacion.leida = True
-        notificacion.save(update_fields=['leida'])
-
     if notificacion.url:
         return redirect(notificacion.url)
 
     return redirect('inicio')
 
 
-@login_required(login_url='login')
-def marcar_notificaciones_leidas(request):
+def volver_a_notificaciones(request):
+    """Vuelve a una página local y permite reabrir la campana actualizada."""
+    # El retorno debe permanecer en este sitio, aunque se manipule el formulario.
+    destino = request.POST.get('next', '')
+    if not url_has_allowed_host_and_scheme(
+        destino, allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        destino = reverse('inicio')
+    return redirect(destino.split('#', 1)[0] + '#notificaciones')
 
-    if request.method != 'POST':
-        return redirect('inicio')
+
+@login_required(login_url='login')
+@require_POST
+def marcar_notificaciones_leidas(request):
+    """Marca el buzón actual sin borrar filas; gestión conserva su buzón compartido."""
 
     if usuario_autorizado(request.user):
         notificaciones = Notificacion.objects.filter(
@@ -1832,9 +1845,43 @@ def marcar_notificaciones_leidas(request):
 
     notificaciones.update(leida=True)
 
-    return redirect(
-        request.POST.get('next') or 'inicio'
-    )
+    return respuesta_notificaciones(request)
+
+
+def respuesta_notificaciones(request):
+    """Reutiliza el contexto global y el HTML del panel tras cada operación."""
+    if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+        return volver_a_notificaciones(request)
+    # Misma consulta que al navegar: cuenta todos los pendientes y lista los ocho
+    # más recientes, reponiendo una fila cuando se elimina una de las visibles.
+    contexto = contexto_rol(request)
+    # El fragmento se renderiza sin RequestContext: añadimos el token para que
+    # sus nuevos formularios sigan protegidos en las siguientes acciones.
+    contexto['csrf_token'] = get_token(request)
+    return JsonResponse({
+        'unread': contexto['notificaciones_no_leidas'],
+        'html': render_to_string('includes/notification_panel.html', contexto),
+    })
+
+
+@login_required(login_url='login')
+@require_POST
+def marcar_notificacion_leida(request, notificacion_id):
+    """Solo el dueño puede marcar este aviso; repetir el POST es inocuo."""
+    # Un ID ajeno devuelve 404; estar autenticado por sí solo no da acceso al aviso.
+    aviso = get_object_or_404(Notificacion, pk=notificacion_id, usuario=request.user)
+    Notificacion.objects.filter(pk=aviso.pk, usuario=request.user).update(leida=True)
+    return respuesta_notificaciones(request)
+
+
+@login_required(login_url='login')
+@require_POST
+def eliminar_notificacion(request, notificacion_id):
+    """El usuario viene de la sesión, nunca de datos enviados por el navegador."""
+    aviso = get_object_or_404(Notificacion, pk=notificacion_id, usuario=request.user)
+    # La búsqueda anterior limita el borrado a una sola fila del dueño conectado.
+    aviso.delete()
+    return respuesta_notificaciones(request)
 
 
 # =============================================================================

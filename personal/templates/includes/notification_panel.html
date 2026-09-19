@@ -1,0 +1,47 @@
+{# Compartido entre el layout inicial y las respuestas AJAX; Django escapa los mensajes. #}
+<div class="notifications-header">
+    <strong>Notificaciones</strong>
+    {% if notificaciones_no_leidas %}<span>{{ notificaciones_no_leidas }} sin leer</span>{% endif %}
+</div>
+<div class="notifications-list">
+    {% for notificacion in ultimas_notificaciones %}
+    <div class="notification-item {% if not notificacion.leida %}notification-unread{% endif %}" data-notification-id="{{ notificacion.pk }}">
+        <a href="{% url 'ver_notificacion' notificacion.pk %}" class="notification-link">
+            <span class="notification-item-icon" aria-hidden="true">{% if notificacion.tipo == 'empleado' %}👤{% elif notificacion.tipo == 'permiso' %}📋{% elif notificacion.tipo == 'nomina' %}💳{% else %}🔔{% endif %}</span>
+            <span class="notification-item-content">
+                <strong>{{ notificacion.mensaje }}</strong>
+                <span class="notification-state">{% if notificacion.leida %}Leída{% else %}Sin leer{% endif %}</span>
+            </span>
+        </a>
+        {# Los avisos generales no tienen dueño individual; sus permisos se validan también en backend. #}
+        {% if not es_gestion %}
+        <div class="notification-actions">
+            {% if not notificacion.leida %}
+            <form method="post" action="{% url 'marcar_notificacion_leida' notificacion.pk %}" data-notification-form>
+                {% csrf_token %}
+                <button type="submit" aria-label="Marcar como leída" title="Marcar como leída">✓</button>
+            </form>
+            {% endif %}
+            {# JS intercepta este formulario y espera la confirmación del modal antes del POST. #}
+            <form method="post" action="{% url 'eliminar_notificacion' notificacion.pk %}" data-notification-form data-delete-notification>
+                {% csrf_token %}
+                <button type="submit" class="notification-delete" aria-label="Eliminar notificación" title="Eliminar notificación">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg>
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="notifications-empty">No tienes notificaciones.</div>
+    {% endfor %}
+</div>
+{# La acción general solo cambia leida=True; no elimina registros. #}
+{% if notificaciones_no_leidas %}
+<div class="notifications-footer">
+    <form method="post" action="{% url 'marcar_notificaciones_leidas' %}" data-notification-form>
+        {% csrf_token %}
+        <button type="submit">Marcar todas como leídas</button>
+    </form>
+</div>
+{% endif %}

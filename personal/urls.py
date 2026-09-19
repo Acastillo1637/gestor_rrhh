@@ -183,6 +183,19 @@ urlpatterns = [
         name='ver_notificacion'
     ),
 
+    # Acciones individuales: las vistas exigen POST, sesión y propiedad del aviso.
+    path(
+        'notificaciones/<int:notificacion_id>/eliminar/',
+        views.eliminar_notificacion,
+        name='eliminar_notificacion'
+    ),
+
+    path(
+        'notificaciones/<int:notificacion_id>/marcar-leida/',
+        views.marcar_notificacion_leida,
+        name='marcar_notificacion_leida'
+    ),
+
     path(
         'notificaciones/marcar-leidas/',
         views.marcar_notificaciones_leidas,

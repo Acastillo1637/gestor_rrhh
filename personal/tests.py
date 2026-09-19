@@ -91,7 +91,7 @@ class NotificacionesGlobalesTests(TestCase):
 
     def test_lectura_actualiza_todas_las_paginas_sin_tocar_otro_usuario(self):
         aviso = Notificacion.objects.filter(usuario=self.usuario, leida=False).first()
-        self.client.get(reverse('ver_notificacion', args=[aviso.pk]))
+        self.client.post(reverse('marcar_notificacion_leida', args=[aviso.pk]))
         for nombre in self.paginas:
             respuesta = self.client.get(reverse(nombre))
             self.assertEqual(respuesta.context['notificaciones_no_leidas'], 2)
@@ -100,3 +100,85 @@ class NotificacionesGlobalesTests(TestCase):
         for nombre in self.paginas:
             respuesta = self.client.get(reverse(nombre))
             self.assertEqual(respuesta.context['notificaciones_no_leidas'], 0)
+
+
+    # Simula el mismo POST AJAX que envía el panel, sin tocar la base real.
+    def accion(self, nombre, aviso, **data):
+        return self.client.post(reverse(nombre, args=[aviso.pk]), data,
+                                HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+    def test_acciones_individuales_y_contador(self):
+        aviso = Notificacion.objects.filter(usuario=self.usuario, leida=False).first()
+        total = Notificacion.objects.count()
+        for _ in range(2):
+            respuesta = self.accion('marcar_notificacion_leida', aviso)
+            self.assertEqual(respuesta.json()['unread'], 2)
+        self.assertEqual(Notificacion.objects.count(), total)
+        aviso.refresh_from_db()
+        self.assertTrue(aviso.leida)
+        respuesta = self.accion('eliminar_notificacion', aviso)
+        self.assertEqual(respuesta.json()['unread'], 2)  # Borrar leído no resta otra vez.
+        self.assertFalse(Notificacion.objects.filter(pk=aviso.pk).exists())
+        for aviso in Notificacion.objects.filter(usuario=self.usuario):
+            respuesta = self.accion('eliminar_notificacion', aviso)
+        self.assertEqual(respuesta.json()['unread'], 0)
+        self.assertIn('No tienes notificaciones.', respuesta.json()['html'])
+        for pagina in self.paginas:
+            pagina = self.client.get(reverse(pagina))
+            self.assertEqual(pagina.context['notificaciones_no_leidas'], 0)
+
+    def test_otro_usuario_y_buzon_compartido_protegidos(self):
+        for superuser in [False, True]:
+            self.usuario.is_superuser = superuser
+            self.usuario.save(update_fields=['is_superuser'])
+            for aviso in Notificacion.objects.exclude(usuario=self.usuario):
+                for accion in ['marcar_notificacion_leida', 'eliminar_notificacion']:
+                    self.assertEqual(self.accion(accion, aviso, usuario=self.usuario.pk).status_code, 404)
+                aviso.refresh_from_db()
+                self.assertFalse(aviso.leida)
+
+    # El cliente normal de Django omite CSRF; aquí lo activamos para verificar el bloqueo real.
+    def test_post_csrf_y_autenticacion(self):
+        from django.test import Client
+        cliente = Client(enforce_csrf_checks=True)
+        cliente.force_login(self.usuario)
+        cliente.get(reverse('cambiar_contrasena'))
+        token = cliente.cookies['csrftoken'].value
+        aviso = Notificacion.objects.filter(usuario=self.usuario, leida=False).first()
+        for accion in ['marcar_notificacion_leida', 'eliminar_notificacion']:
+            url = reverse(accion, args=[aviso.pk])
+            self.assertEqual(cliente.get(url).status_code, 405)
+            self.assertEqual(cliente.post(url).status_code, 403)
+            self.assertEqual(cliente.post(url, {'csrfmiddlewaretoken': 'incorrecto'}).status_code, 403)
+            self.assertEqual(cliente.post(url, {'csrfmiddlewaretoken': token}).status_code, 302)
+        self.client.logout()
+        self.assertEqual(self.accion('eliminar_notificacion', aviso).status_code, 302)
+
+    def test_marcar_todas_conserva_avisos_y_devuelve_panel(self):
+        ids = set(Notificacion.objects.values_list('pk', flat=True))
+        respuesta = self.client.post(reverse('marcar_notificaciones_leidas'),
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(respuesta.json()['unread'], 0)
+        self.assertEqual(ids, set(Notificacion.objects.values_list('pk', flat=True)))
+        self.assertNotIn('title="Marcar como leída"', respuesta.json()['html'])
+        self.assertIn('Eliminar notificación', respuesta.json()['html'])
+
+    def test_panel_repone_el_octavo_y_escapa_texto(self):
+        for i in range(8):
+            Notificacion.objects.create(usuario=self.usuario, mensaje=f'Extra {i}')
+        aviso = Notificacion.objects.filter(usuario=self.usuario).first()
+        respuesta = self.accion('eliminar_notificacion', aviso)
+        self.assertEqual(respuesta.json()['html'].count('data-notification-id='), 8)
+        Notificacion.objects.create(usuario=self.usuario, mensaje='<script>alert(1)</script>')
+        respuesta = self.accion('marcar_notificacion_leida', Notificacion.objects.filter(usuario=self.usuario).first())
+        self.assertIn('&lt;script&gt;', respuesta.json()['html'])
+        self.assertNotIn('<script>', respuesta.json()['html'])
+
+    def test_get_abrir_no_modifica_y_destino_externo_rechazado(self):
+        aviso = Notificacion.objects.filter(usuario=self.usuario, leida=False).first()
+        self.client.get(reverse('ver_notificacion', args=[aviso.pk]))
+        aviso.refresh_from_db()
+        self.assertFalse(aviso.leida)
+        respuesta = self.client.post(reverse('marcar_notificacion_leida', args=[aviso.pk]),
+                                    {'next': 'https://example.com/'})
+        self.assertEqual(respuesta.url, reverse('inicio') + '#notificaciones')
