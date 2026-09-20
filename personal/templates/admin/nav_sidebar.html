@@ -47,9 +47,8 @@
 
         <span class="sidebar-section-title">SEGURIDAD</span>
 
-        <a href="#"
-           class="system-sidebar-link disabled-link"
-           title="Disponible próximamente">
+        <a href="{% url 'admin:system_audit' %}"
+            class="system-sidebar-link {% if '/admin/auditoria/' in request.path %}active{% endif %}">
             <span class="sidebar-menu-icon yellow">▤</span>
             <span class="sidebar-menu-text">Auditoría</span>
         </a>

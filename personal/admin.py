@@ -7,6 +7,10 @@ from django.contrib.auth.models import User, Group
 from django.contrib.admin.models import LogEntry
 from django import forms
 from django.utils import timezone
+from django.urls import path
+from django.template.response import TemplateResponse
+from django.core.paginator import Paginator
+from django.db.models import Q
 
 from .models import (
     Empleado,
@@ -89,6 +93,234 @@ def system_admin_index(request, extra_context=None):
 
 admin.site.index = system_admin_index
 
+# =============================================================================
+# AUDITORÍA DEL SISTEMA
+# =============================================================================
+
+def system_audit_view(request):
+    """
+    Vista de auditoría de la consola administrativa.
+
+    Utiliza el registro interno de Django (LogEntry) para mostrar
+    las acciones realizadas desde el panel de administración.
+    """
+
+    if not request.user.is_staff:
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied
+
+    registros = (
+        LogEntry.objects
+        .select_related(
+            "user",
+            "content_type",
+        )
+        .order_by("-action_time")
+    )
+
+    # -------------------------------------------------------------------------
+    # FILTROS
+    # -------------------------------------------------------------------------
+
+    busqueda = request.GET.get(
+        "q",
+        ""
+    ).strip()
+
+    accion = request.GET.get(
+        "accion",
+        ""
+    ).strip()
+
+    usuario_id = request.GET.get(
+        "usuario",
+        ""
+    ).strip()
+
+    modulo = request.GET.get(
+        "modulo",
+        ""
+    ).strip()
+
+    # -------------------------------------------------------------------------
+    # BÚSQUEDA GENERAL
+    # -------------------------------------------------------------------------
+
+    if busqueda:
+
+        registros = registros.filter(
+            Q(user__username__icontains=busqueda)
+            |
+            Q(user__first_name__icontains=busqueda)
+            |
+            Q(user__last_name__icontains=busqueda)
+            |
+            Q(object_repr__icontains=busqueda)
+            |
+            Q(change_message__icontains=busqueda)
+            |
+            Q(content_type__model__icontains=busqueda)
+        )
+
+    # -------------------------------------------------------------------------
+    # FILTRO POR ACCIÓN
+    #
+    # Django:
+    # 1 = creación
+    # 2 = modificación
+    # 3 = eliminación
+    # -------------------------------------------------------------------------
+
+    if accion in {"1", "2", "3"}:
+
+        registros = registros.filter(
+            action_flag=int(accion)
+        )
+
+    # -------------------------------------------------------------------------
+    # FILTRO POR USUARIO
+    # -------------------------------------------------------------------------
+
+    if usuario_id.isdigit():
+
+        registros = registros.filter(
+            user_id=int(usuario_id)
+        )
+
+    # -------------------------------------------------------------------------
+    # FILTRO POR MÓDULO
+    # -------------------------------------------------------------------------
+
+    if modulo:
+
+        registros = registros.filter(
+            content_type__app_label=modulo
+        )
+
+    # -------------------------------------------------------------------------
+    # DATOS PARA LOS FILTROS
+    # -------------------------------------------------------------------------
+
+    usuarios_admin = (
+        User.objects
+        .filter(
+            logentry__isnull=False
+        )
+        .distinct()
+        .order_by("username")
+    )
+
+    modulos = (
+        LogEntry.objects
+        .select_related("content_type")
+        .values_list(
+            "content_type__app_label",
+            flat=True
+        )
+        .distinct()
+        .order_by("content_type__app_label")
+    )
+
+    # -------------------------------------------------------------------------
+    # MÉTRICAS
+    # -------------------------------------------------------------------------
+
+    total_eventos = registros.count()
+
+    total_creaciones = registros.filter(
+        action_flag=1
+    ).count()
+
+    total_modificaciones = registros.filter(
+        action_flag=2
+    ).count()
+
+    total_eliminaciones = registros.filter(
+        action_flag=3
+    ).count()
+
+    # -------------------------------------------------------------------------
+    # PAGINACIÓN
+    # -------------------------------------------------------------------------
+
+    paginador = Paginator(
+        registros,
+        20
+    )
+
+    numero_pagina = request.GET.get(
+        "page"
+    )
+
+    pagina = paginador.get_page(
+        numero_pagina
+    )
+
+    # -------------------------------------------------------------------------
+    # CONTEXTO
+    # -------------------------------------------------------------------------
+
+    contexto = {
+        **admin.site.each_context(request),
+
+        "title": "Auditoría del sistema",
+
+        "pagina": pagina,
+
+        "usuarios_admin": usuarios_admin,
+
+        "modulos": modulos,
+
+        "busqueda": busqueda,
+
+        "accion_seleccionada": accion,
+
+        "usuario_seleccionado": usuario_id,
+
+        "modulo_seleccionado": modulo,
+
+        "total_eventos": total_eventos,
+
+        "total_creaciones": total_creaciones,
+
+        "total_modificaciones": total_modificaciones,
+
+        "total_eliminaciones": total_eliminaciones,
+    }
+
+    return TemplateResponse(
+        request,
+        "admin/auditoria.html",
+        contexto,
+    )
+
+
+# =============================================================================
+# URL PERSONALIZADA DEL ADMIN
+# =============================================================================
+
+_original_get_urls = admin.site.get_urls
+
+
+def system_admin_get_urls():
+
+    urls_personalizadas = [
+        path(
+            "auditoria/",
+            admin.site.admin_view(
+                system_audit_view
+            ),
+            name="system_audit",
+        ),
+    ]
+
+    return (
+        urls_personalizadas
+        + _original_get_urls()
+    )
+
+
+admin.site.get_urls = system_admin_get_urls
 
 # =============================================================================
 # FORMULARIO ADMIN DE EMPLEADO

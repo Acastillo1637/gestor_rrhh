@@ -1,0 +1,554 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'personal/css/system_audit.css' %}">
+{% endblock %}
+
+{% block bodyclass %}
+    {{ block.super }} system-audit-page
+{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+
+<div class="audit-container">
+
+    <!-- =========================================================
+         ENCABEZADO
+    ========================================================== -->
+
+    <section class="audit-heading">
+
+        <div>
+            <span class="audit-eyebrow">
+                SEGURIDAD
+            </span>
+
+            <h1>
+                Auditoría del sistema
+            </h1>
+
+            <p>
+                Consulta las acciones realizadas desde la consola administrativa.
+            </p>
+        </div>
+
+        <div class="audit-status">
+            <span class="audit-status-dot"></span>
+            Registro activo
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         RESUMEN
+    ========================================================== -->
+
+    <section class="audit-stats">
+
+        <div class="audit-stat">
+            <span>Eventos</span>
+
+            <strong>
+                {{ total_eventos }}
+            </strong>
+
+            <small>
+                Registros encontrados
+            </small>
+        </div>
+
+
+        <div class="audit-stat creation">
+            <span>Creaciones</span>
+
+            <strong>
+                {{ total_creaciones }}
+            </strong>
+
+            <small>
+                Registros creados
+            </small>
+        </div>
+
+
+        <div class="audit-stat modification">
+            <span>Modificaciones</span>
+
+            <strong>
+                {{ total_modificaciones }}
+            </strong>
+
+            <small>
+                Registros modificados
+            </small>
+        </div>
+
+
+        <div class="audit-stat deletion">
+            <span>Eliminaciones</span>
+
+            <strong>
+                {{ total_eliminaciones }}
+            </strong>
+
+            <small>
+                Registros eliminados
+            </small>
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         PANEL PRINCIPAL
+    ========================================================== -->
+
+    <section class="audit-panel">
+
+        <div class="audit-panel-heading">
+
+            <div>
+                <h2>
+                    Historial de actividad
+                </h2>
+
+                <p>
+                    Revisa y filtra las acciones registradas por Django Admin.
+                </p>
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             FILTROS
+        ====================================================== -->
+
+        <form method="get" class="audit-filters">
+
+            <div class="audit-search">
+
+                <label for="audit-search">
+                    Buscar
+                </label>
+
+                <input
+                    id="audit-search"
+                    type="text"
+                    name="q"
+                    value="{{ busqueda }}"
+                    placeholder="Usuario, registro, módulo..."
+                >
+
+            </div>
+
+
+            <div>
+
+                <label for="audit-action">
+                    Acción
+                </label>
+
+                <select
+                    id="audit-action"
+                    name="accion"
+                >
+
+                    <option value="">
+                        Todas
+                    </option>
+
+                    <option
+                        value="1"
+                        {% if accion_seleccionada == "1" %}selected{% endif %}
+                    >
+                        Creación
+                    </option>
+
+                    <option
+                        value="2"
+                        {% if accion_seleccionada == "2" %}selected{% endif %}
+                    >
+                        Modificación
+                    </option>
+
+                    <option
+                        value="3"
+                        {% if accion_seleccionada == "3" %}selected{% endif %}
+                    >
+                        Eliminación
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div>
+
+                <label for="audit-user">
+                    Usuario
+                </label>
+
+                <select
+                    id="audit-user"
+                    name="usuario"
+                >
+
+                    <option value="">
+                        Todos
+                    </option>
+
+                    {% for usuario in usuarios_admin %}
+
+                        <option
+                            value="{{ usuario.id }}"
+                            {% if usuario_seleccionado == usuario.id|stringformat:"s" %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ usuario.username }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div>
+
+                <label for="audit-module">
+                    Módulo
+                </label>
+
+                <select
+                    id="audit-module"
+                    name="modulo"
+                >
+
+                    <option value="">
+                        Todos
+                    </option>
+
+                    {% for modulo in modulos %}
+
+                        <option
+                            value="{{ modulo }}"
+                            {% if modulo_seleccionado == modulo %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ modulo|capfirst }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="audit-filter-actions">
+
+                <button
+                    type="submit"
+                    class="audit-filter-button"
+                >
+                    Filtrar
+                </button>
+
+                <a
+                    href="{% url 'admin:system_audit' %}"
+                    class="audit-clear-button"
+                >
+                    Limpiar
+                </a>
+
+            </div>
+
+        </form>
+
+
+        <!-- =====================================================
+             TABLA DE AUDITORÍA
+        ====================================================== -->
+
+        <div class="audit-table-wrapper">
+
+            <table class="audit-table">
+
+                <thead>
+
+                    <tr>
+                        <th>Fecha y hora</th>
+                        <th>Usuario</th>
+                        <th>Acción</th>
+                        <th>Módulo</th>
+                        <th>Registro afectado</th>
+                        <th>Detalle</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for log in pagina %}
+
+                        <tr>
+
+                            <!-- FECHA -->
+
+                            <td class="audit-date">
+
+                                {{ log.action_time|date:"d/m/Y" }}
+
+                                <small>
+                                    {{ log.action_time|date:"H:i:s" }}
+                                </small>
+
+                            </td>
+
+
+                            <!-- USUARIO -->
+
+                            <td>
+
+                                <div class="audit-user">
+
+                                    <span class="audit-avatar">
+                                        {{ log.user.username|first|upper }}
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            {{ log.user.username }}
+                                        </strong>
+
+                                        {% if log.user.get_full_name %}
+
+                                            <small>
+                                                {{ log.user.get_full_name }}
+                                            </small>
+
+                                        {% endif %}
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- ACCIÓN -->
+
+                            <td>
+
+                                {% if log.is_addition %}
+
+                                    <span class="audit-badge creation">
+                                        Creación
+                                    </span>
+
+                                {% elif log.is_change %}
+
+                                    <span class="audit-badge modification">
+                                        Modificación
+                                    </span>
+
+                                {% elif log.is_deletion %}
+
+                                    <span class="audit-badge deletion">
+                                        Eliminación
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="audit-badge">
+                                        Evento
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- MÓDULO -->
+
+                            <td>
+
+                                <strong class="audit-module">
+
+                                    {% if log.content_type %}
+
+                                        {{ log.content_type.app_label|capfirst }}
+
+                                    {% else %}
+
+                                        Sistema
+
+                                    {% endif %}
+
+                                </strong>
+
+
+                                <small class="audit-model">
+
+                                    {% if log.content_type %}
+
+                                        {{ log.content_type.name|capfirst }}
+
+                                    {% else %}
+
+                                        Registro
+
+                                    {% endif %}
+
+                                </small>
+
+                            </td>
+
+
+                            <!-- REGISTRO -->
+
+                            <td>
+
+                                <span class="audit-object">
+
+                                    {% if log.object_repr %}
+
+                                        {{ log.object_repr }}
+
+                                    {% else %}
+
+                                        Sin nombre
+
+                                    {% endif %}
+
+                                </span>
+
+
+                                {% if log.object_id %}
+
+                                    <small class="audit-object-id">
+                                        ID {{ log.object_id }}
+                                    </small>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- DETALLE -->
+
+                            <td class="audit-detail">
+
+                                {% if log.change_message %}
+
+                                    {{ log.get_change_message }}
+
+                                {% else %}
+
+                                    Sin información adicional.
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+
+                    {% empty %}
+
+                        <tr>
+
+                            <td
+                                colspan="6"
+                                class="audit-empty"
+                            >
+
+                                <strong>
+                                    No se encontraron eventos
+                                </strong>
+
+                                <span>
+                                    No existen registros que coincidan con los filtros seleccionados.
+                                </span>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- =====================================================
+             PAGINACIÓN
+        ====================================================== -->
+
+        {% if pagina.paginator.num_pages > 1 %}
+
+            <div class="audit-pagination">
+
+                <div>
+
+                    Página
+
+                    <strong>
+                        {{ pagina.number }}
+                    </strong>
+
+                    de
+
+                    <strong>
+                        {{ pagina.paginator.num_pages }}
+                    </strong>
+
+                </div>
+
+
+                <div class="audit-pagination-buttons">
+
+                    {% if pagina.has_previous %}
+
+                        <a href="?q={{ busqueda|urlencode }}&accion={{ accion_seleccionada|urlencode }}&usuario={{ usuario_seleccionado|urlencode }}&modulo={{ modulo_seleccionado|urlencode }}&page={{ pagina.previous_page_number }}">
+                            ← Anterior
+                        </a>
+
+                    {% endif %}
+
+
+                    {% if pagina.has_next %}
+
+                        <a href="?q={{ busqueda|urlencode }}&accion={{ accion_seleccionada|urlencode }}&usuario={{ usuario_seleccionado|urlencode }}&modulo={{ modulo_seleccionado|urlencode }}&page={{ pagina.next_page_number }}">
+                            Siguiente →
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+{% endblock %}
