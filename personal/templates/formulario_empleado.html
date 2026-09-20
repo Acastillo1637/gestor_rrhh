@@ -86,6 +86,20 @@
 
             <div class="employee-form-grid">
 
+                {# Solo la creación divide la captura; la edición conserva los nombres existentes. #}
+                {# Reutilizamos la grilla existente: dos columnas en escritorio y una en móvil. #}
+                {% if formulario.nombres %}
+                <div class="form-group">
+                    <label for="{{ formulario.nombres.id_for_label }}">Nombres <span>*</span></label>
+                    {{ formulario.nombres }}
+                    <div class="field-error" id="nombres-errors" aria-live="polite">{{ formulario.nombres.errors }}</div>
+                </div>
+                <div class="form-group">
+                    <label for="{{ formulario.apellidos.id_for_label }}">Apellidos <span>*</span></label>
+                    {{ formulario.apellidos }}
+                    <div class="field-error" id="apellidos-errors" aria-live="polite">{{ formulario.apellidos.errors }}</div>
+                </div>
+                {% else %}
                 <!-- NOMBRE -->
                 <div class="form-group form-group-full">
 
@@ -104,6 +118,8 @@
 
                 </div>
 
+
+                {% endif %}
 
                 <!-- DEPARTAMENTO -->
                 <div class="form-group">
@@ -228,4 +244,35 @@
 
 </div>
 
+{% endblock %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+// El navegador da feedback debajo de cada campo; Django repite la validación al recibir el POST.
+(() => {
+    const inputs = [...document.querySelectorAll('[data-name-part]')];
+    // Al editar no existen estos campos: dejamos intacto el formulario anterior.
+    if (!inputs.length) return;
+    // Revisa ambas partes para corregir también el error de longitud al editar cualquiera.
+    function validateNames() {
+        const fullName = inputs.map(input => input.value.trim()).join(' ').trim().replace(/\s+/g, ' ');
+        inputs.forEach(input => {
+            const part = input.dataset.namePart;
+            let message = input.value.trim() ? '' : `Ingresa los ${part} del empleado.`;
+            if (!message && input.value.length > input.maxLength) message = 'El valor es demasiado largo.';
+            if (!message && part === 'apellidos' && fullName.length > 150) {
+                message = 'Los nombres y apellidos juntos no pueden superar 150 caracteres.';
+            }
+            // Un mensaje bloquea el envío; una cadena vacía permite enviarlo de nuevo.
+            input.setCustomValidity(message);
+            input.setAttribute('aria-invalid', message ? 'true' : 'false');
+            document.getElementById(`${part}-errors`).textContent = message;
+        });
+    }
+    inputs.forEach(input => {
+        input.addEventListener('input', validateNames);
+        input.addEventListener('invalid', validateNames);
+    });
+})();
+</script>
 {% endblock %}

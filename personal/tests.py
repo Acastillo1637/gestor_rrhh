@@ -182,3 +182,98 @@ class NotificacionesGlobalesTests(TestCase):
         respuesta = self.client.post(reverse('marcar_notificacion_leida', args=[aviso.pk]),
                                     {'next': 'https://example.com/'})
         self.assertEqual(respuesta.url, reverse('inicio') + '#notificaciones')
+
+
+class CrearEmpleadoNombresTests(TestCase):
+    """El alta captura nombres separados sin cambiar el almacenamiento existente."""
+
+    # Las pruebas cubren validación, guardado, creación de cuenta y edición anterior.
+    # TestCase usa una base de pruebas; no modifica los empleados de la base real.
+
+    @classmethod
+    def setUpTestData(cls):
+        from .models import Departamento, Puesto
+        departamento, _ = Departamento.objects.get_or_create(nombre='Pruebas nombres')
+        Puesto.objects.get_or_create(nombre='Cargo prueba', departamento=departamento, defaults={'salario_base': 1000})
+        cls.admin = User.objects.create_user(username='rrhh_prueba', is_superuser=True)
+
+    def datos(self, **cambios):
+        datos = {'nombres': 'María José', 'apellidos': 'De la Cruz Pérez',
+                 'departamento': 'Pruebas nombres', 'cargo': 'Cargo prueba',
+                 'salario_mensual': '1000.00', 'estado_laboral': 'activo'}
+        datos.update(cambios)
+        return datos
+
+    def test_obligatorios_y_espacios(self):
+        from .forms import CrearEmpleadoForm
+        for campo in ['nombres', 'apellidos']:
+            for valor in ['', '   ', '\t\n', '\u00a0']:
+                with self.subTest(campo=campo, valor=valor):
+                    f = CrearEmpleadoForm(self.datos(**{campo: valor}))
+                    self.assertFalse(f.is_valid())
+                    self.assertIn(campo, f.errors)
+                    with self.assertRaises(ValueError):
+                        f.save()
+
+    def test_union_y_commit_false(self):
+        from .forms import CrearEmpleadoForm
+        f = CrearEmpleadoForm(self.datos(nombres='  María   José ', apellidos=' De la Cruz-Pérez '))
+        self.assertTrue(f.is_valid(), f.errors)
+        empleado = f.save(commit=False)
+        self.assertIsNone(empleado.pk)
+        self.assertEqual(empleado.nombre_completo, 'María José De la Cruz-Pérez')
+        empleado.save()
+        empleado.refresh_from_db()
+        self.assertEqual(empleado.nombre_completo, 'María José De la Cruz-Pérez')
+
+    def test_limite_combinado(self):
+        from .forms import CrearEmpleadoForm
+        f = CrearEmpleadoForm(self.datos(nombres='A' * 75, apellidos='B' * 74))
+        self.assertTrue(f.is_valid(), f.errors)
+        self.assertEqual(len(f.save().nombre_completo), 150)
+        f = CrearEmpleadoForm(self.datos(nombres='A' * 75, apellidos='B' * 75))
+        self.assertFalse(f.is_valid())
+        self.assertIn('apellidos', f.errors)
+
+    def test_alta_completa_y_busqueda(self):
+        self.client.force_login(self.admin)
+        respuesta = self.client.post(reverse('crear_empleado'), self.datos())
+        self.assertEqual(respuesta.status_code, 302)
+        empleado = Empleado.objects.get(nombre_completo='María José De la Cruz Pérez')
+        self.assertIsNotNone(empleado.usuario)
+        self.assertEqual(empleado.departamento, 'Pruebas nombres')
+        self.assertEqual(empleado.cargo, 'Cargo prueba')
+        self.assertEqual(empleado.salario_mensual, 1000)
+        self.assertEqual(empleado.estado_laboral, 'activo')
+        self.assertTrue(Empleado.objects.filter(nombre_completo__icontains='De la Cruz').exists())
+
+    def test_post_invalido_no_crea_empleado_ni_cuenta(self):
+        self.client.force_login(self.admin)
+        cantidad = User.objects.count()
+        empleados_antes = Empleado.objects.count()
+        respuesta = self.client.post(reverse('crear_empleado'), self.datos(apellidos='  '))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Ingresa los apellidos del empleado.')
+        self.assertEqual(Empleado.objects.count(), empleados_antes)
+        self.assertEqual(User.objects.count(), cantidad)
+
+    def test_edicion_preserva_nombre_existente(self):
+        from .forms import EmpleadoForm
+        empleado = Empleado.objects.create(nombre_completo='Ana María de los Ángeles Pérez')
+        datos = self.datos(nombre_completo=empleado.nombre_completo)
+        f = EmpleadoForm(datos, instance=empleado)
+        self.assertTrue(f.is_valid(), f.errors)
+        self.assertNotIn('nombres', f.fields)
+        self.assertEqual(f.save().nombre_completo, 'Ana María de los Ángeles Pérez')
+
+    def test_campos_y_atributos_html(self):
+        from .forms import CrearEmpleadoForm
+        f = CrearEmpleadoForm()
+        self.assertEqual(set(f.fields), {'nombres', 'apellidos', 'cargo', 'departamento', 'salario_mensual', 'estado_laboral'})
+        self.client.force_login(self.admin)
+        respuesta = self.client.get(reverse('crear_empleado'))
+        self.assertNotContains(respuesta, 'name="nombre_completo"')
+        for campo in ['nombres', 'apellidos']:
+            self.assertIn('required', str(f[campo]))
+            self.assertIn('pattern=', str(f[campo]))
+            self.assertContains(respuesta, f'id="{campo}-errors"')
