@@ -1,4 +1,4 @@
-﻿from django.urls import path
+from django.urls import path
 
 from . import views
 
@@ -68,6 +68,18 @@ urlpatterns = [
         'empleados/<int:empleado_id>/editar/',
         views.editar_empleado,
         name='editar_empleado'
+    ),
+
+    path(
+        'historial-salarial/',
+        views.historial_salarial,
+        name='historial_salarial'
+    ),
+
+    path(
+        'empleados/<int:empleado_id>/historial-salarial/',
+        views.historial_salarial,
+        name='historial_salarial_empleado'
     ),
 
     # -------------------------------------------------------------------------

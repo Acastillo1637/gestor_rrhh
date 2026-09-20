@@ -379,6 +379,12 @@ Empleados
                         {% if puede_editar %}
 
                             <td>
+                                <a
+                                    href="{% url 'historial_salarial_empleado' empleado.id %}"
+                                    class="table-action"
+                                >
+                                    Historial
+                                </a>
 
                                 <a
                                     href="{% url 'editar_empleado' empleado.id %}"
@@ -386,7 +392,6 @@ Empleados
                                 >
                                     Editar
                                 </a>
-
                             </td>
 
                         {% endif %}

@@ -453,6 +453,22 @@
 
 
             <a
+                href="{% url 'historial_salarial' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'historial_salarial' or request.resolver_match.url_name == 'historial_salarial_empleado' %}active{% endif %}"
+            >
+
+                <span class="nav-icon">
+                    $
+                </span>
+
+                <span>
+                    Historial salarial
+                </span>
+
+            </a>
+
+
+            <a
                 href="{% url 'gestion_permisos' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'gestion_permisos' %}active{% endif %}"
             >

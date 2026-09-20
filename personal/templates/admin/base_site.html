@@ -1,48 +1,62 @@
 {% extends "admin/base.html" %}
 {% load static %}
 
-{% block title %}
-Gestor RRHH | Consola del Sistema
-{% endblock %}
+{% block title %}Gestor RRHH | Consola del Sistema{% endblock %}
 
 {% block extrastyle %}
-    {{ block.super }}
-    <link rel="stylesheet" href="{% static 'personal/css/site.css' %}">
-    <link rel="stylesheet" href="{% static 'personal/css/system_sidebar.css' %}">
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'personal/css/system_sidebar.css' %}">
+<link rel="stylesheet" href="{% static 'personal/css/system_console.css' %}">
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="{% static 'personal/js/system_console.js' %}" defer></script>
 {% endblock %}
 
 {% block branding %}
 <div class="system-brand">
-    <div class="system-brand-title">Gestor RRHH</div>
-    <div class="system-brand-subtitle">Consola del Sistema</div>
+  <a href="{% url 'admin:index' %}" class="system-brand-title">Gestor RRHH</a>
+  <div class="system-brand-subtitle">Consola del Sistema</div>
 </div>
 {% endblock %}
 
 {% block usertools %}
 {% if has_permission %}
-<div class="system-user-tools">
-
-    <button class="system-notification" type="button" title="Notificaciones">
-        <span class="notification-bell">♟</span>
-        <span class="notification-dot"></span>
+<div class="system-top-actions">
+  <div class="system-dropdown" id="notificationsWrap">
+    <button id="notificationButton" class="system-icon-button" type="button" aria-expanded="false" title="Notificaciones">
+      <span aria-hidden="true">🔔</span>
+      {% if notificaciones_no_leidas %}<span class="notification-dot"></span>{% endif %}
     </button>
-
-    <div class="system-user-avatar">
-        {{ request.user.username|first|upper }}
+    <div id="notificationsDropdown" class="system-dropdown-panel notifications-dropdown">
+      {% include "includes/notification_panel.html" %}
     </div>
+  </div>
 
-    <span class="system-username">
-        {{ request.user.username }}
-    </span>
-
-    <span class="system-user-arrow">⌄</span>
-
+  <div class="system-dropdown" id="accountWrap">
+    <button id="accountButton" class="system-account-button" type="button" aria-expanded="false">
+      <span class="system-user-avatar">{{ request.user.username|first|upper }}</span>
+      <span class="system-username">{{ request.user.username }}</span>
+      <span class="system-user-arrow">⌄</span>
+    </button>
+    <div id="accountDropdown" class="system-dropdown-panel account-dropdown">
+      <div class="account-summary">
+        <strong>{{ request.user.username }}</strong>
+        <span>{% if request.user.is_superuser %}Administrador{% else %}Usuario administrativo{% endif %}</span>
+      </div>
+      <a href="{% url 'admin:auth_user_change' request.user.pk %}">Mi cuenta</a>
+      <a href="{% url 'cambiar_contrasena' %}">Cambiar contraseña</a>
+      <a href="{% url 'dashboard_gestion' %}">Volver al portal RRHH</a>
+      <a class="logout-link" href="{% url 'logout' %}">Cerrar sesión</a>
+    </div>
+  </div>
 </div>
 {% endif %}
 {% endblock %}
 
 {% block nav-global %}{% endblock %}
+{% block nav-sidebar %}{% include "admin/nav_sidebar.html" %}{% endblock %}
 
-{% block nav-sidebar %}
-    {% include "admin/nav_sidebar.html" %}
-{% endblock %}
+{# Todas las vistas de la consola usan el mismo layout, sin la barra de breadcrumbs de Django. #}
+{% block breadcrumbs %}{% endblock %}

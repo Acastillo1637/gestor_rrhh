@@ -1,0 +1,21 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static %}
+
+{% block bodyclass %}{{ block.super }} console-changelist console-groups{% endblock %}
+
+{% block content_title %}
+<div class="console-page-heading console-heading-row">
+  <div>
+    <h1>Roles y permisos</h1>
+    <p>Administra los grupos de usuarios y los permisos asignados a cada rol.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block object-tools-items %}
+  {% if has_add_permission %}
+    <li>
+      <a href="{% url cl.opts|admin_urlname:'add' %}" class="addlink console-add-button">+ Añadir grupo</a>
+    </li>
+  {% endif %}
+{% endblock %}

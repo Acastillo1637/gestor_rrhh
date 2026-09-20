@@ -4,9 +4,12 @@
 
 from django.contrib import admin, messages
 from django.contrib.auth.models import User, Group
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin, GroupAdmin as DjangoGroupAdmin
 from django.contrib.admin.models import LogEntry
+import json
 from django import forms
 from django.utils import timezone
+from django.utils.html import format_html
 from django.urls import path
 from django.template.response import TemplateResponse
 from django.core.paginator import Paginator
@@ -22,6 +25,7 @@ from .models import (
     Asistencia,
     Permiso,
     Evaluacion,
+    Notificacion,
 )
 
 
@@ -96,6 +100,50 @@ admin.site.index = system_admin_index
 # =============================================================================
 # AUDITORÍA DEL SISTEMA
 # =============================================================================
+
+def detalle_auditoria(registro):
+    """
+    Convierte el change_message interno de Django
+    en un texto entendible para la auditoría.
+    """
+
+    if registro.action_flag == 1:
+        return "Registro creado"
+
+    if registro.action_flag == 3:
+        return "Registro eliminado"
+
+    if not registro.change_message:
+        return "Registro modificado"
+
+    try:
+        cambios = json.loads(registro.change_message)
+        detalles = []
+
+        for cambio in cambios:
+
+            if "changed" in cambio:
+                campos = cambio["changed"].get("fields", [])
+
+                if campos:
+                    detalles.append(
+                        "Se modificó: " + ", ".join(campos)
+                    )
+
+            elif "added" in cambio:
+                detalles.append("Registro relacionado agregado")
+
+            elif "deleted" in cambio:
+                detalles.append("Registro relacionado eliminado")
+
+        if detalles:
+            return " · ".join(detalles)
+
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    return registro.change_message
+
 
 def system_audit_view(request):
     """
@@ -255,6 +303,13 @@ def system_audit_view(request):
     pagina = paginador.get_page(
         numero_pagina
     )
+
+    # -------------------------------------------------------------------------
+    # DETALLE LEGIBLE PARA AUDITORÍA
+    # -------------------------------------------------------------------------
+
+    for registro in pagina.object_list:
+        registro.detalle_legible = detalle_auditoria(registro)
 
     # -------------------------------------------------------------------------
     # CONTEXTO
@@ -1050,3 +1105,136 @@ class EvaluacionAdmin(admin.ModelAdmin):
         'puntuacion',
         'periodo',
     )
+
+# =============================================================================
+# USUARIOS Y ROLES - CONSOLA DEL SISTEMA
+# =============================================================================
+
+# Sustituimos las vistas estándar de auth para mantener la misma interfaz de la
+# consola y mostrar información útil para RRHH en lugar del indicador "staff".
+try:
+    admin.site.unregister(User)
+except admin.sites.NotRegistered:
+    pass
+
+try:
+    admin.site.unregister(Group)
+except admin.sites.NotRegistered:
+    pass
+
+
+@admin.action(description='Activar usuarios seleccionados')
+def activar_usuarios(modeladmin, request, queryset):
+    actualizados = queryset.update(is_active=True)
+    modeladmin.message_user(request, f'{actualizados} usuario(s) activado(s).', messages.SUCCESS)
+
+
+@admin.action(description='Desactivar usuarios seleccionados')
+def desactivar_usuarios(modeladmin, request, queryset):
+    queryset = queryset.exclude(pk=request.user.pk)
+    actualizados = queryset.update(is_active=False)
+    modeladmin.message_user(request, f'{actualizados} usuario(s) desactivado(s).', messages.SUCCESS)
+
+
+@admin.action(description='Solicitar cambio de contraseña')
+def solicitar_cambio_contrasena(modeladmin, request, queryset):
+    creadas = 0
+    for usuario in queryset:
+        Notificacion.objects.create(
+            usuario=usuario,
+            mensaje='Se solicitó que actualices la contraseña de tu cuenta.',
+            tipo='sistema',
+            url='/cambiar-contrasena/',
+        )
+        creadas += 1
+    modeladmin.message_user(
+        request,
+        f'Solicitud de cambio de contraseña enviada a {creadas} usuario(s).',
+        messages.SUCCESS,
+    )
+
+
+
+
+def _asignar_grupo(queryset, nombre):
+    grupo, _ = Group.objects.get_or_create(name=nombre)
+    for usuario in queryset:
+        usuario.groups.clear()
+        usuario.groups.add(grupo)
+
+
+@admin.action(description='Asignar rol EMPLEADO')
+def asignar_rol_empleado(modeladmin, request, queryset):
+    _asignar_grupo(queryset, 'EMPLEADO')
+    modeladmin.message_user(request, 'Rol EMPLEADO asignado.', messages.SUCCESS)
+
+
+@admin.action(description='Asignar rol GERENTES')
+def asignar_rol_gerente(modeladmin, request, queryset):
+    _asignar_grupo(queryset, 'GERENTES')
+    modeladmin.message_user(request, 'Rol GERENTES asignado.', messages.SUCCESS)
+
+
+@admin.action(description='Asignar rol RRHH')
+def asignar_rol_rrhh(modeladmin, request, queryset):
+    _asignar_grupo(queryset, 'RRHH')
+    modeladmin.message_user(request, 'Rol RRHH asignado.', messages.SUCCESS)
+
+
+@admin.register(User)
+class SystemUserAdmin(DjangoUserAdmin):
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['title'] = 'Usuarios'
+        return super().changelist_view(request, extra_context=extra_context)
+
+    list_display = (
+        'username', 'email', 'first_name', 'last_name',
+        'rol_sistema', 'estado_cuenta', 'last_login'
+    )
+    list_filter = ()
+    search_fields = ('username', 'first_name', 'last_name', 'email')
+    ordering = ('username',)
+    actions = (activar_usuarios, desactivar_usuarios, asignar_rol_empleado, asignar_rol_gerente, asignar_rol_rrhh, solicitar_cambio_contrasena)
+
+    @admin.display(description='Rol')
+    def rol_sistema(self, obj):
+        nombre = 'RRHH' if obj.is_superuser else (obj.groups.order_by('name').values_list('name', flat=True).first() or 'SIN ROL')
+        clase = 'rrhh' if nombre.upper() == 'RRHH' else ('gerente' if nombre.upper() in {'GERENTE', 'GERENTES'} else '')
+        return format_html('<span class="role-badge {}">{}</span>', clase, nombre)
+
+    @admin.display(description='Estado', boolean=False)
+    def estado_cuenta(self, obj):
+        clase = 'active' if obj.is_active else 'inactive'
+        texto = 'Activo' if obj.is_active else 'Inactivo'
+        return format_html('<span class="state-badge {}">● {}</span>', clase, texto)
+
+
+@admin.register(Group)
+class SystemGroupAdmin(DjangoGroupAdmin):
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['title'] = 'Roles y permisos'
+        return super().changelist_view(request, extra_context=extra_context)
+
+    list_display = ('name', 'descripcion_rol', 'cantidad_usuarios', 'cantidad_permisos')
+    search_fields = ('name',)
+    list_filter = ()
+
+    @admin.display(description='Descripción')
+    def descripcion_rol(self, obj):
+        descripciones = {
+            'EMPLEADO': 'Acceso básico al sistema y consulta de información propia.',
+            'GERENTE': 'Acceso de gestión y consulta según los permisos asignados.',
+            'GERENTES': 'Acceso de gestión y consulta según los permisos asignados.',
+            'RRHH': 'Acceso completo para la gestión de personal.',
+        }
+        return descripciones.get(obj.name.upper(), 'Rol configurable del sistema.')
+
+    @admin.display(description='Usuarios')
+    def cantidad_usuarios(self, obj):
+        return obj.user_set.count()
+
+    @admin.display(description='Permisos')
+    def cantidad_permisos(self, obj):
+        return obj.permissions.count()

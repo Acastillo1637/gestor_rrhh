@@ -751,6 +751,58 @@ def editar_empleado(
 
 
 # =============================================================================
+# HISTORIAL SALARIAL - RRHH / GERENCIA
+# =============================================================================
+
+@login_required(login_url='login')
+@user_passes_test(
+    usuario_autorizado,
+    login_url='login'
+)
+def historial_salarial(request, empleado_id=None):
+    """Consulta de cambios del salario mensual registrados al editar empleados."""
+
+    registros = (
+        HistorialSalario.objects
+        .select_related('empleado')
+        .all()
+        .order_by('-fecha_modificacion')
+    )
+
+    empleado_seleccionado = None
+
+    if empleado_id is not None:
+        empleado_seleccionado = get_object_or_404(Empleado, id=empleado_id)
+        registros = registros.filter(empleado=empleado_seleccionado)
+
+    busqueda = request.GET.get('busqueda', '').strip()
+    empleado_filtro = request.GET.get('empleado', '').strip()
+
+    if busqueda:
+        registros = registros.filter(
+            Q(empleado__nombre_completo__icontains=busqueda)
+            | Q(empleado__dni__icontains=busqueda)
+            | Q(modificado_por__icontains=busqueda)
+        )
+
+    if empleado_filtro.isdigit() and empleado_id is None:
+        registros = registros.filter(empleado_id=int(empleado_filtro))
+
+    empleados = Empleado.objects.all().order_by('nombre_completo')
+
+    contexto = {
+        'registros': registros,
+        'empleados': empleados,
+        'empleado_seleccionado': empleado_seleccionado,
+        'busqueda': busqueda,
+        'empleado_filtro': empleado_filtro,
+        'total_registros': registros.count(),
+    }
+
+    return render(request, 'historial_salarial.html', contexto)
+
+
+# =============================================================================
 # GESTIÓN DE PERMISOS - RRHH / GERENCIA
 # =============================================================================
 

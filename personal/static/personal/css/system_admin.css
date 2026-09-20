@@ -693,3 +693,8 @@ body.system-dashboard #content-main {
     width: 22%;
     background: #22c55e;
 }
+/* Ajustes aprobados del dashboard */
+.system-stats.three-cards{grid-template-columns:repeat(3,minmax(0,1fr))}.system-stats .stat-card{min-height:118px}.stat-icon.big-icon{width:64px!important;height:64px!important;min-width:64px!important;border-radius:50%!important;font-size:30px!important;margin-right:18px}.dashboard-panel.full-width{width:100%;margin-bottom:22px}.quick-actions.three-cards{grid-template-columns:repeat(3,minmax(0,1fr))}.quick-actions.three-cards .quick-card{min-height:130px}.dashboard-heading{margin-bottom:22px}.system-health,.dashboard-grid,.roles-panel{display:none!important}
+
+/* Dashboard alineado con la maqueta aprobada */
+.system-dashboard-container{max-width:1560px!important;padding:32px 30px 56px!important}.system-stats.three-cards,.quick-actions.three-cards{grid-template-columns:repeat(3,minmax(0,1fr))!important}.system-stats .stat-card{display:flex!important;align-items:center!important;gap:22px!important;min-height:118px!important;padding:20px!important}.system-stats .stat-icon.big-icon{position:static!important;flex:0 0 62px!important;width:62px!important;height:62px!important;border-radius:50%!important;font-size:28px!important}.system-stats .stat-card>div:last-child>span{margin:0 0 10px!important}.system-stats .stat-card strong{font-size:28px!important}.activity-panel.full-width{width:100%!important;margin-bottom:22px!important}.quick-actions{gap:16px!important}

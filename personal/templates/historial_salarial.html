@@ -1,0 +1,70 @@
+{% extends "base_site.html" %}
+
+{% block title %}Historial salarial{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Historial salarial{% if empleado_seleccionado %} · {{ empleado_seleccionado.nombre_completo }}{% endif %}</h1>
+        <p>Consulta los cambios realizados al salario mensual de los empleados.</p>
+    </div>
+    {% if empleado_seleccionado %}
+        <a href="{% url 'historial_salarial' %}" class="btn btn-secondary">← Ver historial general</a>
+    {% endif %}
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-icon">$</div><span class="stat-label">Cambios registrados</span></div>
+        <strong>{{ total_registros }}</strong>
+        <span class="stat-subtext">Modificaciones salariales encontradas</span>
+    </div>
+</div>
+
+<div class="card employees-card">
+    <div class="card-header">
+        <div><h2>Registro de cambios</h2><p>Cada registro se genera automáticamente al modificar el salario de un empleado.</p></div>
+    </div>
+
+    <form method="get" class="filters-form">
+        <div class="filter-search">
+            <input type="text" name="busqueda" value="{{ busqueda }}" placeholder="Buscar empleado, RUT/DNI o usuario...">
+        </div>
+        {% if not empleado_seleccionado %}
+        <div class="filter-control">
+            <select name="empleado">
+                <option value="">Todos los empleados</option>
+                {% for empleado in empleados %}
+                    <option value="{{ empleado.id }}" {% if empleado_filtro == empleado.id|stringformat:'s' %}selected{% endif %}>{{ empleado.nombre_completo }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        <button type="submit" class="btn">Buscar</button>
+        {% if empleado_seleccionado %}
+            <a href="{% url 'historial_salarial_empleado' empleado_seleccionado.id %}" class="btn btn-secondary">Limpiar</a>
+        {% else %}
+            <a href="{% url 'historial_salarial' %}" class="btn btn-secondary">Limpiar</a>
+        {% endif %}
+    </form>
+
+    <div class="table-responsive employees-table">
+        <table>
+            <thead><tr><th>Fecha y hora</th><th>Empleado</th><th>Salario anterior</th><th>Salario nuevo</th><th>Modificado por</th></tr></thead>
+            <tbody>
+            {% for registro in registros %}
+                <tr>
+                    <td>{{ registro.fecha_modificacion|date:"d/m/Y H:i" }}</td>
+                    <td><strong>{{ registro.empleado.nombre_completo }}</strong></td>
+                    <td>${{ registro.salario_anterior|floatformat:0 }}</td>
+                    <td><strong>${{ registro.salario_nuevo|floatformat:0 }}</strong></td>
+                    <td>{{ registro.modificado_por }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5"><div class="empty-state"><div class="empty-icon">$</div><h3>No hay cambios salariales registrados</h3><p>El historial aparecerá cuando RRHH modifique el salario de un empleado.</p></div></td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
