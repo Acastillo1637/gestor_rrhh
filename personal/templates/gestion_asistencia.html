@@ -125,7 +125,7 @@ Gestión de asistencia
         <tbody>
             {% for asistencia in asistencias %}
 
-                <tr class="{% if asistencia.es_fin_semana %}fila-descanso{% elif asistencia.estado == 'atraso' %}fila-atraso{% endif %}">
+                <tr class="{% if asistencia.es_feriado %}fila-feriado{% elif asistencia.es_fin_semana %}fila-descanso{% elif asistencia.estado == 'atraso' %}fila-atraso{% endif %}">
 
                     <td>
                         {{ asistencia.fecha|date:"l" }}<br>
@@ -141,7 +141,9 @@ Gestión de asistencia
                     </td>
 
                     <td>
-                        {% if asistencia.es_fin_semana %}
+                        {% if asistencia.es_feriado %}
+                            <span class="texto-feriado">Feriado</span>
+                        {% elif asistencia.es_fin_semana %}
                             <span class="texto-descanso">Descanso</span>
                         {% else %}
                             09:00 - 17:00
@@ -149,7 +151,7 @@ Gestión de asistencia
                     </td>
 
                     <td>
-                        {% if asistencia.es_fin_semana %}
+                        {% if asistencia.es_feriado or asistencia.es_fin_semana %}
                             —
                         {% elif asistencia.hora_entrada %}
                             <span class="{% if asistencia.estado == 'atraso' %}hora-atraso{% endif %}">
@@ -161,7 +163,7 @@ Gestión de asistencia
                     </td>
 
                     <td>
-                        {% if asistencia.es_fin_semana %}
+                        {% if asistencia.es_feriado or asistencia.es_fin_semana %}
                             —
                         {% elif asistencia.hora_salida %}
                             <div>
@@ -179,7 +181,7 @@ Gestión de asistencia
                     </td>
 
                     <td>
-                        {% if asistencia.es_fin_semana %}
+                        {% if asistencia.es_feriado or asistencia.es_fin_semana %}
                             —
                         {% else %}
                             {{ asistencia.minutos_trabajados }}

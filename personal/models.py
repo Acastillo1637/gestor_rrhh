@@ -324,6 +324,30 @@ class Asistencia(models.Model):
     def __str__(self):
         return f"{self.empleado} - {self.fecha}"
 
+# =============================================================================
+# FERIADOS
+# =============================================================================
+
+class Feriado(models.Model):
+
+    fecha = models.DateField(
+        unique=True
+    )
+
+    nombre = models.CharField(
+        max_length=150
+    )
+
+    irrenunciable = models.BooleanField(
+        default=False
+    )
+
+    def __str__(self):
+        return f"{self.fecha} - {self.nombre}"
+
+    class Meta:
+        ordering = ['fecha']
+
 
 # =============================================================================
 # PERMISOS

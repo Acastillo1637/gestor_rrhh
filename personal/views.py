@@ -63,6 +63,7 @@ from .models import (
     Permiso,
     Salario,
     Asistencia,
+    Feriado,
     Notificacion,
 )
 
@@ -2071,48 +2072,33 @@ def gestion_asistencia(request):
     # ---------------------------------------------------------
     # DATOS VISUALES DE ASISTENCIA
     # ---------------------------------------------------------
-    fecha_inicio = datetime.strptime(
-        fecha_desde,
-        '%Y-%m-%d'
-    ).date()
-
-    fecha_fin = datetime.strptime(
-        fecha_hasta,
-        '%Y-%m-%d'
-    ).date()
-
-    fecha_actual = fecha_inicio
-
-    while fecha_actual <= fecha_fin:
-
-        # Sábado = 5 / Domingo = 6
-        if fecha_actual.weekday() >= 5:
-
-            for empleado in empleados_calendario:
-                Asistencia.objects.get_or_create(
-                    empleado=empleado,
-                    fecha=fecha_actual,
-                    defaults={
-                        'estado': 'descanso',
-                        'minutos_trabajados': 0,
-                    }
-                )
-
-        fecha_actual += timedelta(days=1)
-
     asistencias = list(
-        asistencias.order_by(
-            '-fecha',
-            'empleado__nombre_completo'
+        asistencias.order_by
+        ('-fecha',
+        'empleado__nombre_completo'
         )
+    )
+
+    # Feriados irrenunciables dentro del rango seleccionado
+    feriados_irrenunciables = set(
+        Feriado.objects.filter(
+            fecha__gte=fecha_desde,
+            fecha__lte=fecha_hasta,
+            irrenunciable=True
+        ).values_list('fecha', flat=True)
     )
 
     hora_salida_turno = time(17, 0)
 
     for asistencia in asistencias:
 
+        asistencia.es_feriado = (
+            asistencia.fecha in feriados_irrenunciables
+        )
+
         asistencia.es_fin_semana = (
-            asistencia.estado == 'descanso'
+            asistencia.fecha.weekday() >= 5
+            and not asistencia.es_feriado
         )
 
         asistencia.minutos_salida_anticipada = 0
