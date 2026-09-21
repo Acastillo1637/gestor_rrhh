@@ -394,6 +394,14 @@ class NominaForm(forms.ModelForm):
             )
         )
 
+    def clean(self):
+        datos = super().clean()
+        for campo in ('salario_base', 'bonificacion', 'descuentos'):
+            importe = datos.get(campo)
+            if importe is not None and importe < 0:
+                self.add_error(campo, 'El importe debe ser superior o igual a 0.')
+        return datos
+
 # =============================================================================
 # ASISTENCIA
 # =============================================================================

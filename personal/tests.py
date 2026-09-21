@@ -88,6 +88,20 @@ class ConservacionImportesTests(TestCase):
         self.empleado.refresh_from_db()
         self.assertEqual(self.empleado.salario_mensual, Decimal('1000.50'))
 
+    def test_nomina_rechaza_importes_negativos(self):
+        from .forms import NominaForm
+
+        formulario = NominaForm(data={
+            'empleado': self.empleado.pk,
+            'mes_ano': '2026-10-01',
+            'salario_base': '-1',
+            'bonificacion': '0',
+            'descuentos': '0',
+        })
+
+        self.assertFalse(formulario.is_valid())
+        self.assertIn('El importe debe ser superior o igual a 0.', formulario.errors['salario_base'])
+
     def test_nomina_invalida_conserva_importes_y_calcula_neto_al_corregir(self):
         from .models import Salario
         url = reverse('crear_liquidacion')
