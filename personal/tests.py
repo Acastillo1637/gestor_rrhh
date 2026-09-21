@@ -1,3 +1,6 @@
+from decimal import Decimal
+from html.parser import HTMLParser
+
 from django.contrib.auth.models import AnonymousUser, Group, User
 from django.db import connection
 from django.test import RequestFactory, TestCase
@@ -5,6 +8,110 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from .models import Empleado, Notificacion
+
+
+class CamposFormularioParser(HTMLParser):
+    """Obtiene los valores que Django entrega al navegador para reenviarlos."""
+
+    def __init__(self, contenido):
+        super().__init__()
+        self.campos = {}
+        self.feed(contenido.decode())
+
+    def handle_starttag(self, tag, attrs):
+        atributos = dict(attrs)
+        if tag == 'input' and atributos.get('name'):
+            self.campos[atributos['name']] = atributos
+
+
+class ConservacionImportesTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        from .models import Departamento, Puesto
+        departamento = Departamento.objects.create(nombre='Pruebas de importes')
+        Puesto.objects.create(
+            nombre='Analista', departamento=departamento,
+            nivel='junior', salario_base=Decimal('850000.00'),
+        )
+        cls.empleado = Empleado.objects.create(
+            nombre_completo='Ana Prueba', departamento=departamento.nombre,
+            cargo='Analista', salario_mensual=Decimal('850000.00'),
+        )
+        cls.usuario = User.objects.create_user(username='rrhh_importes')
+        cls.usuario.groups.add(Group.objects.get_or_create(name='RRHH')[0])
+
+    def setUp(self):
+        self.client.force_login(self.usuario)
+
+    def test_editar_nombre_conserva_salario_sin_crear_historial(self):
+        from .models import HistorialSalario
+        url = reverse('editar_empleado', args=[self.empleado.pk])
+        for importe in ('850000.00', '1000.50', '0.00'):
+            with self.subTest(importe=importe):
+                self.empleado.salario_mensual = Decimal(importe)
+                self.empleado.save(update_fields=['salario_mensual'])
+                respuesta = self.client.get(url)
+                campo = CamposFormularioParser(respuesta.content).campos['salario_mensual']
+                self.assertEqual(campo['type'], 'number')
+                self.assertEqual(campo['step'], '0.01')
+                self.assertEqual(Decimal(campo['value']), Decimal(importe))
+                respuesta = self.client.post(url, {
+                    'nombres': 'Ana Maria', 'apellidos': 'Prueba',
+                    'departamento': self.empleado.departamento,
+                    'cargo': self.empleado.cargo, 'estado_laboral': 'activo',
+                    'salario_mensual': campo['value'],
+                })
+                self.assertRedirects(respuesta, reverse('listar_empleados'))
+                self.empleado.refresh_from_db()
+                self.assertEqual(self.empleado.nombre_completo, 'Ana Maria Prueba')
+                self.assertEqual(self.empleado.salario_mensual, Decimal(importe))
+                self.assertFalse(HistorialSalario.objects.filter(empleado=self.empleado).exists())
+
+    def test_edicion_invalida_conserva_importe_para_corregir_nombre(self):
+        url = reverse('editar_empleado', args=[self.empleado.pk])
+        datos = {
+            'nombres': 'Ana', 'apellidos': '',
+            'departamento': self.empleado.departamento,
+            'cargo': self.empleado.cargo, 'estado_laboral': 'activo',
+            'salario_mensual': '1000.50',
+        }
+        respuesta = self.client.post(url, datos)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn('apellidos', respuesta.context['formulario'].errors)
+        self.empleado.refresh_from_db()
+        self.assertEqual(self.empleado.salario_mensual, Decimal('850000.00'))
+        campo = CamposFormularioParser(respuesta.content).campos['salario_mensual']
+        self.assertEqual(Decimal(campo['value']), Decimal('1000.50'))
+        datos.update(apellidos='Prueba', salario_mensual=campo['value'])
+        respuesta = self.client.post(url, datos)
+        self.assertRedirects(respuesta, reverse('listar_empleados'))
+        self.empleado.refresh_from_db()
+        self.assertEqual(self.empleado.salario_mensual, Decimal('1000.50'))
+
+    def test_nomina_invalida_conserva_importes_y_calcula_neto_al_corregir(self):
+        from .models import Salario
+        url = reverse('crear_liquidacion')
+        datos = {
+            'mes_ano': '2026-09-01', 'salario_base': '850000.00',
+            'bonificacion': '1000.50', 'descuentos': '0.00',
+        }
+        respuesta = self.client.post(url, datos)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertIn('empleado', respuesta.context['formulario'].errors)
+        self.assertFalse(Salario.objects.filter(empleado=self.empleado).exists())
+        campos = CamposFormularioParser(respuesta.content).campos
+        for nombre in ('salario_base', 'bonificacion', 'descuentos'):
+            self.assertEqual(campos[nombre]['type'], 'number')
+            self.assertEqual(Decimal(campos[nombre]['value']), Decimal(datos[nombre]))
+            datos[nombre] = campos[nombre]['value']
+        datos['empleado'] = self.empleado.pk
+        respuesta = self.client.post(url, datos)
+        self.assertRedirects(respuesta, reverse('gestion_nomina'))
+        liquidacion = Salario.objects.get(empleado=self.empleado)
+        self.assertEqual(liquidacion.salario_base, Decimal('850000.00'))
+        self.assertEqual(liquidacion.bonificacion, Decimal('1000.50'))
+        self.assertEqual(liquidacion.descuentos, Decimal('0.00'))
+        self.assertEqual(liquidacion.neto, Decimal('851000.50'))
 
 
 class NotificacionesGlobalesTests(TestCase):
