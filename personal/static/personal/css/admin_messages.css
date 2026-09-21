@@ -1,0 +1,37 @@
+/* Estilos exclusivos de los avisos del admin; no afectan la campana ni los formularios. */
+.rrhh-admin-message-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  width: min(500px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  border: 0;
+  border-radius: 16px;
+  background: #fff;
+  color: #20334d;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, .25);
+}
+.rrhh-admin-message-dialog::backdrop {
+  background: rgba(15, 23, 42, .55);
+  backdrop-filter: blur(2px);
+}
+.rrhh-admin-messages { padding: 28px; background: #fff; color: #20334d; }
+.rrhh-admin-messages h2 { margin: 0 0 20px; padding: 0; background: none; color: #20334d; font-size: 21px; text-align: center; }
+.rrhh-admin-messages ul { list-style: none; margin: 0; padding: 0; }
+.rrhh-admin-messages li { list-style: none; display: flex; gap: 12px; margin: 0 0 12px; padding: 14px; border-radius: 10px; background: #eff6ff; font-size: 14px; line-height: 1.6; }
+.rrhh-admin-messages .rrhh-message-success { background: #f0fdf4; }
+.rrhh-admin-messages .rrhh-message-warning { background: #fffbeb; }
+.rrhh-admin-messages .rrhh-message-error { background: #fef2f2; }
+.rrhh-message-icon { flex: 0 0 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #dbeafe; color: #2563eb; font-weight: 700; }
+.rrhh-message-success .rrhh-message-icon { background: #dcfce7; color: #15803d; }
+.rrhh-message-warning .rrhh-message-icon { background: #fef3c7; color: #92400e; }
+.rrhh-message-error .rrhh-message-icon { background: #fee2e2; color: #b91c1c; }
+.rrhh-message-text { min-width: 0; overflow-wrap: anywhere; }
+.rrhh-admin-messages a { color: #1d4ed8; text-decoration: underline; }
+.rrhh-admin-message-actions { text-align: center; margin-top: 22px; }
+.rrhh-admin-messages button { padding: 11px 28px; border: 0; border-radius: 9px; background: #1677ff; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.rrhh-admin-messages button:hover { background: #075bd8; }
+.rrhh-admin-messages button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 3px; }
+@media (max-width: 480px) { .rrhh-admin-messages { padding: 22px 18px; } }

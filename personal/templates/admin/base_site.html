@@ -7,11 +7,15 @@
 {{ block.super }}
 <link rel="stylesheet" href="{% static 'personal/css/system_sidebar.css' %}">
 <link rel="stylesheet" href="{% static 'personal/css/system_console.css' %}">
+<link rel="stylesheet" href="{% static 'personal/css/admin_messages.css' %}">
+<link rel="stylesheet" href="{% static 'personal/css/admin_notifications.css' %}">
 {% endblock %}
 
 {% block extrahead %}
 {{ block.super }}
 <script src="{% static 'personal/js/system_console.js' %}" defer></script>
+<script src="{% static 'personal/js/admin_messages.js' %}" defer></script>
+<script src="{% static 'personal/js/notification_actions.js' %}?v=admin-1" defer></script>
 {% endblock %}
 
 {% block branding %}
@@ -27,9 +31,9 @@
   <div class="system-dropdown" id="notificationsWrap">
     <button id="notificationButton" class="system-icon-button" type="button" aria-expanded="false" title="Notificaciones">
       <span aria-hidden="true">🔔</span>
-      {% if notificaciones_no_leidas %}<span class="notification-dot"></span>{% endif %}
+      {% if notificaciones_no_leidas %}<span class="notification-badge">{{ notificaciones_no_leidas }}</span>{% endif %}
     </button>
-    <div id="notificationsDropdown" class="system-dropdown-panel notifications-dropdown">
+    <div id="notificationsDropdown" data-admin-notifications class="system-dropdown-panel notifications-dropdown">
       {% include "includes/notification_panel.html" %}
     </div>
   </div>
@@ -60,3 +64,28 @@
 
 {# Todas las vistas de la consola usan el mismo layout, sin la barra de breadcrumbs de Django. #}
 {% block breadcrumbs %}{% endblock %}
+
+{# Reutiliza los mensajes de Django; no cambia las acciones de guardar, editar o eliminar. #}
+{% block messages %}
+{% if messages %}
+<section class="rrhh-admin-messages" data-admin-messages>
+  <h2 id="rrhh-admin-message-title">Avisos del sistema</h2>
+  <ul id="rrhh-admin-message-list">
+    {% for message in messages %}
+    <li class="{% if message.level == 25 %}rrhh-message-success{% elif message.level >= 40 %}rrhh-message-error{% elif message.level == 30 %}rrhh-message-warning{% else %}rrhh-message-info{% endif %}">
+      <span class="rrhh-message-icon" aria-hidden="true">{% if message.level == 25 %}✓{% elif message.level >= 30 %}!{% else %}i{% endif %}</span>
+      <span class="rrhh-message-text">{{ message }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <div class="rrhh-admin-message-actions">
+    <button type="button" data-accept-admin-messages hidden>Aceptar</button>
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block footer %}
+{{ block.super }}
+{% if has_permission %}{% include 'includes/notification_dialog.html' %}{% endif %}
+{% endblock %}

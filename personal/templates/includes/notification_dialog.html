@@ -1,0 +1,10 @@
+<dialog id="deleteNotificationDialog" class="message-modal" aria-labelledby="deleteNotificationTitle" aria-describedby="deleteNotificationDescription">
+    <h3 id="deleteNotificationTitle">Eliminar notificación</h3>
+    <p id="deleteNotificationDescription">¿Estás seguro de que deseas eliminar esta notificación?{% if es_gestion %} Este aviso es compartido y se eliminará para todo el equipo de gestión.{% endif %}</p>
+    <p id="notificationDeleteError" role="alert"></p>
+    <div class="notification-dialog-actions">
+        <button type="button" data-cancel-delete>Cancelar</button>
+        <button type="button" data-confirm-delete>Eliminar</button>
+    </div>
+</dialog>
+<div id="notificationActionStatus" role="status" aria-live="polite"></div>

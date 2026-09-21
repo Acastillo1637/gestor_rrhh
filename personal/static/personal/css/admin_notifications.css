@@ -1,0 +1,30 @@
+/* La consola usa su propio layout; estas reglas solo afectan a su campana y confirmación. */
+#notificationsDropdown { box-sizing: border-box; width: min(440px, calc(100vw - 24px)); padding: 0; max-height: calc(100dvh - 110px); overflow: auto; }
+#notificationsDropdown .notifications-header { display: flex; justify-content: space-between; gap: 8px; padding: 16px; border-bottom: 1px solid #35444f; }
+#notificationsDropdown .notifications-header span { font-size: 12px; }
+#notificationsDropdown .notification-item { display: flex; align-items: center; gap: 6px; padding: 10px; border-bottom: 1px solid #273744; }
+#notificationsDropdown .notification-unread { background: #192a3a; }
+#notificationsDropdown .notification-link { display: flex; flex: 1; gap: 10px; min-width: 0; padding: 4px; }
+#notificationsDropdown .notification-item-content { display: flex; flex-direction: column; gap: 4px; min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+#notificationsDropdown .notification-state { font-size: 11px; color: #aab8c4; }
+#notificationsDropdown .notification-item:not(.notification-unread) strong { font-weight: 400; }
+#notificationsDropdown .notification-actions { display: flex; flex-shrink: 0; gap: 3px; }
+#notificationsDropdown form { margin: 0; padding: 0; }
+#notificationsDropdown button { border: 0; border-radius: 6px; background: transparent; color: #8fbaff; cursor: pointer; }
+#notificationsDropdown .notification-actions button { display: grid; place-items: center; width: 32px; height: 34px; padding: 0; }
+#notificationsDropdown .notification-actions .notification-delete { color: #ff9095; }
+#notificationsDropdown button:hover { background: #293c4c; }
+#notificationsDropdown button:focus-visible { outline: 2px solid #8fbaff; }
+#notificationsDropdown button:disabled { opacity: .5; cursor: wait; }
+#notificationsDropdown .notifications-footer, #notificationsDropdown .notifications-empty { padding: 16px; text-align: center; }
+#notificationButton .notification-badge { position: absolute; right: -3px; top: -4px; min-width: 17px; padding: 1px 3px; border-radius: 20px; background: #dc3545; color: white; font-size: 11px; }
+#deleteNotificationDialog { position: fixed; inset: 0; margin: auto; width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; box-sizing: border-box; border: 1px solid #35444f; border-radius: 16px; padding: 28px; background: #101820; color: #e6edf2; box-shadow: 0 24px 60px #0008; }
+#deleteNotificationDialog::backdrop { background: #0009; backdrop-filter: blur(2px); }
+#deleteNotificationDialog h3 { color: #e6edf2; margin: 0 0 16px; }
+#deleteNotificationDialog p { color: #becbd5; line-height: 1.6; }
+#deleteNotificationDialog .notification-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+#deleteNotificationDialog button { padding: 10px 18px; border: 0; border-radius: 8px; background: #293c4c; color: white; cursor: pointer; }
+#deleteNotificationDialog [data-confirm-delete] { background: #b91c1c; }
+#deleteNotificationDialog #notificationDeleteError { color: #ff9095; }
+#notificationActionStatus { position: fixed; bottom: 16px; right: 16px; z-index: 2147483647; max-width: calc(100vw - 32px); border-radius: 10px; background: #101820; color: #e6edf2; }
+#notificationActionStatus:not(:empty) { padding: 12px 16px; border: 1px solid #35444f; }

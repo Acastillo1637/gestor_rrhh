@@ -10,7 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const gap = 8;
     panel.style.position = 'fixed';
     panel.style.top = `${rect.bottom + gap}px`;
-    panel.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
+    // Mantener el desplegable dentro de la pantalla incluso si la cabecera se desborda.
+    const width = parseFloat(getComputedStyle(panel).width);
+    const right = Math.min(Math.max(12, window.innerWidth - rect.right), Math.max(12, window.innerWidth - width - 12));
+    panel.style.right = `${right}px`;
     panel.style.left = 'auto';
     panel.style.zIndex = '2147483647';
   }
@@ -44,7 +47,13 @@ document.addEventListener('DOMContentLoaded', () => {
     panel.addEventListener('click', e => e.stopPropagation());
   });
 
-  document.addEventListener('click', closeActive);
+  document.addEventListener('click', event => {
+    if (!event.target.closest('#deleteNotificationDialog')) closeActive();
+  });
+  document.addEventListener('notifications:open', () => {
+    const panel = document.getElementById('notificationsDropdown');
+    if (!active || active.panel !== panel) document.getElementById('notificationButton')?.click();
+  });
   window.addEventListener('resize', closeActive);
   window.addEventListener('scroll', closeActive, true);
 

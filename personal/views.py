@@ -1920,13 +1920,22 @@ def respuesta_notificaciones(request):
     })
 
 
+def notificacion_editable(request, notificacion_id):
+    """Dueño del aviso personal, o gestión para un aviso general compartido."""
+    alcance = Q(usuario=request.user)
+    if usuario_autorizado(request.user):
+        alcance |= Q(usuario__isnull=True)
+    # Ser staff no basta; nunca se incluyen avisos personales de otros usuarios.
+    return get_object_or_404(Notificacion.objects.filter(alcance), pk=notificacion_id)
+
+
 @login_required(login_url='login')
 @require_POST
 def marcar_notificacion_leida(request, notificacion_id):
-    """Solo el dueño puede marcar este aviso; repetir el POST es inocuo."""
-    # Un ID ajeno devuelve 404; estar autenticado por sí solo no da acceso al aviso.
-    aviso = get_object_or_404(Notificacion, pk=notificacion_id, usuario=request.user)
-    Notificacion.objects.filter(pk=aviso.pk, usuario=request.user).update(leida=True)
+    """Marca un aviso autorizado; repetir el POST no altera otros registros."""
+    # El alcance se comprueba antes de modificar el aviso, también para gestión.
+    aviso = notificacion_editable(request, notificacion_id)
+    Notificacion.objects.filter(pk=aviso.pk).update(leida=True)
     return respuesta_notificaciones(request)
 
 
@@ -1934,8 +1943,8 @@ def marcar_notificacion_leida(request, notificacion_id):
 @require_POST
 def eliminar_notificacion(request, notificacion_id):
     """El usuario viene de la sesión, nunca de datos enviados por el navegador."""
-    aviso = get_object_or_404(Notificacion, pk=notificacion_id, usuario=request.user)
-    # La búsqueda anterior limita el borrado a una sola fila del dueño conectado.
+    aviso = notificacion_editable(request, notificacion_id)
+    # La búsqueda anterior limita el borrado a una sola fila del buzón autorizado.
     aviso.delete()
     return respuesta_notificaciones(request)
 

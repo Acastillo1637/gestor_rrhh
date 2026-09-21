@@ -132,6 +132,8 @@ class NotificacionesGlobalesTests(TestCase):
             self.usuario.is_superuser = superuser
             self.usuario.save(update_fields=['is_superuser'])
             for aviso in Notificacion.objects.exclude(usuario=self.usuario):
+                if superuser and aviso.usuario_id is None:
+                    continue  # Gestión puede actuar sobre el buzón general.
                 for accion in ['marcar_notificacion_leida', 'eliminar_notificacion']:
                     self.assertEqual(self.accion(accion, aviso, usuario=self.usuario.pk).status_code, 404)
                 aviso.refresh_from_db()
@@ -277,3 +279,71 @@ class CrearEmpleadoNombresTests(TestCase):
             self.assertIn('required', str(f[campo]))
             self.assertIn('pattern=', str(f[campo]))
             self.assertContains(respuesta, f'id="{campo}-errors"')
+
+
+class AdminMensajesTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(username='admin_avisos', password='solo-prueba')
+        self.client.force_login(self.admin)
+
+    def test_guardar_en_admin_muestra_aviso_una_vez(self):
+        respuesta = self.client.post(reverse('admin:auth_group_add'),
+                                     {'name': 'Grupo prueba avisos', '_save': 'Guardar'}, follow=True)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTrue(Group.objects.filter(name='Grupo prueba avisos').exists())
+        self.assertContains(respuesta, 'data-admin-messages')
+        self.assertContains(respuesta, 'rrhh-message-success')
+        self.assertContains(respuesta, 'Grupo prueba avisos')
+        self.assertNotContains(respuesta, '<ul class="messagelist">')
+        respuesta = self.client.get(reverse('admin:auth_group_changelist'))
+        self.assertNotContains(respuesta, 'data-admin-messages')
+
+    def test_todos_los_niveles_y_escape(self):
+        from django.contrib.messages.storage.base import Message
+        from django.contrib.messages.storage.session import SessionStorage
+        request = RequestFactory().get('/admin/')
+        request.session = self.client.session
+        SessionStorage(request)._store([
+            Message(25, 'Guardado'), Message(40, 'Error de prueba'),
+            Message(30, 'Advertencia'), Message(20, '<script>prueba</script>'),
+        ], response=None)
+        request.session.save()
+        with self.settings(MESSAGE_STORAGE='django.contrib.messages.storage.session.SessionStorage'):
+            respuesta = self.client.get(reverse('admin:index'))
+        for nivel in ['success', 'error', 'warning', 'info']:
+            self.assertContains(respuesta, f'rrhh-message-{nivel}')
+        self.assertContains(respuesta, '&lt;script&gt;prueba&lt;/script&gt;')
+        self.assertNotContains(respuesta, '<script>prueba</script>')
+        self.assertContains(respuesta, 'data-accept-admin-messages', count=1)
+
+    def test_gestion_opera_compartidos_staff_no_autorizado_no(self):
+        from django.test import Client
+        cliente = Client(enforce_csrf_checks=True)
+        otro = User.objects.create_user(username='propietario_privado')
+        privado = Notificacion.objects.create(usuario=otro, mensaje='Privado')
+        staff = User.objects.create_user(username='staff_sin_rol', is_staff=True)
+        for rol in ['staff', 'RRHH', 'GERENTES', 'superusuario']:
+            usuario = self.admin if rol == 'superusuario' else staff
+            staff.groups.clear()
+            if rol in ['RRHH', 'GERENTES']:
+                staff.groups.add(Group.objects.get_or_create(name=rol)[0])
+            cliente.force_login(usuario)
+            cliente.get(reverse('cambiar_contrasena'))
+            token = cliente.cookies['csrftoken'].value
+            aviso = Notificacion.objects.create(mensaje='Compartido ' + rol)
+            for accion in ['marcar_notificacion_leida', 'eliminar_notificacion']:
+                url = reverse(accion, args=[aviso.pk])
+                self.assertEqual(cliente.get(url).status_code, 405)
+                self.assertEqual(cliente.post(url).status_code, 403)
+                response = cliente.post(url, {'csrfmiddlewaretoken': token}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                self.assertEqual(response.status_code, 404 if rol == 'staff' else 200)
+                self.assertEqual(cliente.post(reverse(accion, args=[privado.pk]), {'csrfmiddlewaretoken': token}).status_code, 404)
+            self.assertEqual(Notificacion.objects.filter(pk=aviso.pk).exists(), rol == 'staff')
+        privado.refresh_from_db()
+        self.assertFalse(privado.leida)
+
+    def test_admin_carga_botones_modal_y_script(self):
+        Notificacion.objects.create(mensaje='Aviso compartido')
+        response = self.client.get(reverse('admin:index'))
+        for texto in ['Marcar como leída', 'Eliminar notificación', 'id="deleteNotificationDialog"', 'notification_actions.js', 'admin_notifications.css']:
+            self.assertContains(response, texto)

@@ -15,12 +15,20 @@
     let busy = false;
 
     // Cancelar o pulsar Escape conserva los datos y vuelve al desplegable.
+    function openPanel() {
+        if (panel.hasAttribute('data-admin-notifications')) {
+            // El admin mueve el panel al body; su controlador mantiene posición y estado.
+            document.dispatchEvent(new Event('notifications:open'));
+        } else {
+            wrap.classList.add('open');
+            bell.setAttribute('aria-expanded', 'true');
+        }
+    }
     function closeDialog() {
         if (busy) return;
         dialog.close();
         pending = null;
-        wrap.classList.add('open');
-        bell.setAttribute('aria-expanded', 'true');
+        openPanel();
     }
     cancel.addEventListener('click', closeDialog);
     dialog.addEventListener('cancel', event => {
@@ -61,8 +69,7 @@
             } else if (badge) badge.remove();
             if (dialog.open) dialog.close();
             pending = null;
-            wrap.classList.add('open');
-            bell.setAttribute('aria-expanded', 'true');
+            openPanel();
             bell.focus();
             status.textContent = 'Notificaciones actualizadas.';
         } catch (_) {

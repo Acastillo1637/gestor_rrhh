@@ -13,8 +13,7 @@
                 <span class="notification-state">{% if notificacion.leida %}Leída{% else %}Sin leer{% endif %}</span>
             </span>
         </a>
-        {# Los avisos generales no tienen dueño individual; sus permisos se validan también en backend. #}
-        {% if not es_gestion %}
+        {# El backend permite avisos propios y, para gestión, los generales compartidos. #}
         <div class="notification-actions">
             {% if not notificacion.leida %}
             <form method="post" action="{% url 'marcar_notificacion_leida' notificacion.pk %}" data-notification-form>
@@ -30,7 +29,6 @@
                 </button>
             </form>
         </div>
-        {% endif %}
     </div>
     {% empty %}
     <div class="notifications-empty">No tienes notificaciones.</div>
