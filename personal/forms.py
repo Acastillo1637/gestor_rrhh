@@ -125,8 +125,8 @@ class EmpleadoForm(forms.ModelForm):
         )
 
 
-class CrearEmpleadoForm(EmpleadoForm):
-    """Captura dos partes al crear, conservando el único campo del modelo."""
+class NombreEmpleadoForm(forms.ModelForm):
+    """Campos y validación de nombre compartidos por el portal y el admin."""
 
     # required=True y strip=True rechazan vacíos y valores formados solo por espacios.
     # pattern hace una comprobación equivalente en el navegador; Django valida igualmente el POST.
@@ -149,10 +149,6 @@ class CrearEmpleadoForm(EmpleadoForm):
         }),
     )
 
-    class Meta(EmpleadoForm.Meta):
-        fields = ['nombres', 'apellidos', 'cargo', 'departamento',
-                  'salario_mensual', 'fecha_contratacion', 'estado_laboral']
-
     def clean(self):
         datos = super().clean()
         nombres = datos.get('nombres')
@@ -171,17 +167,27 @@ class CrearEmpleadoForm(EmpleadoForm):
         return datos
 
 
+    def precargar_nombre(self):
+        """Propuesta editable: el modelo no conserva dónde se separó el nombre."""
+        if not self.is_bound and self.instance.pk:
+            partes = self.instance.nombre_completo.strip().split(maxsplit=1)
+            self.initial.setdefault('nombres', partes[0] if partes else '')
+            self.initial.setdefault('apellidos', partes[1] if len(partes) > 1 else '')
+
+
+class CrearEmpleadoForm(NombreEmpleadoForm, EmpleadoForm):
+    """Conserva los campos laborales del portal y la validación común del nombre."""
+
+    class Meta(EmpleadoForm.Meta):
+        fields = ['nombres', 'apellidos', 'cargo', 'departamento',
+                  'salario_mensual', 'fecha_contratacion', 'estado_laboral']
+
 class EditarEmpleadoForm(CrearEmpleadoForm):
     """Reutiliza la validación y el guardado del alta, sin duplicar campos del modelo."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not self.is_bound and self.instance.pk:
-            # El modelo no conserva la separación original. Esta propuesta mantiene
-            # todas las palabras y es corregible; no adivina nombres compuestos.
-            partes = self.instance.nombre_completo.strip().split(maxsplit=1)
-            self.initial.setdefault('nombres', partes[0] if partes else '')
-            self.initial.setdefault('apellidos', partes[1] if len(partes) > 1 else '')
+        self.precargar_nombre()
         # En un POST inválido se conservan exactamente los datos enviados por el usuario.
         self.revisar_separacion_nombre = True
 

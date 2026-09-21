@@ -425,3 +425,70 @@ class EditarEmpleadoNombresTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.empleado.refresh_from_db()
         self.assertEqual(self.empleado.fecha_contratacion, date(2026, 9, 10))
+
+class EmpleadoAdminNombresTests(TestCase):
+    def setUp(self):
+        from .models import Departamento, Puesto
+        self.depto = Departamento.objects.create(nombre='Depto admin prueba')
+        self.puesto = Puesto.objects.create(nombre='Cargo admin prueba', departamento=self.depto, salario_base=1000)
+        self.admin = User.objects.create_superuser(username='admin_empleado_prueba', password='prueba')
+        self.client.force_login(self.admin)
+        self.datos = {'nombres': 'María José', 'apellidos': 'De la Cruz Pérez',
+            'departamento_selector': self.depto.pk, 'cargo_selector': self.puesto.nombre,
+            'salario_mensual': '1000', 'estado_laboral': 'activo', 'genero': 'femenino', '_save': 'Guardar'}
+
+    def test_alta_edicion_e_historiales(self):
+        from .models import EmpleadoPuesto, HistorialSalario, Puesto
+        response = self.client.post(reverse('admin:personal_empleado_add'), self.datos)
+        self.assertEqual(response.status_code, 302, response.context['adminform'].form.errors if response.status_code == 200 else '')
+        empleado = Empleado.objects.get(nombre_completo='María José De la Cruz Pérez')
+        self.assertEqual(empleado.departamento, self.depto.nombre)
+        self.assertEqual(empleado.cargo, self.puesto.nombre)
+        self.assertTrue(EmpleadoPuesto.objects.filter(empleado=empleado, puesto=self.puesto, es_actual=True).exists())
+        url = reverse('admin:personal_empleado_change', args=[empleado.pk])
+        response = self.client.post(url, dict(self.datos, nombres='Ana María'))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(HistorialSalario.objects.filter(empleado=empleado).exists())
+        nuevo = Puesto.objects.create(nombre='Segundo cargo', departamento=self.depto, salario_base=1200)
+        response = self.client.post(url, dict(self.datos, cargo_selector=nuevo.nombre, salario_mensual='1200'))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(HistorialSalario.objects.get(empleado=empleado).salario_anterior, 1000)
+        self.assertTrue(EmpleadoPuesto.objects.filter(empleado=empleado, puesto=self.puesto, es_actual=False).exists())
+        self.assertTrue(EmpleadoPuesto.objects.filter(empleado=empleado, puesto=nuevo, es_actual=True).exists())
+
+    def test_validacion_admin_y_limite(self):
+        from .admin import EmpleadoAdminForm
+        for campo in ['nombres', 'apellidos']:
+            for valor in ['', '   ', '\u00a0']:
+                f = EmpleadoAdminForm(dict(self.datos, **{campo: valor}))
+                self.assertFalse(f.is_valid())
+                self.assertIn(campo, f.errors)
+        f = EmpleadoAdminForm(dict(self.datos, nombres='A'*75, apellidos='B'*75))
+        self.assertFalse(f.is_valid())
+        self.assertIn('apellidos', f.errors)
+        f = EmpleadoAdminForm(self.datos)
+        self.assertTrue(f.is_valid(), f.errors)
+        obj = f.save(commit=False)
+        self.assertIsNone(obj.pk)
+        self.assertEqual(obj.nombre_completo, 'María José De la Cruz Pérez')
+        self.assertEqual(obj.cargo, self.puesto.nombre)
+
+    def test_precarga_y_post_invalido_no_modifica(self):
+        e = Empleado.objects.create(nombre_completo='Almendra Valdés Antúnez', departamento=self.depto.nombre,
+                                    cargo=self.puesto.nombre, salario_mensual=1000)
+        url = reverse('admin:personal_empleado_change', args=[e.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'value="Almendra"')
+        self.assertContains(response, 'value="Valdés Antúnez"')
+        self.assertNotContains(response, 'name="nombre_completo"')
+        response = self.client.post(url, dict(self.datos, apellidos='  '))
+        self.assertContains(response, 'Ingresa los apellidos del empleado.')
+        e.refresh_from_db()
+        self.assertEqual(e.nombre_completo, 'Almendra Valdés Antúnez')
+
+    def test_permisos_se_conservan(self):
+        staff = User.objects.create_user(username='staff_no_rrhh', is_staff=True)
+        self.client.force_login(staff)
+        response = self.client.post(reverse('admin:personal_empleado_add'), self.datos)
+        self.assertEqual(response.status_code, 403)

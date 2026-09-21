@@ -1,0 +1,21 @@
+/* Solo distribuye los dos campos de nombre; no altera los demás campos del admin. */
+.form-row.field-nombres .form-multiline { display: flex; gap: 24px; }
+.form-row.field-nombres .form-multiline > div { flex: 1; min-width: 0; }
+.form-row.field-nombres .fieldBox { display: flex; flex-direction: column; align-items: stretch; margin: 0; }
+.form-row.field-nombres label { width: auto; margin: 0 0 8px; padding: 0; }
+.form-row.field-nombres input { box-sizing: border-box; width: 100%; max-width: 100%; }
+.form-row.field-nombres .help { margin-left: 0; padding-left: 0; }
+.form-row.field-nombres .errornote[hidden] { display: none; }
+.form-row.field-nombres .errornote { margin: 8px 0 0; }
+@media (max-width: 767px) {
+    .form-row.field-nombres .form-multiline { flex-direction: column; }
+}
+@media (max-width: 767px) {
+    .aligned .form-row.field-nombres .form-multiline,
+    .aligned .form-row.field-nombres .form-multiline > div,
+    .aligned .form-row.field-nombres .fieldBox {
+        box-sizing: border-box; width: 100% !important; margin: 0 !important; padding: 0 !important;
+    }
+    .aligned .form-row.field-nombres input[type="text"] { width: 100% !important; max-width: 100% !important; }
+    .aligned .form-row.field-nombres .help { white-space: normal; }
+}

@@ -15,6 +15,8 @@ from django.template.response import TemplateResponse
 from django.core.paginator import Paginator
 from django.db.models import Q
 
+from .forms import NombreEmpleadoForm
+
 from .models import (
     Empleado,
     HistorialSalario,
@@ -381,7 +383,7 @@ admin.site.get_urls = system_admin_get_urls
 # FORMULARIO ADMIN DE EMPLEADO
 # =============================================================================
 
-class EmpleadoAdminForm(forms.ModelForm):
+class EmpleadoAdminForm(NombreEmpleadoForm):
 
     departamento_selector = forms.ModelChoiceField(
         queryset=Departamento.objects.all().order_by('nombre'),
@@ -401,12 +403,19 @@ class EmpleadoAdminForm(forms.ModelForm):
     class Meta:
         model = Empleado
         exclude = (
+            'nombre_completo',
             'cargo',
             'departamento',
         )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Solo cambia la captura del nombre; los selectores y save() se conservan.
+        self.precargar_nombre()
+        if self.instance.pk:
+            self.fields['apellidos'].help_text = (
+                'Revisa la separación de nombres y apellidos, especialmente si son compuestos.'
+            )
 
         # -------------------------------------------------------------
         # Edición de empleado existente
@@ -501,7 +510,7 @@ class EmpleadoAdmin(admin.ModelAdmin):
 
     fields = (
         'usuario',
-        'nombre_completo',
+        ('nombres', 'apellidos'),
         'email',
         'dni',
         'fecha_nacimiento',
@@ -516,8 +525,10 @@ class EmpleadoAdmin(admin.ModelAdmin):
     )
 
     class Media:
+        css = {'all': ('personal/css/empleado_admin_nombres.css',)}
         js = (
             'personal/js/empleado_admin.js',
+            'personal/js/empleado_admin_nombres.js',
         )
 
     list_display = (
