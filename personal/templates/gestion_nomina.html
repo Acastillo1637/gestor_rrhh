@@ -1,4 +1,5 @@
 ﻿{% extends "base_site.html" %}
+{% load moneda %}
 
 {% block title %}
 Gestión de nómina
@@ -158,7 +159,7 @@ Gestión de nómina
         </div>
 
         <strong>
-            ${{ total_neto|floatformat:0 }}
+            {{ total_neto|pesos }}
         </strong>
 
         <span class="stat-subtext">
@@ -314,24 +315,24 @@ Gestión de nómina
 
 
                         <td>
-                            ${{ liquidacion.salario_base|floatformat:0 }}
+                            {{ liquidacion.salario_base|pesos }}
                         </td>
 
 
                         <td>
-                            ${{ liquidacion.bonificacion|floatformat:0 }}
+                            {{ liquidacion.bonificacion|pesos }}
                         </td>
 
 
                         <td>
-                            ${{ liquidacion.descuentos|floatformat:0 }}
+                            {{ liquidacion.descuentos|pesos }}
                         </td>
 
 
                         <td>
 
                             <strong>
-                                ${{ liquidacion.neto|floatformat:0 }}
+                                {{ liquidacion.neto|pesos }}
                             </strong>
 
                         </td>
