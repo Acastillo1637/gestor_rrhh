@@ -3,6 +3,7 @@
 # -----------------------------------------------------------------------------
 
 from django import forms
+from django.utils import timezone
 
 from .models import (
     Empleado,
@@ -222,6 +223,11 @@ class PermisoForm(forms.ModelForm):
 
         fecha_fin = cleaned_data.get(
             'fecha_fin'
+        )
+
+        if fecha_inicio and fecha_inicio <= timezone.localdate():
+            raise forms.ValidationError(
+                'La fecha de inicio debe ser desde mañana.'
         )
 
         if (
