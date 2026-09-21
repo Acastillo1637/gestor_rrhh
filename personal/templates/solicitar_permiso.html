@@ -13,14 +13,6 @@
         <strong>{{ empleado.nombre_completo }}</strong>
     </p>
 
-    {# Los avisos Django se muestran una sola vez en el modal de base_site.html. #}
-
-    {% if formulario.non_field_errors %}
-        <div class="mensaje-error">
-            {{ formulario.non_field_errors }}
-        </div>
-    {% endif %}
-
     <form method="post">
 
         {% csrf_token %}

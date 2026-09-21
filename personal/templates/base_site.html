@@ -813,6 +813,36 @@
 
         <main class="main-content">
 
+
+            {% block content %}
+            {% endblock %}
+
+        </main>
+
+    </div>
+
+</div>
+
+
+{% else %}
+
+<!-- ================================================================= -->
+<!-- USUARIO NO AUTENTICADO -->
+<!-- ================================================================= -->
+
+<div class="public-layout">
+
+    <main class="public-content">
+
+        {% block public_content %}
+        {% endblock %}
+
+    </main>
+
+</div>
+
+{% endif %}
+
             {% if messages %}
 
                 {% for message in messages %}
@@ -890,76 +920,8 @@
                 {% endfor %}
 
             {% endif %}
-            {% block content %}
-            {% endblock %}
-
-        </main>
-
-    </div>
-
-</div>
-
-
-{% else %}
-
-<!-- ================================================================= -->
-<!-- USUARIO NO AUTENTICADO -->
-<!-- ================================================================= -->
-
-<div class="public-layout">
-
-    <main class="public-content">
-
-        {% block public_content %}
-        {% endblock %}
-
-    </main>
-
-</div>
-
-{% endif %}
-
-
-{# Un solo modal consume los mensajes de Django, con o sin sesión iniciada. #}
-{% if messages %}
-<dialog class="message-modal" id="messageModal" aria-labelledby="messageModalTitle" aria-describedby="messageModalBody">
-    <div class="message-modal-header">
-        <span class="message-modal-brand">GESTOR RRHH</span>
-        <h2 id="messageModalTitle">Avisos del sistema</h2>
-    </div>
-    <div class="message-modal-body" id="messageModalBody">
-        {% for message in messages %}
-        <div class="message-modal-item {% if message.level >= 40 %}message-modal-error{% elif message.level >= 30 %}message-modal-warning{% elif message.level >= 25 %}message-modal-success{% else %}message-modal-info{% endif %}">
-            <span class="message-modal-icon" aria-hidden="true">{% if message.level >= 40 %}×{% elif message.level >= 30 %}!{% elif message.level >= 25 %}✓{% else %}i{% endif %}</span>
-            <strong>{% if message.level >= 40 %}Error{% elif message.level >= 30 %}Atención{% elif message.level >= 25 %}Éxito{% else %}Información{% endif %}</strong>
-            <p>{{ message }}</p>
-        </div>
-        {% endfor %}
-    </div>
-    <div class="message-modal-footer">
-        <button type="button" class="btn" id="messageModalAccept" autofocus>Aceptar</button>
-    </div>
-</dialog>
-{% endif %}
 
 <script>
-
-    // El diálogo nativo centra el aviso, bloquea el fondo y gestiona el foco/Escape.
-    const messageModal = document.getElementById('messageModal');
-    const messageModalAccept = document.getElementById('messageModalAccept');
-
-    if (messageModal && messageModalAccept) {
-        messageModal.showModal();
-        document.body.classList.add('message-modal-open');
-
-        messageModalAccept.addEventListener('click', function () {
-            messageModal.close();
-        });
-
-        messageModal.addEventListener('close', function () {
-            document.body.classList.remove('message-modal-open');
-        });
-    }
 
     const menuButton =
         document.getElementById('menuButton');
