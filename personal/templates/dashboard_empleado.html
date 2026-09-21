@@ -1,4 +1,5 @@
 {% extends "base_site.html" %}
+{% load moneda %}
 
 {% block title %}
 Mi portal
@@ -119,7 +120,7 @@ Mi portal
         <strong>
 
             {% if ultima_liquidacion %}
-                ${{ ultima_liquidacion.neto|floatformat:0 }}
+                {{ ultima_liquidacion.neto|pesos }}
             {% else %}
                 Sin información
             {% endif %}

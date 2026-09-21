@@ -297,6 +297,36 @@
         input.addEventListener('input', validateNames);
         input.addEventListener('invalid', validateNames);
     });
+
+    // Formato chileno para salario mensual: 850000 -> 850.000
+    const salarioInput = document.getElementById('id_salario_mensual');
+
+    if (salarioInput) {
+        function formatearSalario() {
+            const numero = salarioInput.value.replace(/\D/g, '');
+
+            if (!numero) {
+                salarioInput.value = '';
+                return;
+            }
+
+            salarioInput.value = Number(numero).toLocaleString('es-CL');
+        }
+
+        salarioInput.type = 'text';
+        salarioInput.inputMode = 'numeric';
+
+        formatearSalario();
+
+        salarioInput.addEventListener('input', formatearSalario);
+
+        const formularioEmpleado = document.querySelector('.employee-form');
+
+        formularioEmpleado.addEventListener('submit', function () {
+            salarioInput.value = salarioInput.value.replace(/\./g, '');
+        });
+    }
+
 })();
 </script>
 {% endblock %}

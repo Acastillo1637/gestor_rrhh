@@ -1,4 +1,5 @@
 {% extends "base_site.html" %}
+{% load moneda %}
 
 {% block title %}
 Mis liquidaciones
@@ -51,20 +52,20 @@ Mis liquidaciones
                         </td>
 
                         <td>
-                            ${{ liquidacion.salario_base }}
+                            {{ liquidacion.salario_base|pesos }}
                         </td>
 
                         <td>
-                            ${{ liquidacion.bonificacion }}
+                            {{ liquidacion.bonificacion|pesos }}
                         </td>
 
                         <td>
-                            ${{ liquidacion.descuentos }}
+                            {{ liquidacion.descuentos|pesos }}
                         </td>
 
                         <td>
                             <strong>
-                                ${{ liquidacion.neto }}
+                                {{ liquidacion.neto|pesos }}
                             </strong>
                         </td>
 

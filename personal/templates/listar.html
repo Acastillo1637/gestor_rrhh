@@ -1,4 +1,5 @@
 {% extends "base_site.html" %}
+{% load moneda %}
 
 {% block title %}
 Empleados
@@ -126,7 +127,7 @@ Empleados
         </div>
 
         <strong>
-            ${{ total_nomina|floatformat:0 }}
+            {{ total_nomina|pesos }}
         </strong>
 
         <span class="stat-subtext">
@@ -351,7 +352,7 @@ Empleados
                         <td>
 
                             <strong>
-                                ${{ empleado.salario_mensual|floatformat:0 }}
+                                {{ empleado.salario_mensual|pesos }}
                             </strong>
 
                         </td>
