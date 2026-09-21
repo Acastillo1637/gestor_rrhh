@@ -193,6 +193,27 @@
 
                 </div>
 
+                <!-- FECHA DE CONTRATACIÓN -->
+                <div class="form-group">
+
+                    <label for="{{ formulario.fecha_contratacion.id_for_label }}">
+                        Fecha de contratación
+                        <span>*</span>
+                    </label>
+
+                    {{ formulario.fecha_contratacion }}
+
+                    <small>
+                        Fecha de ingreso del empleado a la empresa.
+                    </small>
+
+                    {% if formulario.fecha_contratacion.errors %}
+                        <div class="field-error">
+                            {{ formulario.fecha_contratacion.errors }}
+                        </div>
+                    {% endif %}
+
+                </div>
 
                 <!-- ESTADO -->
                 <div class="form-group">

@@ -28,6 +28,7 @@ class EmpleadoForm(forms.ModelForm):
             'cargo',
             'departamento',
             'salario_mensual',
+            'fecha_contratacion',
             'estado_laboral',
         ]
 
@@ -42,6 +43,13 @@ class EmpleadoForm(forms.ModelForm):
                 attrs={
                     'class': 'form-control',
                     'step': '0.01',
+                }
+            ),
+
+            'fecha_contratacion': forms.DateInput(
+                attrs={
+                    'class': 'form-control',
+                    'type': 'date',
                 }
             ),
 
@@ -139,29 +147,23 @@ class CrearEmpleadoForm(EmpleadoForm):
     )
 
     class Meta(EmpleadoForm.Meta):
-        # Estos dos campos son solo del formulario: no se crean columnas nuevas.
         fields = ['nombres', 'apellidos', 'cargo', 'departamento',
-                  'salario_mensual', 'estado_laboral']
+                  'salario_mensual', 'fecha_contratacion', 'estado_laboral']
 
     def clean(self):
-        # CharField ya validó cada parte; solo las unimos cuando ambas son válidas.
         datos = super().clean()
         nombres = datos.get('nombres')
         apellidos = datos.get('apellidos')
         if nombres and apellidos:
-            # Normaliza espacios sin restringir tildes, guiones ni nombres compuestos.
+
             completo = ' '.join((nombres + ' ' + apellidos).split())
             campo = Empleado._meta.get_field('nombre_completo')
             try:
-                # Al excluirlo de Meta.fields, validamos aquí el campo real del modelo.
                 completo = campo.clean(completo, self.instance)
             except forms.ValidationError:
-                # El límite corresponde al nombre unido, incluido el espacio entre ambas partes.
-                # Asociamos el error a apellidos para mostrarlo debajo de ese campo.
                 self.add_error('apellidos',
                     f'Los nombres y apellidos juntos no pueden superar {campo.max_length} caracteres.')
             else:
-                # ModelForm.save(), incluido commit=False, conserva este valor.
                 self.instance.nombre_completo = completo
         return datos
 
