@@ -2008,6 +2008,14 @@ def gestion_asistencia(request):
     empleado_id = request.GET.get('empleado', '')
     departamento = request.GET.get('departamento', '')
 
+    hoy = timezone.localdate()
+
+    if not fecha_desde:
+        fecha_desde = hoy.strftime('%Y-%m-%d')
+
+    if not fecha_hasta:
+        fecha_hasta = hoy.strftime('%Y-%m-%d')
+
     if fecha_desde:
         asistencias = asistencias.filter(
             fecha__gte=fecha_desde
@@ -2038,6 +2046,18 @@ def gestion_asistencia(request):
         .order_by('nombre_completo')
     )
 
+    empleados_calendario = empleados
+
+    if empleado_id:
+        empleados_calendario = empleados_calendario.filter(
+            id=empleado_id
+        )
+
+    if departamento:
+        empleados_calendario = empleados_calendario.filter(
+            departamento=departamento
+        )
+
     departamentos = (
         Empleado.objects
         .filter(estado_laboral__iexact='activo')
@@ -2051,11 +2071,49 @@ def gestion_asistencia(request):
     # ---------------------------------------------------------
     # DATOS VISUALES DE ASISTENCIA
     # ---------------------------------------------------------
-    asistencias = list(asistencias)
+    fecha_inicio = datetime.strptime(
+        fecha_desde,
+        '%Y-%m-%d'
+    ).date()
+
+    fecha_fin = datetime.strptime(
+        fecha_hasta,
+        '%Y-%m-%d'
+    ).date()
+
+    fecha_actual = fecha_inicio
+
+    while fecha_actual <= fecha_fin:
+
+        # Sábado = 5 / Domingo = 6
+        if fecha_actual.weekday() >= 5:
+
+            for empleado in empleados_calendario:
+                Asistencia.objects.get_or_create(
+                    empleado=empleado,
+                    fecha=fecha_actual,
+                    defaults={
+                        'estado': 'descanso',
+                        'minutos_trabajados': 0,
+                    }
+                )
+
+        fecha_actual += timedelta(days=1)
+
+    asistencias = list(
+        asistencias.order_by(
+            '-fecha',
+            'empleado__nombre_completo'
+        )
+    )
 
     hora_salida_turno = time(17, 0)
 
     for asistencia in asistencias:
+
+        asistencia.es_fin_semana = (
+            asistencia.estado == 'descanso'
+        )
 
         asistencia.minutos_salida_anticipada = 0
 

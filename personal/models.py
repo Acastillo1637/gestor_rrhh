@@ -285,6 +285,8 @@ class Asistencia(models.Model):
         ('ausente', 'Ausente'),
         ('atraso', 'Atraso'),
         ('permiso', 'Permiso'),
+        ('descanso', 'Descanso'),
+        ('feriado', 'Feriado'),
     ]
 
     empleado = models.ForeignKey(

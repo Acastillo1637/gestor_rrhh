@@ -114,6 +114,7 @@ Gestión de asistencia
             <tr>
                 <th>Fecha</th>
                 <th>Empleado</th>
+                <th>Departamento</th>
                 <th>Turno</th>
                 <th>Entrada</th>
                 <th>Salida</th>
@@ -124,7 +125,7 @@ Gestión de asistencia
         <tbody>
             {% for asistencia in asistencias %}
 
-                <tr class="{% if asistencia.estado == 'atraso' %}fila-atraso{% endif %}">
+                <tr class="{% if asistencia.es_fin_semana %}fila-descanso{% elif asistencia.estado == 'atraso' %}fila-atraso{% endif %}">
 
                     <td>
                         {{ asistencia.fecha|date:"l" }}<br>
@@ -136,21 +137,33 @@ Gestión de asistencia
                     </td>
 
                     <td>
-                        09:00 - 17:00
+                        {{ asistencia.empleado.departamento }}                    
                     </td>
 
                     <td>
-                        {% if asistencia.hora_entrada %}
-                            <span class="{% if asistencia.estado == 'atraso' %}hora-atraso{% endif %}">
-                                {{ asistencia.hora_entrada|time:"H:i" }}
-                            </span>
+                        {% if asistencia.es_fin_semana %}
+                            <span class="texto-descanso">Descanso</span>
                         {% else %}
-                            -
+                            09:00 - 17:00
                         {% endif %}
                     </td>
 
                     <td>
-                        {% if asistencia.hora_salida %}
+                        {% if asistencia.es_fin_semana %}
+                            —
+                        {% elif asistencia.hora_entrada %}
+                            <span class="{% if asistencia.estado == 'atraso' %}hora-atraso{% endif %}">
+                                {{ asistencia.hora_entrada|time:"H:i" }}
+                            </span>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if asistencia.es_fin_semana %}
+                            —
+                        {% elif asistencia.hora_salida %}
                             <div>
                                 {{ asistencia.hora_salida|time:"H:i" }}
                             </div>
@@ -166,7 +179,11 @@ Gestión de asistencia
                     </td>
 
                     <td>
-                        {{ asistencia.minutos_trabajados }}
+                        {% if asistencia.es_fin_semana %}
+                            —
+                        {% else %}
+                            {{ asistencia.minutos_trabajados }}
+                        {% endif %}
                     </td>
 
                 </tr>
@@ -174,7 +191,7 @@ Gestión de asistencia
             {% empty %}
 
                 <tr>
-                    <td colspan="6" class="empty-row">
+                    <td colspan="7" class="empty-row">
                         No existen registros de asistencia.
                     </td>
                 </tr>
