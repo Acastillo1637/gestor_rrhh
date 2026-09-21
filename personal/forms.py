@@ -45,6 +45,7 @@ class EmpleadoForm(forms.ModelForm):
                 attrs={
                     'class': 'form-control',
                     'step': '0.01',
+                    'min': '0',
                 }
             ),
 
@@ -124,6 +125,14 @@ class EmpleadoForm(forms.ModelForm):
                 }
             )
         )
+
+
+    def clean(self):
+        datos = super().clean()
+        importe = datos.get('salario_mensual')
+        if importe is not None and importe < 0:
+            self.add_error('salario_mensual', 'El importe debe ser superior o igual a 0.')
+        return datos
 
 
 class NombreEmpleadoForm(forms.ModelForm):

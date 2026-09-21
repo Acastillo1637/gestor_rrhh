@@ -43,6 +43,21 @@ class ConservacionImportesTests(TestCase):
     def setUp(self):
         self.client.force_login(self.usuario)
 
+    def test_formulario_empleado_rechaza_salario_negativo(self):
+        from .forms import EmpleadoForm
+
+        formulario = EmpleadoForm(instance=self.empleado, data={
+            'nombre_completo': 'Ana Prueba',
+            'cargo': 'Analista',
+            'departamento': 'Pruebas de importes',
+            'salario_mensual': '-1',
+            'fecha_contratacion': '',
+            'estado_laboral': 'activo',
+        })
+
+        self.assertFalse(formulario.is_valid())
+        self.assertIn('El importe debe ser superior o igual a 0.', formulario.errors['salario_mensual'])
+
     def test_editar_nombre_conserva_salario_sin_crear_historial(self):
         from .models import HistorialSalario
         url = reverse('editar_empleado', args=[self.empleado.pk])
