@@ -3,6 +3,7 @@
 # -----------------------------------------------------------------------------
 
 from django import forms
+from django.core.exceptions import NON_FIELD_ERRORS
 from django.utils import timezone
 
 from .models import (
@@ -362,6 +363,12 @@ class NominaForm(forms.ModelForm):
                     'class': 'form-check-input',
                 }
             ),
+        }
+
+        error_messages = {
+            NON_FIELD_ERRORS: {
+                'unique_together': 'Ya existe una liquidación para este empleado en el período seleccionado.',
+            },
         }
 
         labels = {
