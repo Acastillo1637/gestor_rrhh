@@ -145,6 +145,10 @@ Gestión de asistencia
                             <span class="texto-feriado">Feriado</span>
                         {% elif asistencia.es_fin_semana %}
                             <span class="texto-descanso">Descanso</span>
+                        {% elif asistencia.estado == 'permiso' and asistencia.motivo_permiso %}
+                            {{ asistencia.motivo_permiso }}
+                        {% elif asistencia.estado == 'ausente' %}
+                            <span class="texto-ausente">Ausente</span>
                         {% else %}
                             09:00 - 17:00
                         {% endif %}

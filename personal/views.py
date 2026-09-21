@@ -2101,6 +2101,19 @@ def gestion_asistencia(request):
 
     for asistencia in asistencias:
 
+        asistencia.motivo_permiso = None
+
+        if asistencia.estado == 'permiso':
+            permiso = Permiso.objects.filter(
+                empleado=asistencia.empleado,
+                estado='aprobado',
+                fecha_inicio__lte=asistencia.fecha,
+                fecha_fin__gte=asistencia.fecha,
+            ).first()
+
+            if permiso:
+                asistencia.motivo_permiso = permiso.get_tipo_display()
+
         asistencia.es_feriado = (
             asistencia.fecha in feriados_irrenunciables
         )
