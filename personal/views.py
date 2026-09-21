@@ -2049,6 +2049,37 @@ def gestion_asistencia(request):
     )
 
     # ---------------------------------------------------------
+    # DATOS VISUALES DE ASISTENCIA
+    # ---------------------------------------------------------
+    asistencias = list(asistencias)
+
+    hora_salida_turno = time(17, 0)
+
+    for asistencia in asistencias:
+
+        asistencia.minutos_salida_anticipada = 0
+
+        if (
+            asistencia.hora_salida
+            and asistencia.hora_salida < hora_salida_turno
+        ):
+            salida_programada = datetime.combine(
+                asistencia.fecha,
+                hora_salida_turno
+            )
+
+            salida_real = datetime.combine(
+                asistencia.fecha,
+                asistencia.hora_salida.replace(second=0, microsecond=0)
+            )
+
+            diferencia = salida_programada - salida_real
+
+            asistencia.minutos_salida_anticipada = int(
+                diferencia.total_seconds() / 60
+            )
+
+    # ---------------------------------------------------------
     # LÍMITE DE EDICIÓN RRHH
     # ---------------------------------------------------------
 

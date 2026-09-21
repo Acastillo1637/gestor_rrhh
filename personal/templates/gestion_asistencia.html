@@ -110,82 +110,78 @@ Gestión de asistencia
 
         <div class="table-responsive">
             <table class="attendance-table">
-                <thead>
-                    <tr>
-                        <th>Empleado</th>
-                        <th>Fecha</th>
-                        <th>Entrada</th>
-                        <th>Salida</th>
-                        <th>Minutos trabajados</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Empleado</th>
+                <th>Turno</th>
+                <th>Entrada</th>
+                <th>Salida</th>
+                <th>Minutos trabajados</th>
+            </tr>
+        </thead>
 
-                <tbody>
-                    {% for asistencia in asistencias %}
+        <tbody>
+            {% for asistencia in asistencias %}
 
-                        <tr class="{% if asistencia.estado == 'atraso' %}fila-atraso{% endif %}">
-                            <td>
-                                {{ asistencia.empleado.nombre_completo }}
-                            </td>
+                <tr class="{% if asistencia.estado == 'atraso' %}fila-atraso{% endif %}">
 
-                            <td>
-                                {{ asistencia.fecha|date:"d/m/Y" }}
-                            </td>
+                    <td>
+                        {{ asistencia.fecha|date:"l" }}<br>
+                        {{ asistencia.fecha|date:"d/m/Y" }}
+                    </td>
 
-                            <td>
-                                {% if asistencia.hora_entrada %}
-                                    {{ asistencia.hora_entrada|time:"H:i" }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
+                    <td>
+                        {{ asistencia.empleado.nombre_completo }}
+                    </td>
 
-                            <td>
-                                {% if asistencia.hora_salida %}
-                                    {{ asistencia.hora_salida|time:"H:i" }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
+                    <td>
+                        09:00 - 17:00
+                    </td>
 
-                            <td>
-                                {{ asistencia.minutos_trabajados }}
-                            </td>
+                    <td>
+                        {% if asistencia.hora_entrada %}
+                            <span class="{% if asistencia.estado == 'atraso' %}hora-atraso{% endif %}">
+                                {{ asistencia.hora_entrada|time:"H:i" }}
+                            </span>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
 
-                            <td>
-                                {% if asistencia.estado == 'atraso' %}
-                                    <span class="estado estado-atraso">
-                                        Atraso
-                                    </span>
-                                {% elif asistencia.estado == 'presente' %}
-                                    <span class="estado estado-presente">
-                                        Presente
-                                    </span>
-                                {% elif asistencia.estado == 'ausente' %}
-                                    <span class="estado estado-ausente">
-                                        Ausente
-                                    </span>
-                                {% else %}
-                                    <span class="estado">
-                                        {{ asistencia.get_estado_display }}
-                                    </span>
-                                {% endif %}
-                            </td>
-                        </tr>
+                    <td>
+                        {% if asistencia.hora_salida %}
+                            <div>
+                                {{ asistencia.hora_salida|time:"H:i" }}
+                            </div>
 
-                    {% empty %}
+                            {% if asistencia.minutos_salida_anticipada > 0 %}
+                                <div class="salida-anticipada">
+                                    Salida anticipada · {{ asistencia.minutos_salida_anticipada }} min
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
 
-                        <tr>
-                            <td colspan="6" class="empty-row">
-                                No existen registros de asistencia.
-                            </td>
-                        </tr>
+                    <td>
+                        {{ asistencia.minutos_trabajados }}
+                    </td>
 
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                </tr>
+
+            {% empty %}
+
+                <tr>
+                    <td colspan="6" class="empty-row">
+                        No existen registros de asistencia.
+                    </td>
+                </tr>
+
+            {% endfor %}
+        </tbody>
+        </table>
     </section>
 
 </div>
@@ -367,6 +363,18 @@ Gestión de asistencia
 
     .fila-atraso {
         background: #fef2f2;
+    }
+
+    .hora-atraso {
+    color: #dc2626;
+    font-weight: 600;
+    }
+
+    .salida-anticipada {
+    margin-top: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #dc2626;
     }
 
     .estado {
