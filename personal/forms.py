@@ -47,7 +47,9 @@ class EmpleadoForm(forms.ModelForm):
                 }
             ),
 
+            # HTML date requiere ISO; el formato local deja el campo vacío al editar.
             'fecha_contratacion': forms.DateInput(
+                format='%Y-%m-%d',
                 attrs={
                     'class': 'form-control',
                     'type': 'date',
@@ -167,6 +169,21 @@ class CrearEmpleadoForm(EmpleadoForm):
             else:
                 self.instance.nombre_completo = completo
         return datos
+
+
+class EditarEmpleadoForm(CrearEmpleadoForm):
+    """Reutiliza la validación y el guardado del alta, sin duplicar campos del modelo."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.is_bound and self.instance.pk:
+            # El modelo no conserva la separación original. Esta propuesta mantiene
+            # todas las palabras y es corregible; no adivina nombres compuestos.
+            partes = self.instance.nombre_completo.strip().split(maxsplit=1)
+            self.initial.setdefault('nombres', partes[0] if partes else '')
+            self.initial.setdefault('apellidos', partes[1] if len(partes) > 1 else '')
+        # En un POST inválido se conservan exactamente los datos enviados por el usuario.
+        self.revisar_separacion_nombre = True
 
 
 # =============================================================================

@@ -271,7 +271,7 @@ class CrearEmpleadoNombresTests(TestCase):
     def test_campos_y_atributos_html(self):
         from .forms import CrearEmpleadoForm
         f = CrearEmpleadoForm()
-        self.assertEqual(set(f.fields), {'nombres', 'apellidos', 'cargo', 'departamento', 'salario_mensual', 'estado_laboral'})
+        self.assertEqual(set(f.fields), {'nombres', 'apellidos', 'cargo', 'departamento', 'salario_mensual', 'fecha_contratacion', 'estado_laboral'})
         self.client.force_login(self.admin)
         respuesta = self.client.get(reverse('crear_empleado'))
         self.assertNotContains(respuesta, 'name="nombre_completo"')
@@ -347,3 +347,81 @@ class AdminMensajesTests(TestCase):
         response = self.client.get(reverse('admin:index'))
         for texto in ['Marcar como leída', 'Eliminar notificación', 'id="deleteNotificationDialog"', 'notification_actions.js', 'admin_notifications.css']:
             self.assertContains(response, texto)
+
+
+class EditarEmpleadoNombresTests(TestCase):
+    def setUp(self):
+        from .models import Departamento, Puesto
+        depto, _ = Departamento.objects.get_or_create(nombre='Edición prueba')
+        Puesto.objects.get_or_create(nombre='Cargo edición', departamento=depto, defaults={'salario_base': 1000})
+        self.empleado = Empleado.objects.create(nombre_completo='Almendra Valdés Antúnez',
+            departamento=depto.nombre, cargo='Cargo edición', salario_mensual=1000, estado_laboral='activo')
+        self.admin = User.objects.create_user(username='editor_prueba', is_superuser=True)
+        self.client.force_login(self.admin)
+        self.url = reverse('editar_empleado', args=[self.empleado.pk])
+        self.datos = {'nombres': 'Almendra', 'apellidos': 'Valdés Antúnez',
+            'departamento': depto.nombre, 'cargo': 'Cargo edición', 'salario_mensual': '1000', 'estado_laboral': 'activo'}
+
+    def test_precarga_y_conservacion_de_palabras(self):
+        from .forms import EditarEmpleadoForm
+        for nombre in ['Almendra Valdés Antúnez', 'María José de la Cruz Pérez', 'Pedro González', 'Almendra']:
+            self.empleado.nombre_completo = nombre
+            f = EditarEmpleadoForm(instance=self.empleado)
+            self.assertEqual((f.initial['nombres'] + ' ' + f.initial['apellidos']).strip(), nombre)
+        response = self.client.get(self.url)
+        self.assertContains(response, 'name="nombres"')
+        self.assertContains(response, 'name="apellidos"')
+        self.assertNotContains(response, 'name="nombre_completo"')
+
+    def test_vacios_no_modifican_y_conservan_valores(self):
+        from .models import HistorialSalario
+        avisos = Notificacion.objects.count()
+        for campo in ['nombres', 'apellidos']:
+            for valor in ['', '   ', '\u00a0']:
+                datos = dict(self.datos, **{campo: valor})
+                response = self.client.post(self.url, datos)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(campo, response.context['formulario'].errors)
+                self.assertEqual(response.context['formulario'][campo].value(), valor)
+                self.empleado.refresh_from_db()
+                self.assertEqual(self.empleado.nombre_completo, 'Almendra Valdés Antúnez')
+        self.assertEqual(Notificacion.objects.count(), avisos)
+        self.assertFalse(HistorialSalario.objects.filter(empleado=self.empleado).exists())
+
+    def test_guardado_y_historial_salarial(self):
+        from .models import HistorialSalario
+        response = self.client.post(self.url, dict(self.datos, nombres='María José', apellidos='De la Cruz Pérez'))
+        self.assertEqual(response.status_code, 302)
+        self.empleado.refresh_from_db()
+        self.assertEqual(self.empleado.nombre_completo, 'María José De la Cruz Pérez')
+        self.assertEqual(self.empleado.salario_mensual, 1000)
+        self.assertEqual(self.empleado.cargo, 'Cargo edición')
+        self.assertEqual(self.empleado.departamento, 'Edición prueba')
+        self.assertFalse(HistorialSalario.objects.filter(empleado=self.empleado).exists())
+        response = self.client.post(self.url, dict(self.datos, salario_mensual='1200'))
+        self.assertEqual(response.status_code, 302)
+        historial = HistorialSalario.objects.get(empleado=self.empleado)
+        self.assertEqual(historial.salario_anterior, 1000)
+        self.assertEqual(historial.salario_nuevo, 1200)
+
+    def test_limite_unido_y_commit_false(self):
+        from .forms import EditarEmpleadoForm
+        f = EditarEmpleadoForm(dict(self.datos, nombres='A'*75, apellidos='B'*75), instance=self.empleado)
+        self.assertFalse(f.is_valid())
+        self.assertIn('apellidos', f.errors)
+        f = EditarEmpleadoForm(dict(self.datos, nombres=' Ana María ', apellidos=' Pérez '), instance=self.empleado)
+        self.assertTrue(f.is_valid(), f.errors)
+        empleado = f.save(commit=False)
+        self.assertEqual(empleado.nombre_completo, 'Ana María Pérez')
+        self.assertEqual(Empleado.objects.get(pk=empleado.pk).nombre_completo, 'Almendra Valdés Antúnez')
+
+    def test_fecha_contratacion_visible_y_conservada(self):
+        from datetime import date
+        self.empleado.fecha_contratacion = date(2026, 9, 10)
+        self.empleado.save(update_fields=['fecha_contratacion'])
+        response = self.client.get(self.url)
+        self.assertContains(response, 'value="2026-09-10"')
+        response = self.client.post(self.url, dict(self.datos, fecha_contratacion='2026-09-10'))
+        self.assertEqual(response.status_code, 302)
+        self.empleado.refresh_from_db()
+        self.assertEqual(self.empleado.fecha_contratacion, date(2026, 9, 10))

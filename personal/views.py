@@ -50,7 +50,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from .forms import (
-    EmpleadoForm,
+    EditarEmpleadoForm,
     CrearEmpleadoForm,
     PermisoForm,
     NominaForm,
@@ -582,8 +582,7 @@ def listar_empleados(request):
     login_url='login'
 )
 def crear_empleado(request):
-    # Solo el alta usa la captura separada. La edición mantiene EmpleadoForm porque
-    # no podemos deducir con certeza los nombres y apellidos de los registros antiguos.
+    # El alta valida las dos partes y conserva nombre_completo como almacenamiento.
 
     if request.method == 'POST':
 
@@ -686,7 +685,7 @@ def editar_empleado(
 
     if request.method == 'POST':
 
-        formulario = EmpleadoForm(
+        formulario = EditarEmpleadoForm(
             request.POST,
             instance=empleado
         )
@@ -737,7 +736,7 @@ def editar_empleado(
 
     else:
 
-        formulario = EmpleadoForm(
+        formulario = EditarEmpleadoForm(
             instance=empleado
         )
 

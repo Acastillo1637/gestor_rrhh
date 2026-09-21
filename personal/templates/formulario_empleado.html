@@ -86,7 +86,7 @@
 
             <div class="employee-form-grid">
 
-                {# Solo la creación divide la captura; la edición conserva los nombres existentes. #}
+                {# Alta y edición comparten los campos y las mismas validaciones. #}
                 {# Reutilizamos la grilla existente: dos columnas en escritorio y una en móvil. #}
                 {% if formulario.nombres %}
                 <div class="form-group">
@@ -97,6 +97,9 @@
                 <div class="form-group">
                     <label for="{{ formulario.apellidos.id_for_label }}">Apellidos <span>*</span></label>
                     {{ formulario.apellidos }}
+                    {% if formulario.revisar_separacion_nombre %}
+                    <small>Revisa la separación de nombres y apellidos, especialmente si son compuestos.</small>
+                    {% endif %}
                     <div class="field-error" id="apellidos-errors" aria-live="polite">{{ formulario.apellidos.errors }}</div>
                 </div>
                 {% else %}
@@ -272,7 +275,7 @@
 // El navegador da feedback debajo de cada campo; Django repite la validación al recibir el POST.
 (() => {
     const inputs = [...document.querySelectorAll('[data-name-part]')];
-    // Al editar no existen estos campos: dejamos intacto el formulario anterior.
+    // Solo se aplica si el formulario incluye los dos campos de nombre.
     if (!inputs.length) return;
     // Revisa ambas partes para corregir también el error de longitud al editar cualquiera.
     function validateNames() {
