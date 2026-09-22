@@ -1,81 +1,79 @@
-Instalación y Configuración Completa del Gestor de RRHH
+# Gestor de RRHH: levantar el sistema en local
 
-Requisitos del Sistema
+## Requisitos
 
-Python 3.10 o superior.
+- Python 3.10 o superior y Git.
+- Acceso a una base PostgreSQL. El proyecto usa PostgreSQL, no SQLite.
 
-Git instalado en el equipo.
+## 1. Descargar el proyecto
 
-Paso 1: Instalación de Herramientas Base (En equipos limpios)
-
-En Ubuntu / Debian (Linux):
-
-Bash
-sudo apt update && sudo apt install python3 python3-pip python3-venv git -y
-En macOS (vía Homebrew):
-
-Bash
-brew install python git
-En Windows: Descargar e instalar Python y Git desde sus sitios oficiales, asegurándose de marcar la casilla "Add Python to PATH" durante la instalación de Python.
-
-Paso 2: Descarga del Repositorio
-Clonar el código fuente desde el repositorio oficial de GitHub y acceder al directorio del proyecto:
-
-Bash
+```bash
 git clone https://github.com/Acastillo1637/gestor_rrhh.git
 cd gestor_rrhh
-Paso 3: Configuración del Entorno Virtual
-Aislar las dependencias del sistema creando y activando un entorno virtual:
+```
 
-Crear el entorno:
+Si ya tienes una copia, entra en su carpeta y ejecuta `git pull origin main` antes de continuar.
 
-Bash
+## 2. Crear el entorno virtual e instalar dependencias
+
+En Windows (PowerShell):
+
+```powershell
 python -m venv venv
-Activar en Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
 
-PowerShell
-venv\Scripts\Activate
-Activar en macOS / Linux:
+En macOS o Linux:
 
-Bash
+```bash
+python3 -m venv venv
 source venv/bin/activate
-Paso 4: Instalación de Dependencias Profesionales
-Actualizar el gestor de paquetes e instalar todas las librerías necesarias especificadas en el proyecto:
+python -m pip install -r requirements.txt
+```
 
-Bash
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+## 3. Configurar `.env`
 
+Copia `.env.example` como `.env` en la raíz del proyecto. En PowerShell usa `Copy-Item .env.example .env`; en macOS o Linux usa `cp .env.example .env`.
 
-Paso 5: Variables de Entorno y Base de Datos
-Copiar `.env.example` a `.env` y completar `CLAVE_SECRETA_DJANGO` con una clave nueva y aleatoria de al menos 50 caracteres. El archivo `.env` está excluido de Git. Configurar `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST` y `DB_PORT` para PostgreSQL. Para desarrollo local usar `MODO_DEPURACION=si` y `DOMINIOS_PERMITIDOS=localhost,127.0.0.1,[::1]`.
+Genera una clave nueva y copia el resultado en `CLAVE_SECRETA_DJANGO`:
 
-En producción establecer `MODO_DEPURACION=no`, una clave distinta a la de desarrollo y `DOMINIOS_PERMITIDOS` con los dominios reales, separados por comas y sin `https://` ni puertos. Estas variables también pueden configurarse directamente en el entorno del servidor. El arranque falla si falta una variable de seguridad o si su valor no es válido. En producción se activan redirección HTTPS, cookies seguras y HSTS de una hora. Configurar TLS en el servidor antes de publicar; si hay un proxy, verificar que Django detecte HTTPS de forma confiable para evitar redirecciones continuas.
+```bash
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
 
-Generar y aplicar las tablas correspondientes en PostgreSQL:
+Completa el archivo con los datos de tu propia base PostgreSQL:
 
-Bash
-python manage.py makemigrations
-python manage.py migrate
-Antes del despliegue comprobar la configuración con `python manage.py check --deploy` usando las variables de producción.
+```dotenv
+CLAVE_SECRETA_DJANGO=pega_aqui_la_clave_generada
+MODO_DEPURACION=si
+DOMINIOS_PERMITIDOS=localhost,127.0.0.1,[::1]
+DB_NAME=nombre_de_la_base
+DB_USER=usuario_de_la_base
+DB_PASSWORD=contrasena_de_la_base
+DB_HOST=servidor_de_la_base
+DB_PORT=5432
+```
 
+Usa el puerto y el usuario exactos que entregue tu proveedor de PostgreSQL. Si ya tenías un `.env` con `DB_*`, conserva esos valores y agrega las tres variables de Django. `.env` está excluido de Git: no lo subas al repositorio.
 
-Paso 6: Creación del Usuario Administrador
-Registrar credenciales para acceder al panel de control protegido y al módulo de auditoría de salarios:
+## 4. Comprobar la configuración y la base
 
-Bash
-python manage.py createsuperuser
-(Ingresa el nombre de usuario, correo electrónico y contraseña solicitados en pantalla).
+```bash
+python manage.py check
+python manage.py showmigrations
+```
 
-Paso 7: Ejecución del Servidor
+`showmigrations` comprueba la conexión y muestra las migraciones aplicadas. **Solo si la base es nueva** y está vacía, crea sus tablas con `python manage.py migrate`. En una base compartida existente, revisa las migraciones pendientes antes de aplicarlas.
 
-Modo Desarrollo (Local):
+Si la base es nueva y aún no tiene una cuenta administradora, crea una con `python manage.py createsuperuser`.
 
-Bash
+## 5. Iniciar el servidor
+
+```bash
 python manage.py runserver
-Modo Producción (Opcional con Gunicorn para Linux/Servidores):
+```
 
-Bash
-pip install gunicorn
-gunicorn config.wsgi:application --bind 0.0.0.0:8000
-Una vez ejecutado el servidor, la aplicación estará disponible en [http://127.0.0.1:8000/empleados/](http://127.0.0.1:8000/empleados/) para la interfaz de gestión y en [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/) para el panel administrativo.
+Abre [http://127.0.0.1:8000/login/](http://127.0.0.1:8000/login/) para iniciar sesión o [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/) para el administrador. El nombre de usuario distingue mayúsculas de minúsculas.
+
+Para detener el servidor, presiona `Ctrl+C` en la terminal.
