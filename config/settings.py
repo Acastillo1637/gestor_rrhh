@@ -17,6 +17,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -25,18 +26,36 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
+# Estas variables son obligatorias en .env o en el entorno del servidor.
+# No hay valores secretos ni configuraciones permisivas de respaldo.
+SECRET_KEY = os.getenv('CLAVE_SECRETA_DJANGO', '').strip()
+if len(SECRET_KEY) < 50 or SECRET_KEY.startswith('django-insecure-'):
+    raise ImproperlyConfigured(
+        'CLAVE_SECRETA_DJANGO debe ser una clave aleatoria de al menos 50 caracteres.'
+    )
 
-# SECURITY WARNING: keep the secret key used in production!
-SECRET_KEY = 'django-insecure-s%b8*@u3^nlz@va8jxo9!*f60m!j3sx#&u68c_bj@jp^=y%3-z'
+# Se aceptan únicamente "si" y "no" para evitar activar DEBUG por error.
+modo_depuracion = os.getenv('MODO_DEPURACION', '').strip().lower()
+if modo_depuracion not in ('si', 'no'):
+    raise ImproperlyConfigured('MODO_DEPURACION debe ser "si" o "no".')
+DEBUG = modo_depuracion == 'si'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-# True muestra errores detallados durante desarrollo; debe ser False en producción.
-DEBUG = True
+# Cada dominio se declara sin esquema ni puerto, separado por comas.
+ALLOWED_HOSTS = [
+    dominio.strip() for dominio in os.getenv('DOMINIOS_PERMITIDOS', '').split(',')
+    if dominio.strip()
+]
+if not ALLOWED_HOSTS or '*' in ALLOWED_HOSTS:
+    raise ImproperlyConfigured(
+        'DOMINIOS_PERMITIDOS debe incluir dominios concretos, sin comodín.'
+    )
 
-# Permite solicitudes desde cualquier host durante desarrollo. En producción debe restringirse.
-ALLOWED_HOSTS = ['*']
+# En producción se exige HTTPS; las cookies de sesión y CSRF viajan solo por TLS.
+# HSTS empieza con una hora para permitir verificar el despliegue antes de ampliarlo.
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = 3600 if not DEBUG else 0
 
 
 # Application definition
