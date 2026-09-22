@@ -149,6 +149,14 @@ class NombreEmpleadoForm(forms.ModelForm):
         }),
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Portal y admin exigen la fecha, conservando sus widgets y las fechas antiguas.
+        # El modelo permite nulos para no modificar registros existentes ni requerir migraciones.
+        fecha = self.fields['fecha_contratacion']
+        fecha.required = True
+        fecha.error_messages['required'] = 'Ingresa la fecha de contratación.'
+
     def clean(self):
         datos = super().clean()
         nombres = datos.get('nombres')

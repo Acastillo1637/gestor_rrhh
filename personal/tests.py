@@ -202,7 +202,7 @@ class CrearEmpleadoNombresTests(TestCase):
     def datos(self, **cambios):
         datos = {'nombres': 'María José', 'apellidos': 'De la Cruz Pérez',
                  'departamento': 'Pruebas nombres', 'cargo': 'Cargo prueba',
-                 'salario_mensual': '1000.00', 'estado_laboral': 'activo'}
+                 'salario_mensual': '1000.00', 'estado_laboral': 'activo', 'fecha_contratacion': '2026-09-10'}
         datos.update(cambios)
         return datos
 
@@ -360,7 +360,7 @@ class EditarEmpleadoNombresTests(TestCase):
         self.client.force_login(self.admin)
         self.url = reverse('editar_empleado', args=[self.empleado.pk])
         self.datos = {'nombres': 'Almendra', 'apellidos': 'Valdés Antúnez',
-            'departamento': depto.nombre, 'cargo': 'Cargo edición', 'salario_mensual': '1000', 'estado_laboral': 'activo'}
+            'departamento': depto.nombre, 'cargo': 'Cargo edición', 'salario_mensual': '1000', 'estado_laboral': 'activo', 'fecha_contratacion': '2026-09-10'}
 
     def test_precarga_y_conservacion_de_palabras(self):
         from .forms import EditarEmpleadoForm
@@ -435,7 +435,7 @@ class EmpleadoAdminNombresTests(TestCase):
         self.client.force_login(self.admin)
         self.datos = {'nombres': 'María José', 'apellidos': 'De la Cruz Pérez',
             'departamento_selector': self.depto.pk, 'cargo_selector': self.puesto.nombre,
-            'salario_mensual': '1000', 'estado_laboral': 'activo', 'genero': 'femenino', '_save': 'Guardar'}
+            'salario_mensual': '1000', 'estado_laboral': 'activo', 'genero': 'femenino', '_save': 'Guardar', 'fecha_contratacion': '2026-09-10'}
 
     def test_alta_edicion_e_historiales(self):
         from .models import EmpleadoPuesto, HistorialSalario, Puesto
@@ -492,3 +492,54 @@ class EmpleadoAdminNombresTests(TestCase):
         self.client.force_login(staff)
         response = self.client.post(reverse('admin:personal_empleado_add'), self.datos)
         self.assertEqual(response.status_code, 403)
+
+
+class FechaContratacionObligatoriaTests(TestCase):
+    """Comprueba las rutas reales sin escribir en la base de producción."""
+
+    def test_fecha_obligatoria_en_portal_y_admin(self):
+        from datetime import date
+        from .models import Departamento, Puesto
+        depto = Departamento.objects.create(nombre='Fecha prueba')
+        puesto = Puesto.objects.create(nombre='Cargo fecha', departamento=depto, salario_base=1000)
+        usuario = User.objects.create_superuser(username='admin_fecha', password='prueba')
+        self.client.force_login(usuario)
+        empleado = Empleado.objects.create(nombre_completo='Ana Pérez', departamento=depto.nombre,
+            cargo=puesto.nombre, salario_mensual=1000, genero='femenino')
+        datos = dict(nombres='Ana', apellidos='Pérez', departamento=depto.nombre,
+            cargo=puesto.nombre, departamento_selector=depto.pk, cargo_selector=puesto.nombre,
+            salario_mensual='1000', estado_laboral='activo', genero='femenino', _save='Guardar')
+        rutas = [
+            (reverse('crear_empleado'), False, False),
+            (reverse('editar_empleado', args=[empleado.pk]), False, True),
+            (reverse('admin:personal_empleado_add'), True, False),
+            (reverse('admin:personal_empleado_change', args=[empleado.pk]), True, True),
+        ]
+        for url, admin, edicion in rutas:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                form = response.context['adminform'].form if admin else response.context['formulario']
+                self.assertTrue(form.fields['fecha_contratacion'].required)
+                self.assertIn('required', str(form['fecha_contratacion']))
+                cantidad = Empleado.objects.count()
+                for valor in [None, '', '   ', '2026-02-30']:
+                    payload = dict(datos)
+                    if valor is not None:
+                        payload['fecha_contratacion'] = valor
+                    response = self.client.post(url, payload)
+                    self.assertEqual(response.status_code, 200)
+                    form = response.context['adminform'].form if admin else response.context['formulario']
+                    self.assertIn('fecha_contratacion', form.errors)
+                    if valor in [None, '']:
+                        self.assertContains(response, 'Ingresa la fecha de contratación.')
+                    self.assertEqual(Empleado.objects.count(), cantidad)
+                if edicion:
+                    empleado.refresh_from_db()
+                    response = self.client.post(url, dict(datos, fecha_contratacion='2026-09-10'))
+                    self.assertEqual(response.status_code, 302)
+                    empleado.refresh_from_db()
+                    self.assertEqual(empleado.fecha_contratacion, date(2026, 9, 10))
+                    # Al intentar borrar la fecha ya guardada, se conserva en la base.
+                    self.client.post(url, dict(datos, fecha_contratacion=''))
+                    empleado.refresh_from_db()
+                    self.assertEqual(empleado.fecha_contratacion, date(2026, 9, 10))
