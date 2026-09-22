@@ -3,6 +3,7 @@
 # -----------------------------------------------------------------------------
 
 from django import forms
+from django.core.exceptions import NON_FIELD_ERRORS
 from django.utils import timezone
 
 from .models import (
@@ -44,6 +45,7 @@ class EmpleadoForm(forms.ModelForm):
                 attrs={
                     'class': 'form-control',
                     'step': '0.01',
+                    'min': '0',
                 }
             ),
 
@@ -123,6 +125,14 @@ class EmpleadoForm(forms.ModelForm):
                 }
             )
         )
+
+
+    def clean(self):
+        datos = super().clean()
+        importe = datos.get('salario_mensual')
+        if importe is not None and importe < 0:
+            self.add_error('salario_mensual', 'El importe debe ser superior o igual a 0.')
+        return datos
 
 
 class NombreEmpleadoForm(forms.ModelForm):
@@ -372,6 +382,12 @@ class NominaForm(forms.ModelForm):
             ),
         }
 
+        error_messages = {
+            NON_FIELD_ERRORS: {
+                'unique_together': 'Ya existe una liquidación para este empleado en el período seleccionado.',
+            },
+        }
+
         labels = {
             'empleado': 'Empleado',
             'mes_ano': 'Periodo',
@@ -394,6 +410,14 @@ class NominaForm(forms.ModelForm):
                 'nombre_completo'
             )
         )
+
+    def clean(self):
+        datos = super().clean()
+        for campo in ('salario_base', 'bonificacion', 'descuentos'):
+            importe = datos.get(campo)
+            if importe is not None and importe < 0:
+                self.add_error(campo, 'El importe debe ser superior o igual a 0.')
+        return datos
 
 # =============================================================================
 # ASISTENCIA

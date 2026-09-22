@@ -203,45 +203,4 @@ Nueva liquidación
 
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const camposDinero = [
-        document.getElementById('id_salario_base'),
-        document.getElementById('id_bonificacion'),
-        document.getElementById('id_descuentos')
-    ].filter(Boolean);
-
-    function formatearPesos(input) {
-        const numero = input.value.replace(/\D/g, '');
-
-        if (!numero) {
-            input.value = '';
-            return;
-        }
-
-        input.value = Number(numero).toLocaleString('es-CL');
-    }
-
-    camposDinero.forEach(function (input) {
-        // Permite escribir puntos en vez del input numérico del navegador.
-        input.type = 'text';
-        input.inputMode = 'numeric';
-
-        formatearPesos(input);
-
-        input.addEventListener('input', function () {
-            formatearPesos(input);
-        });
-    });
-
-    const formulario = document.querySelector('.employee-form');
-
-    formulario.addEventListener('submit', function () {
-        camposDinero.forEach(function (input) {
-            input.value = input.value.replace(/\./g, '');
-        });
-    });
-});
-</script>
-
 {% endblock %}
