@@ -435,6 +435,37 @@ Empleados
 
     </div>
 
+    {% if total_empleados %}
+        <nav class="employees-pagination" aria-label="Páginas de empleados">
+            <span class="employees-pagination-summary">
+                Mostrando {{ pagina_empleados.start_index }}–{{ pagina_empleados.end_index }}
+                de {{ total_empleados }} empleados
+            </span>
+
+            {% if pagina_empleados.has_other_pages %}
+                <div class="employees-pagination-links">
+                    {% if pagina_empleados.has_previous %}
+                        <a href="?page={{ pagina_empleados.previous_page_number }}{% if filtros_url %}&amp;{{ filtros_url }}{% endif %}" aria-label="Página anterior">Anterior</a>
+                    {% endif %}
+
+                    {% for numero in paginas_visibles %}
+                        {% if numero == pagina_empleados.paginator.ELLIPSIS %}
+                            <span aria-hidden="true">…</span>
+                        {% elif numero == pagina_empleados.number %}
+                            <span class="is-current" aria-current="page">{{ numero }}</span>
+                        {% else %}
+                            <a href="?page={{ numero }}{% if filtros_url %}&amp;{{ filtros_url }}{% endif %}" aria-label="Página {{ numero }}">{{ numero }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if pagina_empleados.has_next %}
+                        <a href="?page={{ pagina_empleados.next_page_number }}{% if filtros_url %}&amp;{{ filtros_url }}{% endif %}" aria-label="Página siguiente">Siguiente</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </nav>
+    {% endif %}
+
 </div>
 
 {% endblock %}
