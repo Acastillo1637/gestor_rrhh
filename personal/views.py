@@ -6,6 +6,7 @@ from django.contrib.auth.models import User, Group
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.db import transaction
 from django.urls import reverse, reverse_lazy
 from datetime import datetime, time, timedelta
@@ -2024,6 +2025,34 @@ def gestion_asistencia(request):
 
     if not fecha_hasta:
         fecha_hasta = hoy.strftime('%Y-%m-%d')
+
+    # Valida también las fechas recibidas por URL: el calendario del navegador
+    # no impide enviar texto o días inexistentes directamente al servidor.
+    error_fechas = None
+    try:
+        desde = parse_date(fecha_desde)
+        hasta = parse_date(fecha_hasta)
+        if desde is None or hasta is None:
+            error_fechas = 'Ingresa fechas válidas en Desde y Hasta (AAAA-MM-DD).'
+        elif desde > hasta:
+            error_fechas = 'La fecha Desde no puede ser posterior a la fecha Hasta.'
+    except ValueError:
+        error_fechas = 'Ingresa fechas válidas en Desde y Hasta (AAAA-MM-DD).'
+
+    if error_fechas:
+        # Restablece explícitamente el rango de hoy, conservando los demás filtros.
+        # La redirección elimina el valor inválido y evita repetir el error al recargar.
+        messages.error(request, error_fechas + ' Se restableció el rango de fechas a hoy.')
+        filtros = request.GET.copy()
+        filtros.pop('fecha_desde', None)
+        filtros.pop('fecha_hasta', None)
+        destino = reverse('gestion_asistencia')
+        if filtros:
+            destino += '?' + filtros.urlencode()
+        return redirect(destino)
+
+    fecha_desde = desde.isoformat()
+    fecha_hasta = hasta.isoformat()
 
     if fecha_desde:
         asistencias = asistencias.filter(

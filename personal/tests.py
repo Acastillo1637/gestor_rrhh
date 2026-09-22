@@ -543,3 +543,52 @@ class FechaContratacionObligatoriaTests(TestCase):
                     self.client.post(url, dict(datos, fecha_contratacion=''))
                     empleado.refresh_from_db()
                     self.assertEqual(empleado.fecha_contratacion, date(2026, 9, 10))
+
+
+class FiltroFechasAsistenciaTests(TestCase):
+    """Las fechas de la URL se validan antes de consultar la base de datos."""
+
+    def setUp(self):
+        self.usuario = User.objects.create_superuser(username='revision_fechas', password='prueba')
+        self.client.force_login(self.usuario)
+        self.url = reverse('gestion_asistencia')
+
+    def test_fechas_invalidas_y_rango_invertido(self):
+        from django.utils import timezone
+        from .models import Asistencia
+        empleado = Empleado.objects.create(nombre_completo='Empleado filtro', departamento='Prueba fechas')
+        casos = [
+            {'fecha_desde': 'no-es-fecha'},
+            {'fecha_hasta': '2026-02-30'},
+            {'fecha_desde': '2026-13-01'},
+            {'fecha_hasta': '   '},
+            {'fecha_desde': '2026-09-22', 'fecha_hasta': '2026-09-21'},
+        ]
+        for fechas in casos:
+            with self.subTest(fechas=fechas):
+                response = self.client.get(self.url, dict(fechas, empleado=empleado.pk,
+                    departamento=empleado.departamento), follow=True)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(len(response.redirect_chain), 1)
+                self.assertContains(response, 'Se restableció el rango de fechas a hoy.')
+                self.assertEqual(response.context['fecha_desde'], timezone.localdate().isoformat())
+                self.assertEqual(response.context['fecha_hasta'], timezone.localdate().isoformat())
+                self.assertEqual(response.context['empleado_seleccionado'], str(empleado.pk))
+                self.assertEqual(response.context['departamento_seleccionado'], empleado.departamento)
+                self.assertFalse(Asistencia.objects.exists())
+
+    def test_filtro_valido_y_fechas_vacias(self):
+        from .models import Asistencia
+        from django.utils import timezone
+        empleado = Empleado.objects.create(nombre_completo='Empleado rango')
+        dentro = Asistencia.objects.create(empleado=empleado, fecha='2026-09-10')
+        Asistencia.objects.create(empleado=empleado, fecha='2026-09-11')
+        response = self.client.get(self.url, {'fecha_desde': '2026-09-10', 'fecha_hasta': '2026-09-10'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([a.pk for a in response.context['asistencias']], [dentro.pk])
+        for parametros in [{}, {'fecha_desde': '', 'fecha_hasta': ''}]:
+            response = self.client.get(self.url, parametros)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context['fecha_desde'], timezone.localdate().isoformat())
+            self.assertEqual(response.context['fecha_hasta'], timezone.localdate().isoformat())
+        self.assertEqual(Asistencia.objects.count(), 2)
