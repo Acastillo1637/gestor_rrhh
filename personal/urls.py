@@ -4,6 +4,7 @@ from . import views
 
 
 urlpatterns = [
+    path('nomina/generar/', views.generar_nomina, name='generar_nomina'),
 
     # -------------------------------------------------------------------------
     # Autenticación

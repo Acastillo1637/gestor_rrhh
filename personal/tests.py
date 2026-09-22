@@ -824,3 +824,125 @@ class PaginacionEmpleadosTests(TestCase):
         self.assertEqual(vacia.context['total_empleados'], 0)
         self.assertEqual(len(vacia.context['lista_empleados']), 0)
         self.assertNotContains(vacia, 'aria-label="Página siguiente"')
+
+
+class NominaMensualTests(TestCase):
+    """Nómina mensual: permisos, duplicados y conservación de datos del empleado."""
+
+    def setUp(self):
+        from datetime import date
+        self.periodo = date(2026, 9, 1)
+        self.rrhh = User.objects.create_user(username='rrhh_mensual')
+        self.rrhh.groups.add(Group.objects.get_or_create(name='RRHH')[0])
+        self.client.force_login(self.rrhh)
+        self.usuario = User.objects.create_user(username='empleado_mensual')
+        self.empleado = Empleado.objects.create(nombre_completo='Empleado mensual',
+            usuario=self.usuario, salario_mensual=1000, fecha_contratacion='2026-09-12')
+        self.url = reverse('generar_nomina')
+
+    def test_duplicado_otro_dia_portal_admin_y_base(self):
+        from .forms import NominaForm
+        from .models import Salario
+        from django.contrib import admin
+        from django.test import RequestFactory
+        from django.db import IntegrityError, transaction
+        from datetime import date
+        salario = Salario.objects.create(empleado=self.empleado, mes_ano=self.periodo,
+            salario_base=1000)
+        datos = dict(empleado=self.empleado.pk, mes_ano='2026-09-15', salario_base='1000',
+            bonificacion='0', descuentos='0')
+        f = NominaForm(datos)
+        self.assertFalse(f.is_valid())
+        self.assertIn('Ya existe una liquidación', str(f.errors))
+        request = RequestFactory().get('/admin/')
+        request.user = User.objects.create_superuser(username='admin_nomina', password='test')
+        admin_form = admin.site._registry[Salario].get_form(request)(datos)
+        self.assertFalse(admin_form.is_valid())
+        self.assertIn('Ya existe una liquidación', str(admin_form.errors))
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Salario.objects.create(empleado=self.empleado, mes_ano=date(2026,9,30), salario_base=1000)
+        salario.salario_base = 1200
+        salario.full_clean()
+        salario.save()
+        datos['mes_ano'] = '2026-10-01'
+        self.assertTrue(NominaForm(datos).is_valid())
+
+    def test_vista_previa_no_guarda_y_post_calcula(self):
+        from .models import Salario
+        response = self.client.get(self.url, {'periodo':'2026-09'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Empleado mensual')
+        self.assertFalse(Salario.objects.exists())
+        self.assertFalse(Notificacion.objects.exists())
+        response = self.client.post(self.url, {'periodo':'2026-09'})
+        self.assertRedirects(response, reverse('gestion_nomina'))
+        salario = Salario.objects.get(empleado=self.empleado)
+        self.assertEqual(salario.mes_ano, self.periodo)
+        self.assertEqual(salario.neto, 1000)
+        self.assertEqual(salario.bonificacion, 0)
+        self.assertEqual(salario.descuentos, 0)
+        self.assertFalse(salario.pagado)
+        self.assertEqual(Notificacion.objects.filter(usuario=self.usuario).count(), 1)
+        self.assertEqual(Notificacion.objects.filter(usuario__isnull=True).count(), 1)
+
+    def test_repeticion_conserva_liquidacion_y_no_duplica_avisos(self):
+        from .models import Salario
+        from datetime import date
+        s = Salario.objects.create(empleado=self.empleado, mes_ano=date(2026,9,15),
+            salario_base=900, bonificacion=70, descuentos=30, pagado=True)
+        for _ in range(2):
+            self.client.post(self.url, {'periodo':'2026-09'})
+        s.refresh_from_db()
+        self.assertEqual((s.salario_base,s.bonificacion,s.descuentos,s.neto,s.pagado), (900,70,30,940,True))
+        self.assertEqual(s.mes_ano, date(2026,9,15))
+        self.assertEqual(Salario.objects.count(), 1)
+        self.assertFalse(Notificacion.objects.exists())
+
+    def test_excluye_futuros_sin_fecha_inactivos_y_salarios_invalidos(self):
+        from .models import Salario
+        casos = [dict(fecha_contratacion='2026-10-01'), dict(fecha_contratacion=None),
+                 dict(estado_laboral='despedido'), dict(salario_mensual=-1)]
+        for i, cambios in enumerate(casos):
+            datos = dict(nombre_completo=f'Omitido {i}',fecha_contratacion='2026-09-01',salario_mensual=1000)
+            datos.update(cambios)
+            Empleado.objects.create(**datos)
+        self.client.post(self.url, {'periodo':'2026-09'})
+        self.assertEqual(list(Salario.objects.values_list('empleado_id',flat=True)),[self.empleado.pk])
+
+    def test_mes_invalido_y_post_sin_mes(self):
+        from .models import Salario
+        for datos in [{}, {'periodo':'no-es-mes'}, {'periodo':'2026-13'}, {'periodo':'2026-09-15'}]:
+            response = self.client.post(self.url, datos)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context['formulario'].errors)
+            self.assertFalse(Salario.objects.exists())
+
+    def test_acceso_y_csrf(self):
+        from django.test import Client
+        from .models import Salario
+        for grupo in ['EMPLEADO','GERENTES']:
+            u = User.objects.create_user(username='mensual_'+grupo)
+            u.groups.add(Group.objects.get_or_create(name=grupo)[0])
+            self.client.force_login(u)
+            self.assertEqual(self.client.post(self.url, {'periodo':'2026-09'}).status_code,302)
+            self.assertFalse(Salario.objects.exists())
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url).status_code,302)
+        csrf = Client(enforce_csrf_checks=True)
+        csrf.force_login(self.rrhh)
+        self.assertEqual(csrf.post(self.url, {'periodo':'2026-09'}).status_code,403)
+        csrf.get(self.url)
+        response = csrf.post(self.url, {'periodo':'2026-09',
+            'csrfmiddlewaretoken':csrf.cookies['csrftoken'].value})
+        self.assertEqual(response.status_code,302)
+        self.assertEqual(Salario.objects.count(),1)
+
+    def test_error_revierte_lote_completo(self):
+        from unittest.mock import patch
+        from django.db import DatabaseError
+        from .models import Salario
+        with patch('personal.nomina.Notificacion.objects.create', side_effect=DatabaseError):
+            response = self.client.post(self.url, {'periodo':'2026-09'})
+        self.assertContains(response,'No se pudo generar la nómina.')
+        self.assertFalse(Salario.objects.exists())
+        self.assertFalse(Notificacion.objects.exists())

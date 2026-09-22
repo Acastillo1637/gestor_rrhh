@@ -48,6 +48,7 @@ Gestión de nómina
 
         {# La creación conserva su permiso original: superusuario o RRHH. #}
         {% if puede_gestionar %}
+            <a href="{% url 'generar_nomina' %}" class="btn btn-secondary">Generar nómina mensual</a>
 
             <a
                 href="{% url 'crear_liquidacion' %}"

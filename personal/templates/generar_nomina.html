@@ -1,0 +1,39 @@
+{% extends "base_site.html" %}
+{% load moneda %}
+{% block title %}Generar nómina mensual{% endblock %}
+{% block extra_css %}
+{{ block.super }}
+<style>
+/* La vista previa conserva empleado e importe visibles también en celulares. */
+.monthly-payroll-list { list-style: none; padding: 0; }
+.monthly-payroll-list li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 0; border-bottom: 1px solid #e4eaf2; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Generar nómina mensual</h1>
+<p>Revisa el mes y los empleados antes de confirmar.</p></div>
+<a href="{% url 'gestion_nomina' %}" class="btn btn-secondary">Volver a nómina</a></div>
+<div class="card employee-form-card">
+<form method="get" class="employee-form">
+{{ formulario.as_p }}<button class="btn" type="submit">Ver vista previa</button>
+</form>
+<div class="employee-form">
+<p>Se usa el salario mensual actual completo, sin prorrateo. Bonificación y descuentos comienzan en cero y el pago queda pendiente.
+Para importes especiales o salarios históricos, registra primero la liquidación individual. Las existentes no se reemplazan.</p>
+<p>Solo se incluyen empleados activos con fecha de contratación hasta el mes seleccionado. La lista se vuelve a comprobar al confirmar.</p>
+<h2>Nómina de {{ formulario.cleaned_data.periodo|date:"m/Y" }}</h2>
+<h3>Por generar: {{ pendientes|length }}</h3><p>Total previsto: {{ total_base|pesos }}</p>
+<ul class="monthly-payroll-list">
+{% for empleado in pendientes %}
+<li><span>{{ empleado.nombre_completo }}</span><strong>{{ empleado.salario_mensual|pesos }}</strong></li>
+{% empty %}<li>No hay liquidaciones pendientes de generar.</li>{% endfor %}
+</ul>
+{% if omitidos %}<h2>Omitidos: {{ omitidos|length }}</h2>
+<ul>{% for item in omitidos %}<li>{{ item.empleado.nombre_completo }}: {{ item.motivo }}</li>{% endfor %}</ul>{% endif %}
+{% if pendientes %}
+<form method="post">{% csrf_token %}
+<input type="hidden" name="periodo" value="{{ formulario.periodo.value }}">
+<button class="btn" type="submit">Confirmar generación de {{ pendientes|length }} liquidaci{{ pendientes|length|pluralize:"ón,ones" }}</button>
+</form>{% endif %}
+</div></div>
+{% endblock %}

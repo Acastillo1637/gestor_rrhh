@@ -3,6 +3,8 @@
 # -----------------------------------------------------------------------------
 
 from django.db import models
+from django.db.models.functions import ExtractYear, ExtractMonth
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
@@ -260,6 +262,23 @@ class Salario(models.Model):
     class Meta:
         unique_together = ('empleado', 'mes_ano')
         ordering = ['-mes_ano']
+        # El día de la fecha no permite generar una segunda nómina del mismo mes.
+        constraints = [models.UniqueConstraint(
+            models.F('empleado'), ExtractYear('mes_ano'), ExtractMonth('mes_ano'),
+            name='salario_unico_empleado_mes',
+        )]
+
+
+    def clean(self):
+        super().clean()
+        # Esta validación se comparte entre el formulario del portal y el admin.
+        if self.empleado_id and self.mes_ano:
+            existentes = Salario.objects.filter(empleado_id=self.empleado_id,
+                mes_ano__year=self.mes_ano.year, mes_ano__month=self.mes_ano.month)
+            if self.pk:
+                existentes = existentes.exclude(pk=self.pk)
+            if existentes.exists():
+                raise ValidationError('Ya existe una liquidación para este empleado en el período seleccionado.')
 
     def save(self, *args, **kwargs):
         self.neto = (

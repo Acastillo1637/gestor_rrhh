@@ -7,7 +7,7 @@ from django.utils.crypto import get_random_string
 from django.utils.text import slugify
 from django.utils import timezone
 from django.utils.dateparse import parse_date
-from django.db import transaction
+from django.db import transaction, IntegrityError, DatabaseError
 from django.urls import reverse, reverse_lazy
 from datetime import datetime, time, timedelta
 from urllib.parse import urlencode
@@ -47,6 +47,7 @@ from openpyxl.styles import Font, Alignment
 from django.template.loader import render_to_string
 from django.middleware.csrf import get_token
 from .context_processors import contexto_rol
+from .nomina import preparar_nomina, generar_nomina_mensual
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.decorators.cache import never_cache
@@ -57,6 +58,7 @@ from .forms import (
     CrearEmpleadoForm,
     PermisoForm,
     NominaForm,
+    GenerarNominaMensualForm,
 )
 
 from .models import (
@@ -1698,7 +1700,12 @@ def crear_liquidacion(request):
 
         if formulario.is_valid():
 
-            liquidacion = formulario.save()
+            try:
+                with transaction.atomic():
+                    liquidacion = formulario.save()
+            except IntegrityError:
+                formulario.add_error(None, 'No se guardó la liquidación. Comprueba si ya existe para ese mes.')
+                return render(request, 'formulario_nomina.html', {'formulario': formulario})
 
             crear_notificacion(
                 mensaje=(
@@ -2372,3 +2379,31 @@ def mi_asistencia(request):
         'mi_asistencia.html',
         contexto
     )
+
+
+@login_required(login_url='login')
+@user_passes_test(usuario_rrhh, login_url='login')
+def generar_nomina(request):
+    """GET permite revisar el lote; solo un POST con CSRF genera las liquidaciones."""
+    if request.method not in ('GET', 'POST'):
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['GET', 'POST'])
+    datos = request.POST if request.method == 'POST' else request.GET
+    formulario = GenerarNominaMensualForm(datos if request.method == 'POST' or datos else {
+        'periodo': timezone.localdate().strftime('%Y-%m')})
+    pendientes, omitidos = [], []
+    if formulario.is_valid():
+        periodo = formulario.cleaned_data['periodo']
+        if request.method == 'POST':
+            try:
+                creadas, excluidas = generar_nomina_mensual(periodo, request.user)
+            except DatabaseError:
+                # La transacción revierte el lote y sus notificaciones si falla el guardado.
+                messages.error(request, 'No se pudo generar la nómina. No se guardó el lote; intenta nuevamente.')
+            else:
+                messages.success(request, f'Nómina de {periodo:%m/%Y}: {creadas} liquidaciones creadas y {excluidas} empleados omitidos. Las liquidaciones existentes se conservaron.')
+                return redirect('gestion_nomina')
+        pendientes, omitidos = preparar_nomina(periodo)
+    return render(request, 'generar_nomina.html', {'formulario': formulario,
+        'pendientes': pendientes, 'omitidos': omitidos,
+        'total_base': sum(e.salario_mensual for e in pendientes)})

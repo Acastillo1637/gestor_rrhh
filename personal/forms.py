@@ -491,3 +491,11 @@ class AsistenciaForm(forms.ModelForm):
             )
 
         return cleaned_data
+
+
+class GenerarNominaMensualForm(forms.Form):
+    """Solicita un mes concreto; los importes provienen del salario del empleado."""
+    periodo = forms.DateField(label='Mes de la nómina', input_formats=['%Y-%m'],
+        widget=forms.DateInput(format='%Y-%m', attrs={'type': 'month', 'class': 'form-control'}),
+        error_messages={'required': 'Selecciona el mes de la nómina.',
+                        'invalid': 'Selecciona un mes válido (AAAA-MM).'})
