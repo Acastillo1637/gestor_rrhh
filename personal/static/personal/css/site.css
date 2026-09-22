@@ -1845,6 +1845,48 @@ button:hover,
     overflow: hidden;
 }
 
+.employees-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.employees-pagination-summary {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.employees-pagination-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.employees-pagination-links a,
+.employees-pagination-links span {
+    display: inline-flex;
+    min-width: 34px;
+    min-height: 34px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 9px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.employees-pagination-links a:hover,
+.employees-pagination-links a:focus-visible,
+.employees-pagination-links .is-current {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+}
+
 .employee-cell {
     display: flex;
 

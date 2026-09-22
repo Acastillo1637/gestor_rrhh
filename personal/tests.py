@@ -728,3 +728,99 @@ class FiltroFechasAsistenciaTests(TestCase):
             self.assertEqual(response.context['fecha_desde'], timezone.localdate().isoformat())
             self.assertEqual(response.context['fecha_hasta'], timezone.localdate().isoformat())
         self.assertEqual(Asistencia.objects.count(), 2)
+
+
+class PaginacionEmpleadosTests(TestCase):
+    """La navegación conserva los filtros y los totales del conjunto completo."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.usuario = User.objects.create_superuser(
+            username='revision_paginacion', password='prueba'
+        )
+        empleados = [
+            Empleado(
+                nombre_completo=f'Ana Prueba {indice:02d}',
+                departamento='Paginación & Datos',
+                cargo='Analista',
+                estado_laboral='activo',
+                salario_mensual=Decimal('100000.00'),
+            )
+            for indice in range(1, 13)
+        ]
+        empleados.extend([
+            Empleado(nombre_completo='Ana Ventas', departamento='Ventas',
+                     cargo='Analista', estado_laboral='activo'),
+            Empleado(nombre_completo='Ana Retirada', departamento='Paginación & Datos',
+                     cargo='Analista', estado_laboral='renuncio'),
+            Empleado(nombre_completo='Bruno Prueba', departamento='Paginación & Datos',
+                     cargo='Analista', estado_laboral='activo'),
+            Empleado(nombre_completo='Carla Prueba', departamento='Ventas',
+                     cargo='Gerente', estado_laboral='activo'),
+        ])
+        Empleado.objects.bulk_create(empleados)
+
+    def setUp(self):
+        self.client.force_login(self.usuario)
+        self.url = reverse('listar_empleados')
+
+    def test_segunda_pagina_no_repite_empleados_y_conserva_totales(self):
+        primera = self.client.get(self.url, {'departamento': 'Paginación & Datos'})
+        segunda = self.client.get(self.url, {
+            'departamento': 'Paginación & Datos', 'page': '2'
+        })
+        ids_primera = {empleado.pk for empleado in primera.context['lista_empleados']}
+        ids_segunda = {empleado.pk for empleado in segunda.context['lista_empleados']}
+
+        self.assertEqual((len(ids_primera), len(ids_segunda)), (10, 4))
+        self.assertFalse(ids_primera & ids_segunda)
+        self.assertEqual(len(ids_primera | ids_segunda), 14)
+        self.assertEqual(segunda.context['total_empleados'], 14)
+        self.assertEqual(segunda.context['total_activos'], 13)
+        self.assertEqual(segunda.context['total_inactivos'], 1)
+        self.assertEqual(segunda.context['total_nomina'], Decimal('1200000.00'))
+        self.assertEqual(
+            (segunda.context['pagina_empleados'].start_index(),
+             segunda.context['pagina_empleados'].end_index()),
+            (11, 14),
+        )
+
+    def test_busqueda_y_filtros_combinados_llegan_a_segunda_pagina(self):
+        filtros = {
+            'busqueda': 'Ana Prueba',
+            'departamento': 'Paginación & Datos',
+            'cargo': 'Analista',
+            'estado': 'activo',
+        }
+        primera = self.client.get(self.url, filtros)
+        segunda = self.client.get(self.url, {**filtros, 'page': '2'})
+
+        self.assertEqual(len(primera.context['lista_empleados']), 10)
+        self.assertEqual(len(segunda.context['lista_empleados']), 2)
+        self.assertEqual(segunda.context['total_empleados'], 12)
+        self.assertEqual(segunda.context['total_activos'], 12)
+        self.assertEqual(segunda.context['total_nomina'], Decimal('1200000.00'))
+        self.assertContains(
+            primera,
+            'page=2&amp;busqueda=Ana+Prueba&amp;departamento=Paginaci%C3%B3n+%26+Datos'
+            '&amp;cargo=Analista&amp;estado=activo',
+        )
+        self.assertEqual(
+            [empleado.nombre_completo for empleado in segunda.context['lista_empleados']],
+            ['Ana Prueba 11', 'Ana Prueba 12'],
+        )
+
+    def test_pagina_invalida_y_busqueda_sin_resultados(self):
+        primera = self.client.get(self.url, {
+            'departamento': 'Paginación & Datos', 'page': 'no-es-numero'
+        })
+        ultima = self.client.get(self.url, {
+            'departamento': 'Paginación & Datos', 'page': '999'
+        })
+        vacia = self.client.get(self.url, {'busqueda': 'Nadie', 'page': '2'})
+
+        self.assertEqual(primera.context['pagina_empleados'].number, 1)
+        self.assertEqual(ultima.context['pagina_empleados'].number, 2)
+        self.assertEqual(vacia.context['total_empleados'], 0)
+        self.assertEqual(len(vacia.context['lista_empleados']), 0)
+        self.assertNotContains(vacia, 'aria-label="Página siguiente"')
