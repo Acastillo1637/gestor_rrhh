@@ -35,7 +35,7 @@ class ConservacionImportesTests(TestCase):
         )
         cls.empleado = Empleado.objects.create(
             nombre_completo='Ana Prueba', departamento=departamento.nombre,
-            cargo='Analista', salario_mensual=Decimal('850000.00'),
+            cargo='Analista', salario_mensual=Decimal('850000.00'), fecha_contratacion='2026-09-10',
         )
         cls.usuario = User.objects.create_user(username='rrhh_importes')
         cls.usuario.groups.add(Group.objects.get_or_create(name='RRHH')[0])
@@ -51,7 +51,7 @@ class ConservacionImportesTests(TestCase):
             'cargo': 'Analista',
             'departamento': 'Pruebas de importes',
             'salario_mensual': '-1',
-            'fecha_contratacion': '',
+            'fecha_contratacion': '2026-09-10',
             'estado_laboral': 'activo',
         })
 
@@ -74,7 +74,7 @@ class ConservacionImportesTests(TestCase):
                     'nombres': 'Ana Maria', 'apellidos': 'Prueba',
                     'departamento': self.empleado.departamento,
                     'cargo': self.empleado.cargo, 'estado_laboral': 'activo',
-                    'salario_mensual': campo['value'],
+                    'salario_mensual': campo['value'], 'fecha_contratacion': '2026-09-10',
                 })
                 self.assertRedirects(respuesta, reverse('listar_empleados'))
                 self.empleado.refresh_from_db()
@@ -88,7 +88,7 @@ class ConservacionImportesTests(TestCase):
             'nombres': 'Ana', 'apellidos': '',
             'departamento': self.empleado.departamento,
             'cargo': self.empleado.cargo, 'estado_laboral': 'activo',
-            'salario_mensual': '1000.50',
+            'salario_mensual': '1000.50', 'fecha_contratacion': '2026-09-10',
         }
         respuesta = self.client.post(url, datos)
         self.assertEqual(respuesta.status_code, 200)
