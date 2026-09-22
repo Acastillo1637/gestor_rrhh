@@ -47,12 +47,17 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 
 
-Paso 5: Configuración y Migración de la Base de Datos
-Generar y aplicar las tablas correspondientes en la base de datos SQLite local:
+Paso 5: Variables de Entorno y Base de Datos
+Copiar `.env.example` a `.env` y completar `CLAVE_SECRETA_DJANGO` con una clave nueva y aleatoria de al menos 50 caracteres. El archivo `.env` está excluido de Git. Configurar `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST` y `DB_PORT` para PostgreSQL. Para desarrollo local usar `MODO_DEPURACION=si` y `DOMINIOS_PERMITIDOS=localhost,127.0.0.1,[::1]`.
+
+En producción establecer `MODO_DEPURACION=no`, una clave distinta a la de desarrollo y `DOMINIOS_PERMITIDOS` con los dominios reales, separados por comas y sin `https://` ni puertos. Estas variables también pueden configurarse directamente en el entorno del servidor. El arranque falla si falta una variable de seguridad o si su valor no es válido. En producción se activan redirección HTTPS, cookies seguras y HSTS de una hora. Configurar TLS en el servidor antes de publicar; si hay un proxy, verificar que Django detecte HTTPS de forma confiable para evitar redirecciones continuas.
+
+Generar y aplicar las tablas correspondientes en PostgreSQL:
 
 Bash
 python manage.py makemigrations
 python manage.py migrate
+Antes del despliegue comprobar la configuración con `python manage.py check --deploy` usando las variables de producción.
 
 
 Paso 6: Creación del Usuario Administrador
