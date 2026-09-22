@@ -10,6 +10,7 @@ from django.utils.dateparse import parse_date
 from django.db import transaction
 from django.urls import reverse, reverse_lazy
 from datetime import datetime, time, timedelta
+from urllib.parse import urlencode
 
 from django.shortcuts import (
     render,
@@ -36,6 +37,7 @@ from django.db.models import (
     Q,
     Count,
 )
+from django.core.paginator import Paginator
 
 from django.http import JsonResponse, HttpResponse
 # Generación del libro Excel y estilos de sus encabezados.
@@ -550,8 +552,33 @@ def listar_empleados(request):
         ).exists()
     )
 
+    # El identificador resuelve empates entre nombres y mantiene estable el orden.
+    # Se muestran diez registros por página para facilitar la lectura del listado.
+    paginador = Paginator(
+        empleados.order_by('nombre_completo', 'pk'),
+        10
+    )
+    # get_page controla números inválidos sin interrumpir la vista.
+    pagina_empleados = paginador.get_page(request.GET.get('page'))
+    # Los filtros se reutilizan en cada enlace para conservar la búsqueda actual.
+    filtros_url = urlencode({
+        clave: valor for clave, valor in {
+            'busqueda': busqueda,
+            'departamento': departamento,
+            'cargo': cargo,
+            'estado': estado,
+        }.items() if valor
+    })
+
     contexto = {
-        'lista_empleados': empleados,
+        'lista_empleados': pagina_empleados,
+        'pagina_empleados': pagina_empleados,
+        'paginas_visibles': paginador.get_elided_page_range(
+            pagina_empleados.number,
+            on_each_side=1,
+            on_ends=1
+        ),
+        'filtros_url': filtros_url,
         'total_empleados': total_empleados,
         'total_activos': total_activos,
         'total_inactivos': total_inactivos,
