@@ -307,6 +307,77 @@
             line-height: 1.5;
         }
 
+        .credentials-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .credential-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 14px;
+            background: #f3f7ff;
+            border-radius: 8px;
+        }
+
+        .credential-row div {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 0;
+        }
+
+        .credential-row strong {
+            font-size: 13px;
+            color: #334155;
+        }
+
+        .credential-row span {
+            font-size: 13px;
+            color: #475569;
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        .copy-credential {
+            flex-shrink: 0;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border: 0;
+            border-radius: 6px;
+            background: #e3edff;
+            color: #2563eb;
+            cursor: pointer;
+        }
+
+        .copy-credential {
+            font-size: 0;
+        }
+
+        .copy-credential::after {
+            content: "⧉";
+            font-size: 18px;
+        }
+
+        .copy-credential.copied {
+            width: auto;
+            padding: 0 10px;
+            font-size: 12px;
+        }
+
+        .copy-credential.copied::after {
+            content: none;
+        }
+
+        .copy-credential:hover {
+            background: #dbe7ff;
+        }
         .message-modal-footer {
             display: flex;
             justify-content: flex-end;
@@ -853,7 +924,12 @@
                     >
 
                         <div
-                            class="message-modal {% if message.tags %}message-modal-{{ message.tags }}{% endif %}"
+                            class="message-modal
+                                {% if 'success' in message.tags %}message-modal-success
+                                {% elif 'error' in message.tags %}message-modal-error
+                                {% elif 'warning' in message.tags %}message-modal-warning
+                                {% else %}message-modal-info
+                                {% endif %}"
                             role="dialog"
                             aria-modal="true"
                         >
@@ -869,7 +945,7 @@
 
                             <div class="message-modal-icon">
 
-                                {% if message.tags == 'success' %}
+                                {% if 'success' in message.tags %}
                                     ✓
                                 {% elif message.tags == 'error' %}
                                     !
@@ -883,21 +959,60 @@
 
                             <div class="message-modal-content">
 
-                                <h3>
-                                    {{ message }}
-                                </h3>
+                                {% if 'credenciales' in message.tags %}
 
-                                <p>
-                                    {% if message.tags == 'success' %}
-                                        La acción se realizó correctamente.
-                                    {% elif message.tags == 'error' %}
-                                        No fue posible realizar la acción.
-                                    {% elif message.tags == 'warning' %}
-                                        Revisa la información antes de continuar.
+                                        <h3>Empleado creado correctamente.</h3>
+
+                                        <p>A continuación, se muestran las credenciales de acceso.</p>
+
+                                        <div class="credentials-box"
+                                            data-credentials="{{ message }}">
+
+                                            <div class="credential-row">
+                                                <div>
+                                                    <strong>Usuario</strong>
+                                                    <span data-credential-user></span>
+                                                </div>
+
+                                                <button type="button"
+                                                        class="copy-credential"
+                                                        data-copy-user>
+                                                    Copiar
+                                                </button>
+                                            </div>
+
+                                            <div class="credential-row">
+                                                <div>
+                                                    <strong>Contraseña temporal</strong>
+                                                    <span data-credential-password></span>
+                                                </div>
+
+                                                <button type="button"
+                                                        class="copy-credential"
+                                                        data-copy-password>
+                                                    Copiar
+                                                </button>
+                                            </div>
+
+                                        </div>
+
                                     {% else %}
-                                        Información del sistema.
+
+                                        <h3>{{ message }}</h3>
+
+                                        <p>
+                                            {% if message.tags == 'success' %}
+                                                La acción se realizó correctamente.
+                                            {% elif message.tags == 'error' %}
+                                                No fue posible realizar la acción.
+                                            {% elif message.tags == 'warning' %}
+                                                Revisa la información antes de continuar.
+                                            {% else %}
+                                                Información del sistema.
+                                            {% endif %}
+                                        </p>
+
                                     {% endif %}
-                                </p>
 
                             </div>
 
@@ -997,13 +1112,53 @@
     }
 
     // =========================================================
-    // MODAL DE MENSAJES funcion x y aceptar
+    // MODAL DE MENSAJES 
     // =========================================================
 
     const messageModals =
         document.querySelectorAll('[data-message-modal]');
 
-    messageModals.forEach(function (modal) {
+            messageModals.forEach(function (modal) {
+
+                const credentialsBox = modal.querySelector('[data-credentials]');
+
+        if (credentialsBox) {
+            const parts = credentialsBox.dataset.credentials.split('|');
+
+            const usuario = parts[1] || '';
+            const password = parts[2] || '';
+
+            const userText = credentialsBox.querySelector('[data-credential-user]');
+            const passwordText = credentialsBox.querySelector('[data-credential-password]');
+
+            userText.textContent = usuario;
+            passwordText.textContent = password;
+
+            const copyUser = credentialsBox.querySelector('[data-copy-user]');
+            const copyPassword = credentialsBox.querySelector('[data-copy-password]');
+
+            copyUser.addEventListener('click', function () {
+                navigator.clipboard.writeText(usuario);
+                copyUser.textContent = 'Copiado ✓';
+                copyUser.classList.add('copied');
+
+                setTimeout(function () {
+                    copyUser.textContent = 'Copiar';
+                    copyUser.classList.remove('copied');
+                }, 1500);
+            });
+
+            copyPassword.addEventListener('click', function () {
+                navigator.clipboard.writeText(password);
+                copyPassword.textContent = 'Copiado ✓';
+                copyPassword.classList.add('copied');
+
+                setTimeout(function () {
+                    copyPassword.textContent = 'Copiar';
+                    copyPassword.classList.remove('copied');
+                }, 1500);
+            });
+        }
 
         const closeButtons =
             modal.querySelectorAll('[data-close-message]');
