@@ -647,11 +647,8 @@ def crear_empleado(request):
                 if usuario and password_temporal:
                     messages.success(
                         request,
-                        (
-                            f'Empleado creado correctamente. '
-                            f'Usuario: {usuario.username} | '
-                            f'Contraseña temporal: {password_temporal}'
-                        )
+                        f'Empleado creado correctamente.|{usuario.username}|{password_temporal}',
+                        extra_tags='credenciales'
                     )
                 else:
                     messages.success(
