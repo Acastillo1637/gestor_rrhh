@@ -86,43 +86,32 @@
 
             <div class="employee-form-grid">
 
-                {# Alta y edición comparten los campos y las mismas validaciones. #}
-                {# Reutilizamos la grilla existente: dos columnas en escritorio y una en móvil. #}
-                {% if formulario.nombres %}
-                <div class="form-group">
-                    <label for="{{ formulario.nombres.id_for_label }}">Nombres <span>*</span></label>
-                    {{ formulario.nombres }}
-                    <div class="field-error" id="nombres-errors" aria-live="polite">{{ formulario.nombres.errors }}</div>
-                </div>
-                <div class="form-group">
-                    <label for="{{ formulario.apellidos.id_for_label }}">Apellidos <span>*</span></label>
-                    {{ formulario.apellidos }}
-                    {% if formulario.revisar_separacion_nombre %}
-                    <small>Revisa la separación de nombres y apellidos, especialmente si son compuestos.</small>
-                    {% endif %}
-                    <div class="field-error" id="apellidos-errors" aria-live="polite">{{ formulario.apellidos.errors }}</div>
-                </div>
-                {% else %}
                 <!-- NOMBRE -->
-                <div class="form-group form-group-full">
-
-                    <label for="{{ formulario.nombre_completo.id_for_label }}">
-                        Nombre completo
-                        <span>*</span>
+                <div class="form-group">
+                    <label for="{{ formulario.nombre.id_for_label }}">
+                        Nombre <span>*</span>
                     </label>
-
-                    {{ formulario.nombre_completo }}
-
-                    {% if formulario.nombre_completo.errors %}
-                        <div class="field-error">
-                            {{ formulario.nombre_completo.errors }}
-                        </div>
-                    {% endif %}
-
+                    {{ formulario.nombre }}
+                    {{ formulario.nombre.errors }}
                 </div>
 
+                <!-- APELLIDO PATERNO -->
+                <div class="form-group">
+                    <label for="{{ formulario.apellido_paterno.id_for_label }}">
+                        Apellido paterno <span>*</span>
+                    </label>
+                    {{ formulario.apellido_paterno }}
+                    {{ formulario.apellido_paterno.errors }}
+                </div>
 
-                {% endif %}
+                <!-- APELLIDO MATERNO -->
+                <div class="form-group">
+                    <label for="{{ formulario.apellido_materno.id_for_label }}">
+                        Apellido materno <span>*</span>
+                    </label>
+                    {{ formulario.apellido_materno }}
+                    {{ formulario.apellido_materno.errors }}
+                </div>
 
                 <!-- DEPARTAMENTO -->
                 <div class="form-group">
@@ -269,35 +258,33 @@
 </div>
 
 {% endblock %}
+
 {% block extra_js %}
 {{ block.super }}
-<script>
-// El navegador da feedback debajo de cada campo; Django repite la validación al recibir el POST.
-(() => {
-    const inputs = [...document.querySelectorAll('[data-name-part]')];
-    // Solo se aplica si el formulario incluye los dos campos de nombre.
-    if (!inputs.length) return;
-    // Revisa ambas partes para corregir también el error de longitud al editar cualquiera.
-    function validateNames() {
-        const fullName = inputs.map(input => input.value.trim()).join(' ').trim().replace(/\s+/g, ' ');
-        inputs.forEach(input => {
-            const part = input.dataset.namePart;
-            let message = input.value.trim() ? '' : `Ingresa los ${part} del empleado.`;
-            if (!message && input.value.length > input.maxLength) message = 'El valor es demasiado largo.';
-            if (!message && part === 'apellidos' && fullName.length > 150) {
-                message = 'Los nombres y apellidos juntos no pueden superar 150 caracteres.';
-            }
-            // Un mensaje bloquea el envío; una cadena vacía permite enviarlo de nuevo.
-            input.setCustomValidity(message);
-            input.setAttribute('aria-invalid', message ? 'true' : 'false');
-            document.getElementById(`${part}-errors`).textContent = message;
-        });
-    }
-    inputs.forEach(input => {
-        input.addEventListener('input', validateNames);
-        input.addEventListener('invalid', validateNames);
-    });
 
-})();
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const salario = document.getElementById('{{ formulario.salario_mensual.id_for_label }}');
+
+    if (!salario) return;
+
+    salario.type = 'text';
+
+    function formatearSalario() {
+        const valor = salario.value.replace(/\D/g, '');
+
+        if (valor) {
+            salario.value = Number(valor).toLocaleString('es-CL');
+        }
+    }
+
+    formatearSalario();
+
+    salario.addEventListener('input', formatearSalario);
+
+    salario.form.addEventListener('submit', function () {
+        salario.value = salario.value.replace(/\./g, '');
+    });
+});
 </script>
 {% endblock %}

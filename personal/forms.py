@@ -137,68 +137,105 @@ class EmpleadoForm(forms.ModelForm):
 
 class NombreEmpleadoForm(forms.ModelForm):
     """Campos y validación de nombre compartidos por el portal y el admin."""
-
-    # required=True y strip=True rechazan vacíos y valores formados solo por espacios.
-    # pattern hace una comprobación equivalente en el navegador; Django valida igualmente el POST.
-    nombres = forms.CharField(
-        label='Nombres', required=True, strip=True, max_length=150,
-        error_messages={'required': 'Ingresa los nombres del empleado.'},
+    nombre = forms.CharField(
+        label='Nombre',
+        required=True,
+        strip=True,
+        max_length=150,
+        error_messages={'required': 'Ingresa el nombre del empleado.'},
         widget=forms.TextInput(attrs={
-            'class': 'form-control', 'autocomplete': 'given-name',
-            'pattern': r'.*\S.*', 'data-name-part': 'nombres',
-            'aria-describedby': 'nombres-errors',
+            'class': 'form-control',
+            'autocomplete': 'given-name',
         }),
     )
-    apellidos = forms.CharField(
-        label='Apellidos', required=True, strip=True, max_length=150,
-        error_messages={'required': 'Ingresa los apellidos del empleado.'},
+
+    apellido_paterno = forms.CharField(
+        label='Apellido paterno',
+        required=True,
+        strip=True,
+        max_length=150,
+        error_messages={'required': 'Ingresa el apellido paterno.'},
         widget=forms.TextInput(attrs={
-            'class': 'form-control', 'autocomplete': 'family-name',
-            'pattern': r'.*\S.*', 'data-name-part': 'apellidos',
-            'aria-describedby': 'apellidos-errors',
+            'class': 'form-control',
+            'autocomplete': 'family-name',
+        }),
+    )
+
+    apellido_materno = forms.CharField(
+        label='Apellido materno',
+        required=True,
+        strip=True,
+        max_length=150,
+        error_messages={'required': 'Ingresa el apellido materno.'},
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'autocomplete': 'family-name',
         }),
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Portal y admin exigen la fecha, conservando sus widgets y las fechas antiguas.
-        # El modelo permite nulos para no modificar registros existentes ni requerir migraciones.
         fecha = self.fields['fecha_contratacion']
         fecha.required = True
         fecha.error_messages['required'] = 'Ingresa la fecha de contratación.'
 
     def clean(self):
         datos = super().clean()
-        nombres = datos.get('nombres')
-        apellidos = datos.get('apellidos')
-        if nombres and apellidos:
 
-            completo = ' '.join((nombres + ' ' + apellidos).split())
+        nombre = datos.get('nombre')
+        apellido_paterno = datos.get('apellido_paterno')
+        apellido_materno = datos.get('apellido_materno')
+
+        if nombre and apellido_paterno and apellido_materno:
+            completo = ' '.join(
+                f'{nombre} {apellido_paterno} {apellido_materno}'.split()
+            )
+
             campo = Empleado._meta.get_field('nombre_completo')
+
             try:
                 completo = campo.clean(completo, self.instance)
             except forms.ValidationError:
-                self.add_error('apellidos',
-                    f'Los nombres y apellidos juntos no pueden superar {campo.max_length} caracteres.')
+                self.add_error(
+                    'apellido_materno',
+                    f'El nombre completo no puede superar {campo.max_length} caracteres.'
+                )
             else:
                 self.instance.nombre_completo = completo
+
         return datos
 
-
     def precargar_nombre(self):
-        """Propuesta editable: el modelo no conserva dónde se separó el nombre."""
         if not self.is_bound and self.instance.pk:
-            partes = self.instance.nombre_completo.strip().split(maxsplit=1)
-            self.initial.setdefault('nombres', partes[0] if partes else '')
-            self.initial.setdefault('apellidos', partes[1] if len(partes) > 1 else '')
+            partes = self.instance.nombre_completo.strip().split()
+
+            self.initial.setdefault(
+                'nombre',
+                partes[0] if partes else ''
+            )
+            self.initial.setdefault(
+                'apellido_paterno',
+                partes[-2] if len(partes) >= 3 else ''
+            )
+            self.initial.setdefault(
+                'apellido_materno',
+                partes[-1] if len(partes) >= 2 else ''
+            )
 
 
 class CrearEmpleadoForm(NombreEmpleadoForm, EmpleadoForm):
     """Conserva los campos laborales del portal y la validación común del nombre."""
 
     class Meta(EmpleadoForm.Meta):
-        fields = ['nombres', 'apellidos', 'cargo', 'departamento',
-                  'salario_mensual', 'fecha_contratacion', 'estado_laboral']
+        fields = [
+            'nombre',
+            'apellido_paterno',
+            'apellido_materno',
+            'cargo',
+            'departamento',
+            'salario_mensual',
+            'fecha_contratacion',
+            'estado_laboral']
 
 class EditarEmpleadoForm(CrearEmpleadoForm):
     """Reutiliza la validación y el guardado del alta, sin duplicar campos del modelo."""
@@ -206,7 +243,6 @@ class EditarEmpleadoForm(CrearEmpleadoForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.precargar_nombre()
-        # En un POST inválido se conservan exactamente los datos enviados por el usuario.
         self.revisar_separacion_nombre = True
 
 
