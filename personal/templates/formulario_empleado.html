@@ -270,18 +270,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
     salario.type = 'text';
 
-    function formatearSalario() {
-        const valor = salario.value.replace(/\D/g, '');
+    function limpiarSalarioInicial(valor) {
+        valor = valor.trim();
 
-        if (valor) {
-            salario.value = Number(valor).toLocaleString('es-CL');
+        // Django puede cargar un Decimal como 500000.00 al editar.
+        // Eliminamos únicamente los decimales .00.
+        if (/^\d+\.00$/.test(valor)) {
+            valor = valor.slice(0, -3);
         }
+
+        return valor.replace(/\D/g, '');
     }
 
-    formatearSalario();
+    function formatearValor(valor) {
+        const numero = valor.replace(/\D/g, '');
 
-    salario.addEventListener('input', formatearSalario);
+        if (!numero) {
+            return '';
+        }
 
+        return Number(numero).toLocaleString('es-CL');
+    }
+
+    // Formatear correctamente el valor que viene desde Django.
+    salario.value = formatearValor(limpiarSalarioInicial(salario.value));
+
+    // Formatear mientras el usuario escribe.
+    salario.addEventListener('input', function () {
+        salario.value = formatearValor(salario.value);
+    });
+
+    // Enviar a Django solamente el número, sin puntos de miles.
     salario.form.addEventListener('submit', function () {
         salario.value = salario.value.replace(/\./g, '');
     });
