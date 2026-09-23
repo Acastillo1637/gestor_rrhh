@@ -112,10 +112,7 @@ class EmpleadoForm(forms.ModelForm):
             ] + [
                 (
                     puesto.nombre,
-                    (
-                        f'{puesto.nombre} - '
-                        f'{puesto.departamento.nombre}'
-                    )
+                    puesto.nombre
                 )
                 for puesto in puestos
             ],
