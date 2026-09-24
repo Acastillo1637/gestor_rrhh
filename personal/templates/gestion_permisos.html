@@ -338,7 +338,7 @@ Gestión de permisos
 
                         <td>
 
-                            {% if permiso.estado == 'pendiente' %}
+                            {% if permiso.estado == 'pendiente' and puede_gestionar %}
 
                                 <div class="permission-actions">
 
@@ -380,7 +380,11 @@ Gestión de permisos
                             {% else %}
 
                                 <span class="processed-label">
-                                    Procesado
+                                    {% if permiso.estado == 'pendiente' %}
+                                        Solo consulta
+                                    {% else %}
+                                        Procesado
+                                    {% endif %}
                                 </span>
 
                             {% endif %}

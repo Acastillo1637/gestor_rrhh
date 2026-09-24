@@ -16,6 +16,12 @@ def contexto_rol(request):
         )
     )
 
+    es_gerente = (
+    request.user.is_authenticated
+    and not request.user.is_superuser
+    and request.user.groups.filter(name='GERENTES').exists()
+    )
+
     es_empleado = (
         request.user.is_authenticated
         and hasattr(request.user, 'empleado')
@@ -42,6 +48,7 @@ def contexto_rol(request):
 
     return {
         'es_gestion': es_gestion,
+        'es_gerente': es_gerente,
         'es_empleado': es_empleado,
         'notificaciones_no_leidas': notificaciones_no_leidas,
         'ultimas_notificaciones': ultimas_notificaciones,

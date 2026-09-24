@@ -39,7 +39,7 @@ from django.db.models import (
 )
 from django.core.paginator import Paginator
 
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, request
 # Generación del libro Excel y estilos de sus encabezados.
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
@@ -91,6 +91,12 @@ def usuario_rrhh(user):
         or user.groups.filter(name='RRHH').exists()
     )
 
+def usuario_gerente(user):
+    return (
+        user.is_authenticated
+        and user.groups.filter(name='GERENTES').exists()
+        and not usuario_rrhh(user)
+    )
 
 def crear_notificacion(
     mensaje,
@@ -202,8 +208,11 @@ def crear_usuario_para_empleado(empleado):
 @login_required(login_url='login')
 def inicio(request):
 
-    if usuario_autorizado(request.user):
+    if usuario_rrhh(request.user):
         return redirect('dashboard_gestion')
+    
+    if request.user.groups.filter(name='GERENTES').exists():
+        return redirect('dashboard_gerente')
 
     if hasattr(request.user, 'empleado'):
         return redirect('dashboard_empleado')
@@ -291,12 +300,12 @@ def cerrar_sesion(request):
 
 
 # =============================================================================
-# DASHBOARD RRHH / GERENCIA
+# DASHBOARD RRHH
 # =============================================================================
 
 @login_required(login_url='login')
 @user_passes_test(
-    usuario_autorizado,
+    usuario_rrhh,
     login_url='login'
 )
 def dashboard_gestion(request):
@@ -365,6 +374,49 @@ def dashboard_gestion(request):
         contexto
     )
 
+# =============================================================================
+# DASHBOARD GERENTE
+# =============================================================================
+
+@login_required(login_url='login')
+@user_passes_test(
+    usuario_autorizado,
+    login_url='login'
+)
+def dashboard_gerente(request):
+    if usuario_rrhh(request.user):
+        return redirect('dashboard_gestion')
+
+    empleados = Empleado.objects.all()
+
+    contexto = {
+        'total_empleados': empleados.count(),
+        'total_activos': empleados.filter(
+            estado_laboral__iexact='activo'
+        ).count(),
+        'total_inactivos': empleados.exclude(
+            estado_laboral__iexact='activo'
+        ).count(),
+        'total_nomina': (
+            empleados.filter(
+                estado_laboral__iexact='activo'
+            ).aggregate(total=Sum('salario_mensual'))['total'] or 0
+        ),
+        'permisos_pendientes': Permiso.objects.filter(
+            estado='pendiente'
+        ).count(),
+        'ultimos_permisos': Permiso.objects.select_related(
+            'empleado'
+        ).order_by('-fecha_inicio')[:5],
+        'departamentos': (
+            empleados.exclude(departamento='')
+            .values('departamento')
+            .annotate(total=Count('id'))
+            .order_by('-total')
+        ),
+    }
+
+    return render(request, 'dashboard_gerente.html', contexto)
 
 # =============================================================================
 # DASHBOARD EMPLEADO
@@ -899,7 +951,7 @@ def gestion_permisos(request):
 
     contexto = {
         'permisos': permisos,
-
+        'puede_gestionar': usuario_rrhh(request.user),
         'total_permisos':
             total_permisos,
 
@@ -939,7 +991,7 @@ def gestion_permisos(request):
 
 @login_required(login_url='login')
 @user_passes_test(
-    usuario_autorizado,
+    usuario_rrhh,
     login_url='login'
 )
 def aprobar_permiso(
@@ -1344,14 +1396,12 @@ def exportar_nomina_excel(request):
     los empleados sin liquidaciones no generan filas en este reporte.
     """
 
-    # Obtiene también el empleado en la misma consulta para evitar consultas por fila.
     liquidaciones = (
         Salario.objects
         .select_related('empleado')
         .all()
     )
 
-    # Lee los mismos filtros GET que utiliza la pantalla de nómina.
     busqueda = request.GET.get(
         'busqueda',
         ''
@@ -1362,7 +1412,6 @@ def exportar_nomina_excel(request):
         ''
     )
 
-    # Filtra por nombre y estado; un estado desconocido no restringe los resultados.
     if busqueda:
 
         liquidaciones = (
@@ -1387,13 +1436,12 @@ def exportar_nomina_excel(request):
             )
         )
 
-    # Mantiene el orden de la pantalla: periodo reciente primero y luego nombre.
     liquidaciones = liquidaciones.order_by(
         '-mes_ano',
         'empleado__nombre_completo'
     )
 
-    # Crea el archivo en memoria y define las diez columnas del reporte.
+  
     libro = Workbook()
     hoja = libro.active
     hoja.title = 'Nómina'
@@ -1411,7 +1459,6 @@ def exportar_nomina_excel(request):
         'Estado de pago',
     ])
 
-    # Destaca y centra los encabezados, incluso cuando no hay resultados.
     for celda in hoja[1]:
 
         celda.font = Font(bold=True)
@@ -1419,7 +1466,6 @@ def exportar_nomina_excel(request):
             horizontal='center'
         )
 
-    # Escribe una fila por liquidación; conserva fechas e importes como valores nativos.
     for liquidacion in liquidaciones:
 
         hoja.append([
@@ -1437,7 +1483,6 @@ def exportar_nomina_excel(request):
 
         fila = hoja.max_row
 
-        # Conserva ceros iniciales del DNI y evita interpretar nombres como fórmulas.
         for columna in range(1, 5):
 
             hoja.cell(
@@ -1445,13 +1490,11 @@ def exportar_nomina_excel(request):
                 column=columna
             ).data_type = 's'
 
-        # Muestra mes/año sin convertir la fecha en texto.
         hoja.cell(
             row=fila,
             column=5
         ).number_format = 'mm/yyyy'
 
-        # F-I: formato monetario visual; no redondea el valor almacenado.
         for columna in range(6, 10):
 
             hoja.cell(
@@ -1459,7 +1502,6 @@ def exportar_nomina_excel(request):
                 column=columna
             ).number_format = '$#,##0'
 
-    # Anchos fijos legibles para nombres, identificadores e importes.
     anchos = {
         'A': 35,
         'B': 20,
@@ -1477,7 +1519,6 @@ def exportar_nomina_excel(request):
 
         hoja.column_dimensions[columna].width = ancho
 
-    # El tipo MIME identifica un Excel; Content-Disposition fuerza su descarga.
     respuesta = HttpResponse(
         content_type=(
             'application/vnd.openxmlformats-officedocument.'
@@ -1489,7 +1530,6 @@ def exportar_nomina_excel(request):
         'attachment; filename="reporte_nomina.xlsx"'
     )
 
-    # Serializa el libro directamente en la respuesta, sin guardar archivos en disco.
     libro.save(respuesta)
 
     return respuesta
@@ -1503,7 +1543,7 @@ def exportar_nomina_excel(request):
 def exportar_nomina_pdf(request):
     """Descarga la nómina filtrada en PDF sin modificar empleados ni pagos."""
 
-    # Importaciones locales: la dependencia PDF se usa solo en esta descarga.
+
     from pathlib import Path
     from xml.sax.saxutils import escape
     from django.utils import timezone
@@ -1538,13 +1578,13 @@ def exportar_nomina_pdf(request):
         'attachment; filename="reporte_nomina.pdf"'
     )
 
-    # A4 horizontal deja espacio para las diez columnas y los saltos de página.
+
     documento = SimpleDocTemplate(
         respuesta, pagesize=landscape(A4),
         leftMargin=24, rightMargin=24, topMargin=42, bottomMargin=38,
         title='Reporte de nómina',
     )
-    # Paleta y jerarquía visual comunes para encabezados, cifras y estados.
+
     azul = colors.HexColor('#19364B')
     verde = colors.HexColor('#087F8C')
     texto = ParagraphStyle(
@@ -1563,7 +1603,7 @@ def exportar_nomina_pdf(request):
         fontName='Helvetica-Bold', textColor=colors.white,
     )
 
-    # Paragraph ajusta textos largos; escape impide interpretarlos como etiquetas.
+
     elementos = [
         Paragraph('GESTIÓN DE RECURSOS HUMANOS', etiqueta),
         Paragraph('Reporte de nómina', titulo),
@@ -1605,7 +1645,7 @@ def exportar_nomina_pdf(request):
             f'${liquidacion.neto:,.0f}',
             'Pagado' if liquidacion.pagado else 'Pendiente',
         ]
-        # Alinea cifras a la derecha y distingue estados con texto y color.
+       
         estilos = [texto] * 5 + [importe] * 3 + [neto, pagado if liquidacion.pagado else pendiente]
         filas.append([
             Paragraph(escape(str(valor)), estilo)
@@ -1613,7 +1653,6 @@ def exportar_nomina_pdf(request):
         ])
         total_neto += liquidacion.neto
 
-    # Repite la cabecera al cambiar de página; los anchos suman el espacio útil.
     tabla = LongTable(
         filas, colWidths=[125, 65, 95, 95, 48, 75, 75, 70, 75, 70],
         repeatRows=1, hAlign='LEFT',
@@ -1630,7 +1669,7 @@ def exportar_nomina_pdf(request):
     elementos.append(tabla)
     if len(filas) == 1:
         elementos.append(Paragraph('No hay liquidaciones para estos filtros.', texto))
-    # Resumen destacado al inicio, calculado sobre las mismas filas exportadas.
+
     resumen = Table([[
         Paragraph(f'Liquidaciones: {len(filas) - 1}', resumen_estilo),
         Paragraph(f'Total neto: ${total_neto:,.0f}', resumen_estilo),
@@ -1644,15 +1683,13 @@ def exportar_nomina_pdf(request):
     ]))
     elementos[6:6] = [resumen, Spacer(1, 16)]
 
-    # Recurso local incluido en el proyecto; no requiere red ni nuevas dependencias.
     logo = Path(__file__).resolve().parent / 'static' / 'personal' / 'logo_rrhh.png'
 
     def numerar_pagina(canvas, doc):
         """Añade el número de página fuera de la tabla, en el margen inferior."""
         canvas.saveState()
         ancho, alto = doc.pagesize
-        # Logo en la primera página, a la derecha del título, sin deformarlo.
-        # Si falta el recurso, el reporte sigue disponible sin la imagen.
+
         if doc.page == 1 and logo.is_file():
             canvas.drawImage(
                 str(logo), ancho - 78, alto - 90,
@@ -1672,7 +1709,7 @@ def exportar_nomina_pdf(request):
         canvas.drawRightString(ancho - 24, 16, f'Página {doc.page}')
         canvas.restoreState()
 
-    # Genera el documento directamente en la respuesta de descarga.
+    
     documento.build(
         elementos, onFirstPage=numerar_pagina, onLaterPages=numerar_pagina
     )
@@ -2018,7 +2055,7 @@ def obtener_puestos_por_departamento(request):
 # =============================================================================
 @login_required(login_url='login')
 @user_passes_test(
-    usuario_rrhh,
+    usuario_autorizado,
     login_url='login'
 )
 

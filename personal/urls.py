@@ -42,6 +42,12 @@ urlpatterns = [
         name='dashboard_gestion'
     ),
 
+        path(
+        'inicio/gerente/',
+        views.dashboard_gerente,
+        name='dashboard_gerente'
+    ),
+
     path(
         'inicio/empleado/',
         views.dashboard_empleado,

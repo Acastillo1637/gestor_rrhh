@@ -492,9 +492,8 @@
 
 
             <a
-                href="{% url 'dashboard_gestion' %}"
-                class="nav-link {% if request.resolver_match.url_name == 'dashboard_gestion' %}active{% endif %}"
-            >
+                href="{% if es_gerente %}{% url 'dashboard_gerente' %}{% else %}{% url 'dashboard_gestion' %}{% endif %}"
+                class="nav-link {% if request.resolver_match.url_name == 'dashboard_gestion' or request.resolver_match.url_name == 'dashboard_gerente' %}active{% endif %}"
 
                 <span class="nav-icon">
                     ⌂
@@ -586,6 +585,7 @@
 
             </a>
 
+            {% if not es_gerente %}
 
             <span class="nav-section">
                 SISTEMA
@@ -606,6 +606,8 @@
                 </span>
 
             </a>
+
+            {% endif %}
 
         </nav>
 
@@ -735,7 +737,9 @@
 
                 <span>
 
-                    {% if es_gestion %}
+                    {% if es_gerente %}
+                        Gerencia
+                    {% elif es_gestion %}
                         Gestión RRHH
                     {% else %}
                         Empleado
@@ -861,7 +865,9 @@
 
                         <span>
 
-                            {% if es_gestion %}
+                            {% if es_gerente %}
+                                Gerencia
+                            {% elif es_gestion %}
                                 RRHH / Gestión
                             {% else %}
                                 Trabajador

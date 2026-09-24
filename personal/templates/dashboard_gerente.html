@@ -1,0 +1,109 @@
+{% extends "base_site.html" %}
+{% load moneda %}
+
+{% block title %}Dashboard Gerente{% endblock %}
+
+{% block content %}
+
+<div class="page-header dashboard-management-header">
+    <div>
+        <span class="page-eyebrow">PANEL DE GERENCIA</span>
+        <h1>Resumen general</h1>
+        <p>Consulta la información del personal y los indicadores de la empresa.</p>
+    </div>
+
+    <div class="dashboard-header-actions">
+        <a href="{% url 'listar_empleados' %}" class="btn btn-secondary">
+            Ver empleados
+        </a>
+    </div>
+</div>
+
+<div class="stats-grid management-stats">
+    <div class="stat-card stat-primary">
+        <div class="stat-top">
+            <div class="stat-icon">👥</div>
+            <span class="stat-label">Total empleados</span>
+        </div>
+        <strong>{{ total_empleados }}</strong>
+        <span class="stat-subtext">Personal registrado</span>
+    </div>
+
+    <div class="stat-card stat-success">
+        <div class="stat-top">
+            <div class="stat-icon">✓</div>
+            <span class="stat-label">Empleados activos</span>
+        </div>
+        <strong>{{ total_activos }}</strong>
+        <span class="stat-subtext">Actualmente trabajando</span>
+    </div>
+
+    <div class="stat-card stat-danger">
+        <div class="stat-top">
+            <div class="stat-icon">✕</div>
+            <span class="stat-label">Empleados inactivos</span>
+        </div>
+        <strong>{{ total_inactivos }}</strong>
+        <span class="stat-subtext">Personal inactivo</span>
+    </div>
+
+    <div class="stat-card stat-purple">
+        <div class="stat-top">
+            <div class="stat-icon">$</div>
+            <span class="stat-label">Gasto mensual</span>
+        </div>
+        <strong>{{ total_nomina|pesos }}</strong>
+        <span class="stat-subtext">Salarios de empleados activos</span>
+    </div>
+</div>
+
+<div class="section-title dashboard-section-title">
+    <div>
+        <h2>Consultas</h2>
+        <p>Accede a la información disponible para gerencia.</p>
+    </div>
+</div>
+
+<div class="management-actions-grid">
+    <a href="{% url 'listar_empleados' %}"
+       class="management-action-card action-employees">
+        <div class="management-action-icon">👤</div>
+        <div class="management-action-content">
+            <h3>Empleados</h3>
+            <p>Consulta la información del personal.</p>
+        </div>
+        <span class="management-action-arrow">→</span>
+    </a>
+
+    <a href="{% url 'gestion_permisos' %}"
+       class="management-action-card action-permissions">
+        <div class="management-action-icon">📋</div>
+        <div class="management-action-content">
+            <h3>Permisos</h3>
+            <p>Consulta las solicitudes y sus estados.</p>
+        </div>
+        <span class="management-action-arrow">→</span>
+    </a>
+
+    <a href="{% url 'gestion_nomina' %}"
+       class="management-action-card action-payroll">
+        <div class="management-action-icon">💳</div>
+        <div class="management-action-content">
+            <h3>Nómina</h3>
+            <p>Consulta las remuneraciones del personal.</p>
+        </div>
+        <span class="management-action-arrow">→</span>
+    </a>
+
+    <a href="{% url 'gestion_asistencia' %}"
+       class="management-action-card action-employees">
+        <div class="management-action-icon">📅</div>
+        <div class="management-action-content">
+            <h3>Asistencia</h3>
+            <p>Consulta los registros de asistencia.</p>
+        </div>
+        <span class="management-action-arrow">→</span>
+    </a>
+</div>
+
+{% endblock %}
