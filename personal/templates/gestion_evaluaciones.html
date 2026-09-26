@@ -1,0 +1,56 @@
+{% extends "base_site.html" %}
+{% block title %}Evaluaciones{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Evaluaciones</h1><p>Consulta las evaluaciones de desempeño de los empleados.</p></div>
+    {% if puede_editar %}<a class="btn" href="{% url 'crear_evaluacion' %}">+ Nueva evaluación</a>{% endif %}
+</div>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-top"><div class="stat-icon">📄</div><span class="stat-label">Evaluaciones</span></div>
+        <strong>{{ total }}</strong>
+        <span class="stat-subtext">Registros encontrados</span>
+    </div>
+    <div class="stat-card stat-purple">
+        <div class="stat-top"><div class="stat-icon">★</div><span class="stat-label">Puntuación promedio</span></div>
+        <strong>{{ promedio|floatformat:1|default:"—" }}/5,0</strong>
+        <span class="stat-subtext">Promedio de las evaluaciones mostradas</span>
+    </div>
+</div>
+<div class="card payroll-card">
+    <div class="card-header">
+        <div><h2>Evaluaciones</h2><p>Consulta y administra los registros de desempeño.</p></div>
+    </div>
+    <form method="get" class="payroll-filters">
+        <input type="text" name="busqueda" value="{{ busqueda }}" placeholder="Buscar empleado..." aria-label="Buscar empleado">
+        <input type="text" name="periodo" value="{{ periodo }}" placeholder="Período" aria-label="Período">
+        <select name="puntuacion" aria-label="Puntuación">
+            <option value="">Todas las puntuaciones</option>
+            {% for valor in puntuaciones %}<option value="{{ valor }}" {% if puntuacion == valor|stringformat:'s' %}selected{% endif %}>{{ valor|floatformat:1 }}/5,0</option>{% endfor %}
+        </select>
+        <div class="dashboard-header-actions">
+            <button class="btn" type="submit">Filtrar</button>
+            <a class="btn btn-secondary" href="{% url 'gestion_evaluaciones' %}">Limpiar</a>
+        </div>
+    </form>
+    <div class="table-responsive payroll-table"><table>
+        <thead><tr><th>Empleado</th><th>Departamento</th><th>Período</th><th>Puntuación</th><th>Acciones</th></tr></thead>
+        <tbody>{% for evaluacion in pagina %}<tr>
+            <td><div class="employee-cell">
+                <div class="employee-avatar">{{ evaluacion.empleado.nombre_completo|first|upper }}</div>
+                <div><strong>{{ evaluacion.empleado.nombre_completo }}</strong><span>{{ evaluacion.empleado.cargo }}</span></div>
+            </div></td>
+            <td>{{ evaluacion.empleado.departamento }}</td>
+            <td>{{ evaluacion.periodo }}</td><td><strong>{{ evaluacion.puntuacion|floatformat:1 }}/5,0</strong></td>
+            <td><div class="dashboard-header-actions">
+                <a class="btn btn-secondary permission-btn" href="{% url 'detalle_evaluacion' evaluacion.pk %}">Ver detalle</a>
+                {% if puede_editar %}<a class="btn permission-btn approve" href="{% url 'editar_evaluacion' evaluacion.pk %}">Editar</a>{% endif %}
+            </div></td>
+        </tr>{% empty %}<tr><td colspan="5"><div class="empty-state">
+            <div class="empty-icon">★</div><h3>No hay evaluaciones</h3>
+            <p>No existen registros que coincidan con los filtros.</p>
+        </div></td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% include 'includes/evaluaciones_paginacion.html' %}
+</div>
+{% endblock %}

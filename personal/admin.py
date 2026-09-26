@@ -8,6 +8,7 @@ from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin, GroupAdmin a
 from django.contrib.admin.models import LogEntry
 import json
 from django import forms
+from .forms import EvaluacionForm
 from django.utils import timezone
 from django.utils.html import format_html
 from django.urls import path
@@ -1089,6 +1090,22 @@ class PermisoAdmin(admin.ModelAdmin):
 
 @admin.register(Evaluacion)
 class EvaluacionAdmin(admin.ModelAdmin):
+    form = EvaluacionForm
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser or request.user.groups.filter(name__in=['RRHH', 'GERENTES']).exists()
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser or request.user.groups.filter(name='RRHH').exists()
+
+    def has_change_permission(self, request, obj=None):
+        return self.has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_module_permission(self, request):
+        return self.has_view_permission(request)
 
     list_display = (
         'empleado',

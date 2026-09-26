@@ -4,6 +4,11 @@ from . import views
 
 
 urlpatterns = [
+    path('evaluaciones/', views.gestion_evaluaciones, name='gestion_evaluaciones'),
+    path('evaluaciones/nueva/', views.formulario_evaluacion, name='crear_evaluacion'),
+    path('evaluaciones/<int:evaluacion_id>/', views.detalle_evaluacion, name='detalle_evaluacion'),
+    path('evaluaciones/<int:evaluacion_id>/editar/', views.formulario_evaluacion, name='editar_evaluacion'),
+    path('mis-evaluaciones/', views.mis_evaluaciones, name='mis_evaluaciones'),
 
     # -------------------------------------------------------------------------
     # Autenticación

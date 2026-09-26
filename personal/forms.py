@@ -3,6 +3,7 @@
 # -----------------------------------------------------------------------------
 
 from django import forms
+from django.utils import timezone
 
 from .models import (
     Empleado,
@@ -11,12 +12,49 @@ from .models import (
     Permiso,
     Salario,
     Asistencia,
+    Evaluacion,
 )
 
 
 # =============================================================================
 # EMPLEADO
 # =============================================================================
+
+class EvaluacionForm(forms.ModelForm):
+    periodo = forms.ChoiceField(
+        label='Período', widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        hoy = timezone.localdate()
+        semestre = 'Primer' if hoy.month <= 6 else 'Segundo'
+        periodo_actual = f'{hoy.year} - {semestre} semestre'
+        periodos = [periodo_actual]
+        # Permite conservar el valor histórico de esta evaluación, sin ofrecerlo
+        # al crear otras evaluaciones ni aceptar texto arbitrario por POST.
+        if self.instance.pk and self.instance.periodo not in periodos:
+            periodos.append(self.instance.periodo)
+        self.fields['periodo'].choices = [
+            (periodo, periodo) for periodo in periodos
+        ]
+        if not self.instance.pk:
+            self.initial['periodo'] = periodo_actual
+
+    puntuacion = forms.TypedChoiceField(
+        choices=[(n, f'{n},0') for n in range(1, 6)], coerce=int,
+        label='Puntuación', widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+
+    class Meta:
+        model = Evaluacion
+        fields = ['empleado', 'periodo', 'puntuacion', 'feedback']
+        labels = {'periodo': 'Período', 'feedback': 'Comentarios'}
+        widgets = {
+            'empleado': forms.Select(attrs={'class': 'form-control'}),
+            'feedback': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+        }
+
 
 class EmpleadoForm(forms.ModelForm):
 

@@ -521,6 +521,10 @@
             </span>
 
 
+            <a href="{% url 'gestion_evaluaciones' %}" class="nav-link {% if request.resolver_match.url_name == 'gestion_evaluaciones' or request.resolver_match.url_name == 'crear_evaluacion' or request.resolver_match.url_name == 'editar_evaluacion' or request.resolver_match.url_name == 'detalle_evaluacion' %}active{% endif %}">
+                <span class="nav-icon">★</span><span>Evaluaciones</span>
+            </a>
+
             <a
                 href="/admin/"
                 class="nav-link"
@@ -615,6 +619,10 @@
 
             </a>
 
+
+            <a href="{% url 'mis_evaluaciones' %}" class="nav-link {% if request.resolver_match.url_name == 'mis_evaluaciones' or request.resolver_match.url_name == 'detalle_evaluacion' %}active{% endif %}">
+                <span class="nav-icon">★</span><span>Mis evaluaciones</span>
+            </a>
 
             <a
                 href="{% url 'mis_liquidaciones' %}"

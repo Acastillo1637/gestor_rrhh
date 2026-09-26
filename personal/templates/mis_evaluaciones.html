@@ -1,0 +1,11 @@
+{% extends "base_site.html" %}
+{% block title %}Mis evaluaciones{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Mis evaluaciones</h1><p>{{ empleado.nombre_completo }} · Historial de desempeño</p></div></div>
+<div class="card employees-card"><div class="table-responsive employees-table"><table>
+    <thead><tr><th>Período</th><th>Puntuación</th><th>Acciones</th></tr></thead>
+    <tbody>{% for evaluacion in pagina %}<tr>
+        <td>{{ evaluacion.periodo }}</td><td>{{ evaluacion.puntuacion|floatformat:1 }}/5,0</td><td><a href="{% url 'detalle_evaluacion' evaluacion.pk %}">Ver detalle</a></td>
+    </tr>{% empty %}<tr><td colspan="3"><div class="empty-state">Todavía no tienes evaluaciones registradas.</div></td></tr>{% endfor %}</tbody>
+</table></div>{% include 'includes/evaluaciones_paginacion.html' %}</div>
+{% endblock %}
