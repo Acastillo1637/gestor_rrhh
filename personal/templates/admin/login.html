@@ -1,0 +1,27 @@
+{% extends "admin/login.html" %}
+{% load static %}
+
+{% block title %}Iniciar sesión | Gestor RRHH{% endblock %}
+{% block bodyclass %}{{ block.super }} rrhh-admin-login{% endblock %}
+{% block header %}{% endblock %}
+{% block extrahead %}{% endblock %}
+{% block responsive %}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% endblock %}
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'personal/css/admin_login.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="console-login-card" aria-labelledby="console-login-title">
+    <div class="console-login-brand">
+        <img src="{% static 'personal/logo_rrhh.png' %}" width="64" height="64" alt="">
+        <h1 id="console-login-title">Gestor RRHH</h1>
+        <p>Consola del Sistema</p>
+    </div>
+    {# Hereda íntegramente el formulario oficial: CSRF, errores, app_path y next. #}
+    {{ block.super }}
+    <a class="console-login-back" href="{% url 'inicio' %}">← Volver al portal RRHH</a>
+</section>
+{% endblock %}

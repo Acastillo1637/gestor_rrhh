@@ -1,0 +1,149 @@
+/* Exclusivo de /admin/login/. Reutiliza la paleta de system_console.css. */
+body.rrhh-admin-login {
+    margin: 0;
+    color: var(--sys-text);
+    color-scheme: dark;
+}
+body.rrhh-admin-login #container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 100vh;
+    min-height: 100svh;
+    margin: 0;
+    padding: 28px 20px;
+    border: 0;
+    border-radius: 0;
+    box-sizing: border-box;
+}
+body.rrhh-admin-login #main.main {
+    flex: 0 1 440px;
+    max-width: 440px;
+    width: 100% !important;
+    min-height: 0;
+    margin: 0;
+}
+body.rrhh-admin-login #content-start.content {
+    margin: 0;
+    padding: 0;
+}
+body.rrhh-admin-login #content-main {
+    float: none;
+    width: 100%;
+}
+body.rrhh-admin-login #content > br.clear,
+body.rrhh-admin-login #footer { display: none; }
+body.rrhh-admin-login .console-login-card {
+    padding: 36px;
+    background: var(--sys-card);
+    border: 1px solid var(--sys-border);
+    border-radius: var(--sys-radius);
+    box-shadow: 0 18px 60px rgb(0 0 0 / 25%);
+}
+body.rrhh-admin-login .console-login-brand { text-align: center; margin-bottom: 28px; }
+body.rrhh-admin-login .console-login-brand img {
+    display: block;
+    margin: 0 auto 16px;
+    object-fit: contain;
+    border-radius: 14px;
+}
+body.rrhh-admin-login .console-login-brand h1 {
+    margin: 0 0 6px;
+    font-size: 26px;
+    line-height: 1.25;
+    font-weight: 700;
+    color: var(--sys-text);
+}
+body.rrhh-admin-login .console-login-brand p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--sys-muted);
+}
+body.rrhh-admin-login #login-form { margin: 0; }
+body.rrhh-admin-login #login-form .form-row {
+    padding: 0;
+    margin: 0 0 18px;
+    border: 0;
+    overflow: visible;
+}
+body.rrhh-admin-login #login-form label {
+    display: block;
+    padding: 0;
+    margin-bottom: 8px;
+    line-height: 1.5;
+    color: var(--sys-text);
+    font-size: 13px;
+    font-weight: 600;
+}
+body.rrhh-admin-login #login-form input[type="text"],
+body.rrhh-admin-login #login-form input[type="password"] {
+    width: 100%;
+    height: 46px;
+    padding: 10px 13px;
+    box-sizing: border-box;
+    border: 1px solid #454545;
+    border-radius: 9px;
+    background: var(--sys-bg);
+    color: var(--sys-text);
+    font-size: 16px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+body.rrhh-admin-login #login-form input:hover { border-color: #6b6b6b; }
+body.rrhh-admin-login #login-form input:focus-visible {
+    outline: 2px solid var(--sys-blue);
+    outline-offset: 2px;
+    border-color: var(--sys-blue);
+}
+body.rrhh-admin-login #login-form .submit-row {
+    padding: 6px 0 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+}
+body.rrhh-admin-login #login-form input[type="submit"] {
+    display: block;
+    width: 100%;
+    min-height: 46px;
+    padding: 12px 16px;
+    margin: 0;
+    border: 0;
+    border-radius: 9px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+body.rrhh-admin-login #login-form input[type="submit"]:hover { background: #1d4ed8; }
+body.rrhh-admin-login .console-login-back {
+    display: block;
+    margin-top: 24px;
+    text-align: center;
+    color: #b0b8c4;
+    font-size: 13px;
+}
+body.rrhh-admin-login .console-login-back:hover { color: var(--sys-text); }
+body.rrhh-admin-login a:focus-visible { outline: 2px solid var(--sys-blue); outline-offset: 4px; }
+body.rrhh-admin-login .errornote,
+body.rrhh-admin-login .errorlist {
+    padding: 12px;
+    margin: 0 0 16px;
+    border: 1px solid #71353b;
+    border-radius: 8px;
+    background: #301b20;
+    color: #ffb4bb;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+body.rrhh-admin-login .errorlist li { margin: 0; padding: 0; background: none; }
+@media (max-width: 480px) {
+    body.rrhh-admin-login #container { padding: 20px 16px; }
+    body.rrhh-admin-login .console-login-card { padding: 28px 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    body.rrhh-admin-login #login-form input { transition: none; }
+}
