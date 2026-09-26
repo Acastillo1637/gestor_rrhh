@@ -389,6 +389,10 @@
             background: #ffffff;
         }
 
+        .message-modal-footer.message-modal-logout-footer {
+            justify-content: center;
+        }
+
         .message-modal-accept {
             min-width: 110px;
             height: 42px;
@@ -971,7 +975,7 @@
 
                             </div>
 
-                            <div class="message-modal-footer">
+                            <div class="message-modal-footer{% if message.message == 'Sesión cerrada correctamente.' %} message-modal-logout-footer{% endif %}">
 
                                 <button
                                     type="button"

@@ -51,3 +51,28 @@ class AdminLoginTests(TestCase):
             'next': 'https://example.com/',
         })
         self.assertRedirects(response, settings.LOGIN_REDIRECT_URL, fetch_redirect_response=False)
+
+    def test_login_con_token_csrf_del_formulario(self):
+        from html.parser import HTMLParser
+
+        class TokenParser(HTMLParser):
+            token = None
+
+            def handle_starttag(self, tag, attrs):
+                attrs = dict(attrs)
+                if tag == 'input' and attrs.get('name') == 'csrfmiddlewaretoken':
+                    self.token = attrs.get('value')
+
+        client = Client(enforce_csrf_checks=True)
+        response = client.get(reverse('admin:login'), {'next': '/admin/'})
+        parser = TokenParser()
+        parser.feed(response.content.decode())
+        self.assertTrue(parser.token)
+        response = client.post(reverse('admin:login'), {
+            'csrfmiddlewaretoken': parser.token,
+            'username': self.staff.username,
+            'password': 'Prueba-admin-2026!',
+            'next': '/admin/',
+        })
+        self.assertRedirects(response, '/admin/', fetch_redirect_response=False)
+        self.assertEqual(int(client.session['_auth_user_id']), self.staff.pk)
