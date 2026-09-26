@@ -49,6 +49,11 @@ from django.middleware.csrf import get_token
 from .context_processors import contexto_rol
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
+from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from django.db.models import Avg
+from .models import Evaluacion
+from .forms import EvaluacionForm
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 
@@ -74,6 +79,80 @@ from .models import (
 # =============================================================================
 # ROLES Y PERMISOS
 # =============================================================================
+
+@login_required(login_url='login')
+def gestion_evaluaciones(request):
+    if not usuario_autorizado(request.user):
+        raise PermissionDenied
+    evaluaciones = Evaluacion.objects.select_related('empleado').order_by('-pk')
+    busqueda = request.GET.get('busqueda', '').strip()
+    periodo = request.GET.get('periodo', '').strip()
+    puntuacion = request.GET.get('puntuacion', '')
+    if busqueda:
+        evaluaciones = evaluaciones.filter(empleado__nombre_completo__icontains=busqueda)
+    if periodo:
+        evaluaciones = evaluaciones.filter(periodo__icontains=periodo)
+    if puntuacion:
+        evaluaciones = (evaluaciones.filter(puntuacion=int(puntuacion))
+                        if puntuacion in ['1', '2', '3', '4', '5'] else evaluaciones.none())
+    filtros = request.GET.copy()
+    filtros.pop('page', None)
+    return render(request, 'gestion_evaluaciones.html', {
+        'pagina': Paginator(evaluaciones, 20).get_page(request.GET.get('page')),
+        'total': evaluaciones.count(),
+        'promedio': evaluaciones.aggregate(valor=Avg('puntuacion'))['valor'],
+        'puede_editar': usuario_rrhh(request.user),
+        'busqueda': busqueda, 'periodo': periodo, 'puntuacion': puntuacion,
+        'puntuaciones': range(1, 6), 'filtros': filtros.urlencode(),
+    })
+
+
+@login_required(login_url='login')
+def formulario_evaluacion(request, evaluacion_id=None):
+    if not usuario_rrhh(request.user):
+        raise PermissionDenied
+    evaluacion = (get_object_or_404(Evaluacion, pk=evaluacion_id)
+                  if evaluacion_id is not None else None)
+    formulario = EvaluacionForm(
+        request.POST if request.method == 'POST' else None, instance=evaluacion,
+    )
+    if request.method == 'POST' and formulario.is_valid():
+        with transaction.atomic():
+            registro = formulario.save()
+            if evaluacion is None and registro.empleado.usuario_id:
+                crear_notificacion(
+                    'Tienes una nueva evaluación disponible.', tipo='evaluacion',
+                    usuario=registro.empleado.usuario,
+                    url=reverse('detalle_evaluacion', args=[registro.pk]),
+                )
+        messages.success(request, 'Evaluación guardada correctamente.')
+        return redirect('detalle_evaluacion', evaluacion_id=registro.pk)
+    return render(request, 'formulario_evaluacion.html', {
+        'formulario': formulario,
+        'titulo': 'Editar evaluación' if evaluacion is not None else 'Nueva evaluación',
+    })
+
+
+@login_required(login_url='login')
+def detalle_evaluacion(request, evaluacion_id):
+    evaluaciones = Evaluacion.objects.select_related('empleado')
+    if not usuario_autorizado(request.user):
+        evaluaciones = evaluaciones.filter(empleado__usuario=request.user)
+    return render(request, 'detalle_evaluacion.html', {
+        'evaluacion': get_object_or_404(evaluaciones, pk=evaluacion_id),
+        'puede_editar': usuario_rrhh(request.user),
+    })
+
+
+@login_required(login_url='login')
+def mis_evaluaciones(request):
+    empleado = get_object_or_404(Empleado, usuario=request.user)
+    evaluaciones = Evaluacion.objects.filter(empleado=empleado).order_by('-pk')
+    return render(request, 'mis_evaluaciones.html', {
+        'empleado': empleado,
+        'pagina': Paginator(evaluaciones, 20).get_page(request.GET.get('page')),
+    })
+
 
 def usuario_autorizado(user):
 

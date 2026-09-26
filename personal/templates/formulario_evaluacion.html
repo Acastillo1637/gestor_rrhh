@@ -1,0 +1,19 @@
+{% extends "base_site.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>{{ titulo }}</h1><p>Al guardar, la evaluación será visible para el empleado.</p></div>
+    <a class="btn btn-secondary" href="{% url 'gestion_evaluaciones' %}">← Volver a evaluaciones</a></div>
+<div class="employee-form-container"><div class="card employee-form-card">
+    <div class="form-section-header"><div class="form-section-icon">★</div><div><h2>Datos de la evaluación</h2><p>Selecciona una puntuación entre 1 y 5.</p></div></div>
+    <form method="post" class="employee-form">
+        {% csrf_token %}
+        {% if formulario.non_field_errors %}<div class="form-alert">{{ formulario.non_field_errors }}</div>{% endif %}
+        <div class="employee-form-grid">{% for campo in formulario %}
+            <div class="form-group {% if campo.name == 'feedback' or campo.name == 'empleado' %}form-group-full{% endif %}">
+                {{ campo.label_tag }}{{ campo }}{{ campo.errors }}
+            </div>
+        {% endfor %}</div>
+        <div class="employee-form-actions"><a class="btn btn-secondary" href="{% url 'gestion_evaluaciones' %}">Cancelar</a><button class="btn" type="submit">Guardar evaluación →</button></div>
+    </form>
+</div></div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base_site.html" %}
+{% block title %}Detalle de evaluación{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Evaluación · {{ evaluacion.periodo }}</h1><p>{{ evaluacion.empleado.nombre_completo }}</p></div>
+    {% if es_gestion %}<a class="btn btn-secondary" href="{% url 'gestion_evaluaciones' %}">← Volver a evaluaciones</a>
+    {% else %}<a class="btn btn-secondary" href="{% url 'mis_evaluaciones' %}">← Mis evaluaciones</a>{% endif %}
+</div>
+<div class="card employee-form-card">
+    <div class="form-section-header"><div class="form-section-icon">★</div><div><h2>Puntuación: {{ evaluacion.puntuacion|floatformat:1 }}/5,0</h2><p>Período: {{ evaluacion.periodo }}</p></div></div>
+    <div class="employee-form">
+        <h3>Comentarios</h3>{{ evaluacion.feedback|default:"Sin comentarios."|linebreaks }}
+        {% if puede_editar %}<div class="employee-form-actions"><a class="btn" href="{% url 'editar_evaluacion' evaluacion.pk %}">Editar evaluación</a></div>{% endif %}
+    </div>
+</div>
+{% endblock %}
