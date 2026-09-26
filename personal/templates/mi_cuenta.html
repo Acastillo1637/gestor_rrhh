@@ -1,0 +1,12 @@
+{% extends "base_site.html" %}
+{% block title %}Mi cuenta{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Mi cuenta</h1><p>Información de tu cuenta de acceso.</p></div></div>
+<div class="card">
+    <div class="card-header"><div><h2>{{ request.user.username }}</h2>
+        <p>{% if request.user.is_superuser %}Administrador{% elif es_gerente %}Gerencia{% elif es_gestion %}RRHH{% else %}Empleado{% endif %}</p>
+    </div></div>
+    <p><strong>Nombre:</strong> {% if request.user.empleado %}{{ request.user.empleado.nombre_completo }}{% else %}{{ request.user.get_full_name|default:request.user.username }}{% endif %}</p>
+    <p><strong>Correo:</strong> {{ request.user.email|default:"Sin correo registrado" }}</p>
+</div>
+{% endblock %}

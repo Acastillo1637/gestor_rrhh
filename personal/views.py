@@ -154,6 +154,11 @@ def mis_evaluaciones(request):
     })
 
 
+@login_required(login_url='login')
+def mi_cuenta(request):
+    return render(request, 'mi_cuenta.html')
+
+
 def usuario_autorizado(user):
 
     return (

@@ -20,7 +20,7 @@
 
     <link
         rel="stylesheet"
-        href="{% static 'personal/css/site.css' %}?v=empleados-20260922-1"
+        href="{% static 'personal/css/site.css' %}?v=portal-account-chevron-1"
     >
 
     {% block extra_css %}
@@ -721,74 +721,6 @@
         <!-- USUARIO SIDEBAR -->
         <!-- ========================================================= -->
 
-        <div class="sidebar-user">
-
-            <div class="user-avatar">
-
-                {{ request.user.username|first|upper }}
-
-            </div>
-
-
-            <div class="user-data">
-
-                <strong>
-
-                    {% if request.user.empleado %}
-                        {{ request.user.empleado.nombre_completo }}
-                    {% else %}
-                        {{ request.user.username }}
-                    {% endif %}
-
-                </strong>
-
-
-                <span>
-
-                    {% if es_gerente %}
-                        Gerencia
-                    {% elif es_gestion %}
-                        Gestión RRHH
-                    {% else %}
-                        Empleado
-                    {% endif %}
-
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <a
-            href="{% url 'cambiar_contrasena' %}"
-            class="nav-link"
-        >
-
-            <span class="nav-icon">
-                🔐
-            </span>
-
-            <span>
-                Cambiar contraseña
-            </span>
-
-        </a>
-
-
-        <a
-            href="{% url 'logout' %}"
-            class="logout-link"
-        >
-
-            <span>
-                »
-            </span>
-
-            Cerrar sesión
-
-        </a>
-
     </aside>
 
 
@@ -849,16 +781,16 @@
                 </div>
 
 
-                <div class="topbar-profile">
+                <div class="portal-account" id="portalAccount"><button class="topbar-profile portal-account-button" id="portalAccountButton" type="button" aria-label="Menú de usuario" aria-expanded="false" aria-controls="portalAccountPanel">
 
-                    <div class="profile-avatar">
+                    <span class="profile-avatar" aria-hidden="true">
 
                         {{ request.user.username|first|upper }}
 
-                    </div>
+                    </span>
 
 
-                    <div class="profile-info">
+                    <span class="profile-info">
 
                         <strong>
 
@@ -883,8 +815,17 @@
 
                         </span>
 
-                    </div>
+                    </span>
 
+                <svg class="portal-account-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false"><path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+                    <nav class="portal-account-panel" id="portalAccountPanel" aria-label="Opciones de usuario" hidden>
+                        <a href="{% url 'mi_cuenta' %}">Mi cuenta</a>
+                        <a href="{% url 'cambiar_contrasena' %}">Cambiar contraseña</a>
+                        {% if request.user.is_active and request.user.is_staff %}
+                        <a href="{% url 'admin:index' %}">Administración</a>
+                        {% endif %}
+                        <a href="{% url 'logout' %}">Cerrar sesión</a>
+                    </nav>
                 </div>
 
             </div>
@@ -1197,6 +1138,7 @@
 {% if user.is_authenticated %}
 {# Fuera del desplegable: showModal() centra la confirmación y bloquea el fondo. #}
 {% include 'includes/notification_dialog.html' %}
+<script src="{% static 'personal/js/portal_account.js' %}" defer></script>
 <script src="{% static 'personal/js/notification_actions.js' %}"></script>
 {% endif %}
 

@@ -477,6 +477,69 @@ textarea {
 }
 
 
+.portal-account { position: relative; }
+.portal-account .portal-account-button,
+.portal-account .portal-account-button:hover {
+    padding: 6px 10px;
+    min-height: 36px;
+    background: transparent;
+    color: inherit;
+    font-weight: inherit;
+    text-align: left;
+    box-shadow: none;
+    transform: none;
+}
+.portal-account .portal-account-button {
+    cursor: pointer;
+    border-radius: 10px;
+    transition: background-color 0.15s ease;
+}
+.portal-account .portal-account-button:hover,
+.portal-account .portal-account-button[aria-expanded="true"] {
+    background: var(--primary-soft);
+}
+.portal-account-chevron {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    transition: transform 0.15s ease;
+}
+.portal-account-button[aria-expanded="true"] .portal-account-chevron {
+    transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+    .portal-account .portal-account-button,
+    .portal-account-chevron { transition: none; }
+}
+.portal-account-button:focus-visible,
+.portal-account-panel a:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+}
+.portal-account-panel {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    z-index: 1000;
+    width: 230px;
+    max-width: calc(100vw - 32px);
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+.portal-account-panel a {
+    display: block;
+    padding: 11px 12px;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 12px;
+    text-decoration: none;
+}
+.portal-account-panel a:hover { background: var(--primary-soft); }
+
 .topbar-profile {
 
     display: flex;

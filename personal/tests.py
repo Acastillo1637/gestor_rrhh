@@ -12,6 +12,49 @@ from .models import Empleado, Notificacion
 from .models import Evaluacion
 
 
+class MenuUsuarioPortalTests(TestCase):
+    def setUp(self):
+        self.usuario = User.objects.create_user('cuenta_portal', email='propio@example.test')
+        self.client.force_login(self.usuario)
+
+    def test_control_unico_y_enlaces(self):
+        respuesta = self.client.get(reverse('mi_cuenta'))
+        self.assertEqual(respuesta.status_code, 200)
+        html = respuesta.content.decode()
+        sidebar = html.split('<aside', 1)[1].split('</aside>', 1)[0]
+        self.assertNotIn('sidebar-user', sidebar)
+        self.assertNotIn(reverse('cambiar_contrasena'), sidebar)
+        self.assertNotIn(reverse('logout'), sidebar)
+        self.assertContains(respuesta, 'id="portalAccountButton"', count=1)
+        self.assertContains(respuesta, 'aria-controls="portalAccountPanel"')
+        self.assertContains(respuesta, 'aria-label="Opciones de usuario" hidden')
+        panel = html.split('id="portalAccountPanel"', 1)[1].split('</nav>', 1)[0]
+        for nombre in ['mi_cuenta', 'cambiar_contrasena', 'logout']:
+            self.assertIn(reverse(nombre), panel)
+        self.assertNotIn(reverse('admin:index'), panel)
+
+    def test_admin_solo_para_staff_incluso_con_grupo_rrhh(self):
+        self.usuario.groups.add(Group.objects.get_or_create(name='RRHH')[0])
+        for staff in [False, True]:
+            self.usuario.is_staff = staff
+            self.usuario.save()
+            html = self.client.get(reverse('mi_cuenta')).content.decode()
+            panel = html.split('id="portalAccountPanel"', 1)[1].split('</nav>', 1)[0]
+            self.assertEqual(reverse('admin:index') in panel, staff)
+
+    def test_mi_cuenta_solo_muestra_usuario_autenticado(self):
+        otro = User.objects.create_user('cuenta_ajena', email='ajeno@example.test')
+        respuesta = self.client.get(reverse('mi_cuenta'), {'usuario': otro.pk})
+        self.assertContains(respuesta, 'propio@example.test')
+        self.assertNotContains(respuesta, 'ajeno@example.test')
+
+    def test_cierre_de_sesion_existente_y_acceso_anonimo(self):
+        self.assertRedirects(self.client.get(reverse('logout')), reverse('login'))
+        self.assertNotIn('_auth_user_id', self.client.session)
+        self.assertEqual(self.client.get(reverse('mi_cuenta')).status_code, 302)
+        self.assertNotContains(self.client.get(reverse('login')), 'id="portalAccountButton"')
+
+
 class EvaluacionesTests(TestCase):
     @classmethod
     def setUpTestData(cls):
