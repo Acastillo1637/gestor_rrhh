@@ -4,3 +4,7 @@ db.sqlite3
 *.pyc
 .env
 *.bak
+
+# Exportaciones locales de reconstruccion demo (credenciales y auditoria).
+/.demo_rrhh/
+credenciales_demo_rrhh*.csv
