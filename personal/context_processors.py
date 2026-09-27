@@ -27,6 +27,11 @@ def contexto_rol(request):
         and hasattr(request.user, 'empleado')
     )
 
+    puede_modificar_buzon = not es_gestion or (
+        request.user.is_superuser
+        or request.user.groups.filter(name='RRHH').exists()
+    )
+
     if not request.user.is_authenticated:
         notificaciones = Notificacion.objects.none()
     elif es_gestion:
@@ -50,6 +55,7 @@ def contexto_rol(request):
         'es_gestion': es_gestion,
         'es_gerente': es_gerente,
         'es_empleado': es_empleado,
+        'puede_modificar_buzon': puede_modificar_buzon,
         'notificaciones_no_leidas': notificaciones_no_leidas,
         'ultimas_notificaciones': ultimas_notificaciones,
     }

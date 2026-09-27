@@ -59,7 +59,7 @@ class EvaluacionesTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.rrhh = User.objects.create_user('evaluador', is_staff=True)
-        cls.gerente = User.objects.create_user('lector', is_staff=True)
+        cls.gerente = User.objects.create_user('lector', is_staff=False)
         cls.trabajador = User.objects.create_user('trabajador')
         cls.superusuario = User.objects.create_user('supervisor', is_superuser=True, is_staff=True)
         cls.rrhh.groups.add(Group.objects.get_or_create(name='RRHH')[0])
@@ -279,7 +279,7 @@ class ConservacionImportesTests(TestCase):
                 self.assertEqual(campo['step'], '0.01')
                 self.assertEqual(Decimal(campo['value']), Decimal(importe))
                 respuesta = self.client.post(url, {
-                    'nombres': 'Ana Maria', 'apellidos': 'Prueba',
+                    'nombre': 'Ana', 'apellido_paterno': 'Maria', 'apellido_materno': 'Prueba',
                     'departamento': self.empleado.departamento,
                     'cargo': self.empleado.cargo, 'estado_laboral': 'activo',
                     'salario_mensual': campo['value'], 'fecha_contratacion': '2026-09-10',
@@ -293,19 +293,19 @@ class ConservacionImportesTests(TestCase):
     def test_edicion_invalida_conserva_importe_para_corregir_nombre(self):
         url = reverse('editar_empleado', args=[self.empleado.pk])
         datos = {
-            'nombres': 'Ana', 'apellidos': '',
+            'nombre': 'Ana', 'apellido_paterno': 'Maria', 'apellido_materno': '',
             'departamento': self.empleado.departamento,
             'cargo': self.empleado.cargo, 'estado_laboral': 'activo',
             'salario_mensual': '1000.50', 'fecha_contratacion': '2026-09-10',
         }
         respuesta = self.client.post(url, datos)
         self.assertEqual(respuesta.status_code, 200)
-        self.assertIn('apellidos', respuesta.context['formulario'].errors)
+        self.assertIn('apellido_materno', respuesta.context['formulario'].errors)
         self.empleado.refresh_from_db()
         self.assertEqual(self.empleado.salario_mensual, Decimal('850000.00'))
         campo = CamposFormularioParser(respuesta.content).campos['salario_mensual']
         self.assertEqual(Decimal(campo['value']), Decimal('1000.50'))
-        datos.update(apellidos='Prueba', salario_mensual=campo['value'])
+        datos.update(apellido_materno='Prueba', salario_mensual=campo['value'])
         respuesta = self.client.post(url, datos)
         self.assertRedirects(respuesta, reverse('listar_empleados'))
         self.empleado.refresh_from_db()
@@ -531,7 +531,7 @@ class NotificacionesGlobalesTests(TestCase):
 
 
 class CrearEmpleadoNombresTests(TestCase):
-    """El alta captura nombres separados sin cambiar el almacenamiento existente."""
+    """El alta captura nombre separados sin cambiar el almacenamiento existente."""
 
     # Las pruebas cubren validación, guardado, creación de cuenta y edición anterior.
     # TestCase usa una base de pruebas; no modifica los empleados de la base real.
@@ -539,20 +539,20 @@ class CrearEmpleadoNombresTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         from .models import Departamento, Puesto
-        departamento, _ = Departamento.objects.get_or_create(nombre='Pruebas nombres')
+        departamento, _ = Departamento.objects.get_or_create(nombre='Pruebas nombre')
         Puesto.objects.get_or_create(nombre='Cargo prueba', departamento=departamento, defaults={'salario_base': 1000})
         cls.admin = User.objects.create_user(username='rrhh_prueba', is_superuser=True)
 
     def datos(self, **cambios):
-        datos = {'nombres': 'María José', 'apellidos': 'De la Cruz Pérez',
-                 'departamento': 'Pruebas nombres', 'cargo': 'Cargo prueba',
+        datos = {'nombre': 'María José', 'apellido_paterno': 'De la Cruz', 'apellido_materno': 'Pérez',
+                 'departamento': 'Pruebas nombre', 'cargo': 'Cargo prueba',
                  'salario_mensual': '1000.00', 'estado_laboral': 'activo', 'fecha_contratacion': '2026-09-10'}
         datos.update(cambios)
         return datos
 
     def test_obligatorios_y_espacios(self):
         from .forms import CrearEmpleadoForm
-        for campo in ['nombres', 'apellidos']:
+        for campo in ['nombre', 'apellido_paterno', 'apellido_materno']:
             for valor in ['', '   ', '\t\n', '\u00a0']:
                 with self.subTest(campo=campo, valor=valor):
                     f = CrearEmpleadoForm(self.datos(**{campo: valor}))
@@ -563,7 +563,7 @@ class CrearEmpleadoNombresTests(TestCase):
 
     def test_union_y_commit_false(self):
         from .forms import CrearEmpleadoForm
-        f = CrearEmpleadoForm(self.datos(nombres='  María   José ', apellidos=' De la Cruz-Pérez '))
+        f = CrearEmpleadoForm(self.datos(nombre='  María   José ', apellido_paterno=' De la ', apellido_materno=' Cruz-Pérez '))
         self.assertTrue(f.is_valid(), f.errors)
         empleado = f.save(commit=False)
         self.assertIsNone(empleado.pk)
@@ -574,12 +574,12 @@ class CrearEmpleadoNombresTests(TestCase):
 
     def test_limite_combinado(self):
         from .forms import CrearEmpleadoForm
-        f = CrearEmpleadoForm(self.datos(nombres='A' * 75, apellidos='B' * 74))
+        f = CrearEmpleadoForm(self.datos(nombre='A' * 50, apellido_paterno='B' * 49, apellido_materno='C' * 49))
         self.assertTrue(f.is_valid(), f.errors)
         self.assertEqual(len(f.save().nombre_completo), 150)
-        f = CrearEmpleadoForm(self.datos(nombres='A' * 75, apellidos='B' * 75))
+        f = CrearEmpleadoForm(self.datos(nombre='A' * 50, apellido_paterno='B' * 49, apellido_materno='C' * 50))
         self.assertFalse(f.is_valid())
-        self.assertIn('apellidos', f.errors)
+        self.assertIn('apellido_materno', f.errors)
 
     def test_alta_completa_y_busqueda(self):
         self.client.force_login(self.admin)
@@ -587,7 +587,7 @@ class CrearEmpleadoNombresTests(TestCase):
         self.assertEqual(respuesta.status_code, 302)
         empleado = Empleado.objects.get(nombre_completo='María José De la Cruz Pérez')
         self.assertIsNotNone(empleado.usuario)
-        self.assertEqual(empleado.departamento, 'Pruebas nombres')
+        self.assertEqual(empleado.departamento, 'Pruebas nombre')
         self.assertEqual(empleado.cargo, 'Cargo prueba')
         self.assertEqual(empleado.salario_mensual, 1000)
         self.assertEqual(empleado.estado_laboral, 'activo')
@@ -597,9 +597,9 @@ class CrearEmpleadoNombresTests(TestCase):
         self.client.force_login(self.admin)
         cantidad = User.objects.count()
         empleados_antes = Empleado.objects.count()
-        respuesta = self.client.post(reverse('crear_empleado'), self.datos(apellidos='  '))
+        respuesta = self.client.post(reverse('crear_empleado'), self.datos(apellido_materno='  '))
         self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, 'Ingresa los apellidos del empleado.')
+        self.assertContains(respuesta, 'Ingresa el apellido materno.')
         self.assertEqual(Empleado.objects.count(), empleados_antes)
         self.assertEqual(User.objects.count(), cantidad)
 
@@ -609,17 +609,17 @@ class CrearEmpleadoNombresTests(TestCase):
         datos = self.datos(nombre_completo=empleado.nombre_completo)
         f = EmpleadoForm(datos, instance=empleado)
         self.assertTrue(f.is_valid(), f.errors)
-        self.assertNotIn('nombres', f.fields)
+        self.assertNotIn('nombre', f.fields)
         self.assertEqual(f.save().nombre_completo, 'Ana María de los Ángeles Pérez')
 
     def test_campos_y_atributos_html(self):
         from .forms import CrearEmpleadoForm
         f = CrearEmpleadoForm()
-        self.assertEqual(set(f.fields), {'nombres', 'apellidos', 'cargo', 'departamento', 'salario_mensual', 'fecha_contratacion', 'estado_laboral'})
+        self.assertEqual(set(f.fields), {'nombre', 'apellido_paterno', 'apellido_materno', 'cargo', 'departamento', 'salario_mensual', 'fecha_contratacion', 'estado_laboral'})
         self.client.force_login(self.admin)
         respuesta = self.client.get(reverse('crear_empleado'))
         self.assertNotContains(respuesta, 'name="nombre_completo"')
-        for campo in ['nombres', 'apellidos']:
+        for campo in ['nombre', 'apellido_paterno', 'apellido_materno']:
             self.assertIn('required', str(f[campo]))
             self.assertIn('pattern=', str(f[campo]))
             self.assertContains(respuesta, f'id="{campo}-errors"')
@@ -668,6 +668,8 @@ class AdminMensajesTests(TestCase):
         staff = User.objects.create_user(username='staff_sin_rol', is_staff=True)
         for rol in ['staff', 'RRHH', 'GERENTES', 'superusuario']:
             usuario = self.admin if rol == 'superusuario' else staff
+            staff.is_staff = rol != 'GERENTES'
+            staff.save(update_fields=['is_staff'])
             staff.groups.clear()
             if rol in ['RRHH', 'GERENTES']:
                 staff.groups.add(Group.objects.get_or_create(name=rol)[0])
@@ -680,9 +682,10 @@ class AdminMensajesTests(TestCase):
                 self.assertEqual(cliente.get(url).status_code, 405)
                 self.assertEqual(cliente.post(url).status_code, 403)
                 response = cliente.post(url, {'csrfmiddlewaretoken': token}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
-                self.assertEqual(response.status_code, 404 if rol == 'staff' else 200)
+                esperado = 404 if rol == 'staff' else (403 if rol == 'GERENTES' else 200)
+                self.assertEqual(response.status_code, esperado)
                 self.assertEqual(cliente.post(reverse(accion, args=[privado.pk]), {'csrfmiddlewaretoken': token}).status_code, 404)
-            self.assertEqual(Notificacion.objects.filter(pk=aviso.pk).exists(), rol == 'staff')
+            self.assertEqual(Notificacion.objects.filter(pk=aviso.pk).exists(), rol in ['staff', 'GERENTES'])
         privado.refresh_from_db()
         self.assertFalse(privado.leida)
 
@@ -694,6 +697,34 @@ class AdminMensajesTests(TestCase):
 
 
 class EditarEmpleadoNombresTests(TestCase):
+    def test_precarga_y_guardado_sin_perder_palabras(self):
+        from .forms import EditarEmpleadoForm
+        for completo in ['Ana Pérez Soto', 'María José Pérez Soto',
+                         'María José de la Cruz Pérez', '  María   José de la Cruz Pérez  ']:
+            with self.subTest(nombre=completo):
+                self.empleado.nombre_completo = completo
+                self.empleado.save()
+                formulario = EditarEmpleadoForm(instance=self.empleado)
+                campos = ['nombre', 'apellido_paterno', 'apellido_materno']
+                datos = dict(self.datos, **{c: formulario.initial[c] for c in campos})
+                respuesta = self.client.post(self.url, datos)
+                self.assertEqual(respuesta.status_code, 302)
+                self.empleado.refresh_from_db()
+                self.assertEqual(self.empleado.nombre_completo, ' '.join(completo.split()))
+
+    def test_historicos_incompletos_no_inventan_apellidos(self):
+        from .forms import EditarEmpleadoForm
+        for completo, esperado in [('Ana', ('Ana', '', '')),
+                                   ('Ana Pérez', ('Ana', 'Pérez', ''))]:
+            self.empleado.nombre_completo = completo
+            formulario = EditarEmpleadoForm(instance=self.empleado)
+            campos = ['nombre', 'apellido_paterno', 'apellido_materno']
+            self.assertEqual(tuple(formulario.initial[c] for c in campos), esperado)
+            formulario = EditarEmpleadoForm(dict(self.datos, **dict(zip(campos, esperado))),
+                                            instance=self.empleado)
+            self.assertFalse(formulario.is_valid())
+            self.assertIn('apellido_materno', formulario.errors)
+
     def setUp(self):
         from .models import Departamento, Puesto
         depto, _ = Departamento.objects.get_or_create(nombre='Edición prueba')
@@ -703,7 +734,7 @@ class EditarEmpleadoNombresTests(TestCase):
         self.admin = User.objects.create_user(username='editor_prueba', is_superuser=True)
         self.client.force_login(self.admin)
         self.url = reverse('editar_empleado', args=[self.empleado.pk])
-        self.datos = {'nombres': 'Almendra', 'apellidos': 'Valdés Antúnez',
+        self.datos = {'nombre': 'Almendra', 'apellido_paterno': 'Valdés', 'apellido_materno': 'Antúnez',
             'departamento': depto.nombre, 'cargo': 'Cargo edición', 'salario_mensual': '1000', 'estado_laboral': 'activo', 'fecha_contratacion': '2026-09-10'}
 
     def test_precarga_y_conservacion_de_palabras(self):
@@ -711,16 +742,16 @@ class EditarEmpleadoNombresTests(TestCase):
         for nombre in ['Almendra Valdés Antúnez', 'María José de la Cruz Pérez', 'Pedro González', 'Almendra']:
             self.empleado.nombre_completo = nombre
             f = EditarEmpleadoForm(instance=self.empleado)
-            self.assertEqual((f.initial['nombres'] + ' ' + f.initial['apellidos']).strip(), nombre)
+            self.assertEqual(' '.join(f.initial[c] for c in ['nombre', 'apellido_paterno', 'apellido_materno'] if f.initial[c]), nombre)
         response = self.client.get(self.url)
-        self.assertContains(response, 'name="nombres"')
-        self.assertContains(response, 'name="apellidos"')
+        self.assertContains(response, 'name="nombre"')
+        self.assertContains(response, 'name="apellido_materno"')
         self.assertNotContains(response, 'name="nombre_completo"')
 
     def test_vacios_no_modifican_y_conservan_valores(self):
         from .models import HistorialSalario
         avisos = Notificacion.objects.count()
-        for campo in ['nombres', 'apellidos']:
+        for campo in ['nombre', 'apellido_paterno', 'apellido_materno']:
             for valor in ['', '   ', '\u00a0']:
                 datos = dict(self.datos, **{campo: valor})
                 response = self.client.post(self.url, datos)
@@ -734,7 +765,7 @@ class EditarEmpleadoNombresTests(TestCase):
 
     def test_guardado_y_historial_salarial(self):
         from .models import HistorialSalario
-        response = self.client.post(self.url, dict(self.datos, nombres='María José', apellidos='De la Cruz Pérez'))
+        response = self.client.post(self.url, dict(self.datos, nombre='María José', apellido_paterno='De la Cruz', apellido_materno='Pérez'))
         self.assertEqual(response.status_code, 302)
         self.empleado.refresh_from_db()
         self.assertEqual(self.empleado.nombre_completo, 'María José De la Cruz Pérez')
@@ -750,13 +781,13 @@ class EditarEmpleadoNombresTests(TestCase):
 
     def test_limite_unido_y_commit_false(self):
         from .forms import EditarEmpleadoForm
-        f = EditarEmpleadoForm(dict(self.datos, nombres='A'*75, apellidos='B'*75), instance=self.empleado)
+        f = EditarEmpleadoForm(dict(self.datos, nombre='A'*75, apellido_materno='B'*75), instance=self.empleado)
         self.assertFalse(f.is_valid())
-        self.assertIn('apellidos', f.errors)
-        f = EditarEmpleadoForm(dict(self.datos, nombres=' Ana María ', apellidos=' Pérez '), instance=self.empleado)
+        self.assertIn('apellido_materno', f.errors)
+        f = EditarEmpleadoForm(dict(self.datos, nombre=' Ana María ', apellido_materno=' Pérez '), instance=self.empleado)
         self.assertTrue(f.is_valid(), f.errors)
         empleado = f.save(commit=False)
-        self.assertEqual(empleado.nombre_completo, 'Ana María Pérez')
+        self.assertEqual(empleado.nombre_completo, 'Ana María Valdés Pérez')
         self.assertEqual(Empleado.objects.get(pk=empleado.pk).nombre_completo, 'Almendra Valdés Antúnez')
 
     def test_fecha_contratacion_visible_y_conservada(self):
@@ -777,7 +808,7 @@ class EmpleadoAdminNombresTests(TestCase):
         self.puesto = Puesto.objects.create(nombre='Cargo admin prueba', departamento=self.depto, salario_base=1000)
         self.admin = User.objects.create_superuser(username='admin_empleado_prueba', password='prueba')
         self.client.force_login(self.admin)
-        self.datos = {'nombres': 'María José', 'apellidos': 'De la Cruz Pérez',
+        self.datos = {'nombre': 'María José', 'apellido_paterno': 'De la Cruz', 'apellido_materno': 'Pérez',
             'departamento_selector': self.depto.pk, 'cargo_selector': self.puesto.nombre,
             'salario_mensual': '1000', 'estado_laboral': 'activo', 'genero': 'femenino', '_save': 'Guardar', 'fecha_contratacion': '2026-09-10'}
 
@@ -790,7 +821,7 @@ class EmpleadoAdminNombresTests(TestCase):
         self.assertEqual(empleado.cargo, self.puesto.nombre)
         self.assertTrue(EmpleadoPuesto.objects.filter(empleado=empleado, puesto=self.puesto, es_actual=True).exists())
         url = reverse('admin:personal_empleado_change', args=[empleado.pk])
-        response = self.client.post(url, dict(self.datos, nombres='Ana María'))
+        response = self.client.post(url, dict(self.datos, nombre='Ana María'))
         self.assertEqual(response.status_code, 302)
         self.assertFalse(HistorialSalario.objects.filter(empleado=empleado).exists())
         nuevo = Puesto.objects.create(nombre='Segundo cargo', departamento=self.depto, salario_base=1200)
@@ -802,14 +833,14 @@ class EmpleadoAdminNombresTests(TestCase):
 
     def test_validacion_admin_y_limite(self):
         from .admin import EmpleadoAdminForm
-        for campo in ['nombres', 'apellidos']:
+        for campo in ['nombre', 'apellido_paterno', 'apellido_materno']:
             for valor in ['', '   ', '\u00a0']:
                 f = EmpleadoAdminForm(dict(self.datos, **{campo: valor}))
                 self.assertFalse(f.is_valid())
                 self.assertIn(campo, f.errors)
-        f = EmpleadoAdminForm(dict(self.datos, nombres='A'*75, apellidos='B'*75))
+        f = EmpleadoAdminForm(dict(self.datos, nombre='A'*75, apellido_materno='B'*75))
         self.assertFalse(f.is_valid())
-        self.assertIn('apellidos', f.errors)
+        self.assertIn('apellido_materno', f.errors)
         f = EmpleadoAdminForm(self.datos)
         self.assertTrue(f.is_valid(), f.errors)
         obj = f.save(commit=False)
@@ -824,10 +855,11 @@ class EmpleadoAdminNombresTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'value="Almendra"')
-        self.assertContains(response, 'value="Valdés Antúnez"')
+        self.assertContains(response, 'value="Valdés"')
+        self.assertContains(response, 'value="Antúnez"')
         self.assertNotContains(response, 'name="nombre_completo"')
-        response = self.client.post(url, dict(self.datos, apellidos='  '))
-        self.assertContains(response, 'Ingresa los apellidos del empleado.')
+        response = self.client.post(url, dict(self.datos, apellido_materno='  '))
+        self.assertContains(response, 'Ingresa el apellido materno.')
         e.refresh_from_db()
         self.assertEqual(e.nombre_completo, 'Almendra Valdés Antúnez')
 
@@ -850,7 +882,7 @@ class FechaContratacionObligatoriaTests(TestCase):
         self.client.force_login(usuario)
         empleado = Empleado.objects.create(nombre_completo='Ana Pérez', departamento=depto.nombre,
             cargo=puesto.nombre, salario_mensual=1000, genero='femenino')
-        datos = dict(nombres='Ana', apellidos='Pérez', departamento=depto.nombre,
+        datos = dict(nombre='Ana', apellido_paterno='González', apellido_materno='Pérez', departamento=depto.nombre,
             cargo=puesto.nombre, departamento_selector=depto.pk, cargo_selector=puesto.nombre,
             salario_mensual='1000', estado_laboral='activo', genero='femenino', _save='Guardar')
         rutas = [

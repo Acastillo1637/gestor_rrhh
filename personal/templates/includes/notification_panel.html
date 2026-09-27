@@ -14,6 +14,7 @@
             </span>
         </a>
         {# El backend permite avisos propios y, para gestión, los generales compartidos. #}
+        {% if puede_modificar_buzon %}
         <div class="notification-actions">
             {% if not notificacion.leida %}
             <form method="post" action="{% url 'marcar_notificacion_leida' notificacion.pk %}" data-notification-form>
@@ -29,13 +30,14 @@
                 </button>
             </form>
         </div>
+        {% endif %}
     </div>
     {% empty %}
     <div class="notifications-empty">No tienes notificaciones.</div>
     {% endfor %}
 </div>
 {# La acción general solo cambia leida=True; no elimina registros. #}
-{% if notificaciones_no_leidas %}
+{% if notificaciones_no_leidas and puede_modificar_buzon %}
 <div class="notifications-footer">
     <form method="post" action="{% url 'marcar_notificaciones_leidas' %}" data-notification-form>
         {% csrf_token %}

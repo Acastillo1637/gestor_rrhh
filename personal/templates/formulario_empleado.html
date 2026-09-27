@@ -92,7 +92,7 @@
                         Nombre <span>*</span>
                     </label>
                     {{ formulario.nombre }}
-                    {{ formulario.nombre.errors }}
+                    <div id="nombre-errors" aria-live="polite">{{ formulario.nombre.errors }}</div>
                 </div>
 
                 <!-- APELLIDO PATERNO -->
@@ -101,7 +101,7 @@
                         Apellido paterno <span>*</span>
                     </label>
                     {{ formulario.apellido_paterno }}
-                    {{ formulario.apellido_paterno.errors }}
+                    <div id="apellido_paterno-errors" aria-live="polite">{{ formulario.apellido_paterno.errors }}</div>
                 </div>
 
                 <!-- APELLIDO MATERNO -->
@@ -110,7 +110,7 @@
                         Apellido materno <span>*</span>
                     </label>
                     {{ formulario.apellido_materno }}
-                    {{ formulario.apellido_materno.errors }}
+                    <div id="apellido_materno-errors" aria-live="polite">{{ formulario.apellido_materno.errors }}</div>
                 </div>
 
                 <!-- DEPARTAMENTO -->
@@ -215,6 +215,7 @@
                         <span>*</span>
                     </label>
 
+                    {% if formulario.es_alta %}<div class="form-control">Activo</div>{% endif %}
                     {{ formulario.estado_laboral }}
 
                     <small>
@@ -261,6 +262,36 @@
 
 {% block extra_js %}
 {{ block.super }}
+{% if formulario.es_alta %}
+{{ formulario.departamentos_cargos|json_script:"departamentos-cargos" }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const departamentos = JSON.parse(document.getElementById('departamentos-cargos').textContent);
+    const departamento = document.getElementById('id_departamento');
+    const cargo = document.getElementById('id_cargo');
+    let revision = 0;
+    departamento.addEventListener('change', async function () {
+        const actual = ++revision;
+        cargo.replaceChildren(new Option('Seleccione primero un departamento', ''));
+        cargo.disabled = true;
+        const id = departamentos[departamento.value];
+        if (!id) return;
+        cargo.replaceChildren(new Option('Cargando cargos…', ''));
+        try {
+            const respuesta = await fetch('{% url "obtener_puestos_por_departamento" %}?departamento_id=' + encodeURIComponent(id));
+            if (!respuesta.ok) throw new Error('Error al cargar');
+            const puestos = await respuesta.json();
+            if (actual !== revision) return;
+            cargo.replaceChildren(new Option(puestos.length ? 'Seleccione un cargo' : 'Este departamento no tiene cargos disponibles', ''));
+            puestos.forEach(puesto => cargo.add(new Option(puesto.nombre, puesto.nombre)));
+            cargo.disabled = !puestos.length;
+        } catch (error) {
+            if (actual === revision) cargo.replaceChildren(new Option('No se pudieron cargar los cargos. Seleccione nuevamente el departamento.', ''));
+        }
+    });
+});
+</script>
+{% endif %}
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {

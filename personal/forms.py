@@ -212,6 +212,13 @@ class NombreEmpleadoForm(forms.ModelForm):
         fecha = self.fields['fecha_contratacion']
         fecha.required = True
         fecha.error_messages['required'] = 'Ingresa la fecha de contratación.'
+        for campo in ('nombre', 'apellido_paterno', 'apellido_materno'):
+            self.fields[campo].widget.attrs.update({
+                'data-name-part': campo,
+                'data-name-label': self.fields[campo].label.lower(),
+                'pattern': r'.*\S.*',
+                'aria-describedby': f'{campo}-errors',
+            })
 
     def clean(self):
         datos = super().clean()
@@ -245,20 +252,44 @@ class NombreEmpleadoForm(forms.ModelForm):
 
             self.initial.setdefault(
                 'nombre',
-                partes[0] if partes else ''
+                ' '.join(partes[:-2]) if len(partes) >= 3 else (partes[0] if partes else '')
             )
             self.initial.setdefault(
                 'apellido_paterno',
-                partes[-2] if len(partes) >= 3 else ''
+                partes[-2] if len(partes) >= 3 else (partes[1] if len(partes) == 2 else '')
             )
             self.initial.setdefault(
                 'apellido_materno',
-                partes[-1] if len(partes) >= 2 else ''
+                partes[-1] if len(partes) >= 3 else ''
             )
 
 
 class CrearEmpleadoForm(NombreEmpleadoForm, EmpleadoForm):
     """Conserva los campos laborales del portal y la validación común del nombre."""
+
+    es_alta = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.es_alta:
+            return
+        self.fields['estado_laboral'].disabled = True
+        self.fields['estado_laboral'].widget = forms.HiddenInput()
+        self.initial['estado_laboral'] = 'activo'
+        if not self.is_bound and not self.instance.pk:
+            self.initial.setdefault('fecha_contratacion', timezone.localdate())
+        self.departamentos_cargos = dict(Departamento.objects.values_list('nombre', 'pk'))
+        departamento = self.data.get('departamento') if self.is_bound else self.initial.get('departamento')
+        puestos = Puesto.objects.filter(departamento__nombre=departamento).order_by('nombre') if departamento else Puesto.objects.none()
+        opciones = [(p.nombre, p.nombre) for p in puestos]
+        mensaje = 'Seleccione un cargo' if opciones else (
+            'Este departamento no tiene cargos disponibles' if departamento else 'Seleccione primero un departamento')
+        self.fields['cargo'].choices = [('', mensaje)] + opciones
+        if not opciones:
+            self.fields['cargo'].widget.attrs['disabled'] = True
+
+    def clean_estado_laboral(self):
+        return 'activo' if self.es_alta else self.cleaned_data['estado_laboral']
 
     class Meta(EmpleadoForm.Meta):
         fields = [
@@ -273,6 +304,8 @@ class CrearEmpleadoForm(NombreEmpleadoForm, EmpleadoForm):
 
 class EditarEmpleadoForm(CrearEmpleadoForm):
     """Reutiliza la validación y el guardado del alta, sin duplicar campos del modelo."""
+
+    es_alta = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -414,7 +414,7 @@ class EmpleadoAdminForm(NombreEmpleadoForm):
         # Solo cambia la captura del nombre; los selectores y save() se conservan.
         self.precargar_nombre()
         if self.instance.pk:
-            self.fields['apellidos'].help_text = (
+            self.fields['apellido_materno'].help_text = (
                 'Revisa la separación de nombres y apellidos, especialmente si son compuestos.'
             )
 
@@ -511,7 +511,7 @@ class EmpleadoAdmin(admin.ModelAdmin):
 
     fields = (
         'usuario',
-        ('nombres', 'apellidos'),
+        ('nombre', 'apellido_paterno', 'apellido_materno'),
         'email',
         'dni',
         'fecha_nacimiento',

@@ -4,7 +4,7 @@
 
 from django.contrib.auth.models import User, Group
 from django.utils.crypto import get_random_string
-from django.utils.text import slugify
+from .usernames import generar_username_unico
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.db import transaction
@@ -47,6 +47,7 @@ from openpyxl.styles import Font, Alignment
 from django.template.loader import render_to_string
 from django.middleware.csrf import get_token
 from .context_processors import contexto_rol
+from .autorizacion_permisos import puede_resolver_permiso
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.core.exceptions import PermissionDenied
@@ -203,7 +204,7 @@ def crear_notificacion(
     )
 
 
-def crear_usuario_para_empleado(empleado):
+def crear_usuario_para_empleado(empleado, *, nombre, apellido_paterno, apellido_materno=''):
     """
     Crea automáticamente una cuenta de acceso para un empleado.
 
@@ -216,22 +217,9 @@ def crear_usuario_para_empleado(empleado):
     # CREAR NOMBRE DE USUARIO
     # ---------------------------------------------------------
 
-    # Ejemplo:
-    # Juan Pérez González -> juan.perez.gonzalez
-    username_base = slugify(
-        empleado.nombre_completo
-    ).replace("-", ".")
-
-    if not username_base:
-        username_base = "empleado"
-
-    username = username_base
-    contador = 1
-
-    # Evita usuarios repetidos
-    while User.objects.filter(username=username).exists():
-        username = f"{username_base}{contador}"
-        contador += 1
+    if empleado.usuario_id:
+        raise ValueError('El empleado ya tiene una cuenta vinculada.')
+    username = generar_username_unico(nombre, apellido_paterno, apellido_materno)
 
     # ---------------------------------------------------------
     # GENERAR CONTRASEÑA TEMPORAL
@@ -389,7 +377,7 @@ def cerrar_sesion(request):
 
 @login_required(login_url='login')
 @user_passes_test(
-    usuario_rrhh,
+    usuario_autorizado,
     login_url='login'
 )
 def dashboard_gestion(request):
@@ -765,7 +753,10 @@ def crear_empleado(request):
 
                     if not empleado.usuario:
                         usuario, password_temporal = crear_usuario_para_empleado(
-                            empleado
+                            empleado,
+                            nombre=formulario.cleaned_data['nombre'],
+                            apellido_paterno=formulario.cleaned_data['apellido_paterno'],
+                            apellido_materno=formulario.cleaned_data['apellido_materno'],
                         )
 
                 crear_notificacion(
@@ -1033,6 +1024,9 @@ def gestion_permisos(request):
         estado='rechazado'
     ).count()
 
+    for permiso in permisos:
+        permiso.puede_resolver = puede_resolver_permiso(request.user, permiso)
+
     contexto = {
         'permisos': permisos,
         'puede_gestionar': usuario_rrhh(request.user),
@@ -1074,22 +1068,21 @@ def gestion_permisos(request):
 # =============================================================================
 
 @login_required(login_url='login')
-@user_passes_test(
-    usuario_rrhh,
-    login_url='login'
-)
 def aprobar_permiso(
     request,
     permiso_id
 ):
 
-    if request.method != 'POST':
-        return redirect('gestion_permisos')
-
     permiso = get_object_or_404(
         Permiso,
         id=permiso_id
     )
+
+    if not puede_resolver_permiso(request.user, permiso):
+        raise PermissionDenied
+
+    if request.method != 'POST':
+        return redirect('gestion_permisos')
 
     if permiso.estado != 'pendiente':
 
@@ -1139,22 +1132,21 @@ def aprobar_permiso(
 # =============================================================================
 
 @login_required(login_url='login')
-@user_passes_test(
-    usuario_autorizado,
-    login_url='login'
-)
 def rechazar_permiso(
     request,
     permiso_id
 ):
 
-    if request.method != 'POST':
-        return redirect('gestion_permisos')
-
     permiso = get_object_or_404(
         Permiso,
         id=permiso_id
     )
+
+    if not puede_resolver_permiso(request.user, permiso):
+        raise PermissionDenied
+
+    if request.method != 'POST':
+        return redirect('gestion_permisos')
 
     if permiso.estado != 'pendiente':
 
@@ -2030,6 +2022,9 @@ def volver_a_notificaciones(request):
 def marcar_notificaciones_leidas(request):
     """Marca el buzón actual sin borrar filas; gestión conserva su buzón compartido."""
 
+    if usuario_gerente(request.user):
+        raise PermissionDenied
+
     if usuario_autorizado(request.user):
         notificaciones = Notificacion.objects.filter(
             usuario__isnull=True,
@@ -2068,7 +2063,10 @@ def notificacion_editable(request, notificacion_id):
     if usuario_autorizado(request.user):
         alcance |= Q(usuario__isnull=True)
     # Ser staff no basta; nunca se incluyen avisos personales de otros usuarios.
-    return get_object_or_404(Notificacion.objects.filter(alcance), pk=notificacion_id)
+    aviso = get_object_or_404(Notificacion.objects.filter(alcance), pk=notificacion_id)
+    if aviso.usuario_id is None and usuario_gerente(request.user):
+        raise PermissionDenied
+    return aviso
 
 
 @login_required(login_url='login')

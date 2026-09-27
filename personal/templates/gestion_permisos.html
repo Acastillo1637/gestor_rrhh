@@ -338,7 +338,7 @@ Gestión de permisos
 
                         <td>
 
-                            {% if permiso.estado == 'pendiente' and puede_gestionar %}
+                            {% if permiso.estado == 'pendiente' and permiso.puede_resolver %}
 
                                 <div class="permission-actions">
 

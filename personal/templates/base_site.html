@@ -589,7 +589,6 @@
 
             </a>
 
-            {% if not es_gerente %}
 
             <span class="nav-section">
                 SISTEMA
@@ -600,6 +599,7 @@
                 <span class="nav-icon">★</span><span>Evaluaciones</span>
             </a>
 
+            {% if request.user.is_active and request.user.is_staff %}
             <a
                 href="/admin/"
                 class="nav-link"
