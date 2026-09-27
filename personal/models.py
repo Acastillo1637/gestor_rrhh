@@ -3,6 +3,7 @@
 # -----------------------------------------------------------------------------
 
 from django.db import models
+from django.db.models.functions import ExtractYear, ExtractMonth
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
@@ -260,6 +261,12 @@ class Salario(models.Model):
     class Meta:
         unique_together = ('empleado', 'mes_ano')
         ordering = ['-mes_ano']
+        constraints = [
+            models.UniqueConstraint(
+                models.F('empleado'), ExtractYear('mes_ano'), ExtractMonth('mes_ano'),
+                name='salario_unico_empleado_mes',
+            ),
+        ]
 
     def save(self, *args, **kwargs):
         self.neto = (
