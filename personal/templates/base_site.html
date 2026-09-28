@@ -624,8 +624,8 @@
         <!-- NAVEGACIÓN EMPLEADO -->
         <!-- ========================================================= -->
 
-        {% if es_gerente and es_empleado %}
-        <nav class="sidebar-nav" aria-label="Autoservicio del gerente">
+        {% if tiene_autoservicio %}
+        <nav class="sidebar-nav" aria-label="Autoservicio personal">
             <span class="nav-section">MI PORTAL</span>
             <a href="{% url 'mi_asistencia' %}" class="nav-link {% if request.resolver_match.url_name == 'mi_asistencia' %}active{% endif %}"><span class="nav-icon">✓</span><span>Mi asistencia</span></a>
             <a href="{% url 'mis_permisos' %}" class="nav-link {% if request.resolver_match.url_name == 'mis_permisos' %}active{% endif %}"><span class="nav-icon">📋</span><span>Mis permisos</span></a>
@@ -635,7 +635,7 @@
         </nav>
         {% endif %}
 
-        {% else %}
+        {% elif tiene_autoservicio %}
 
         <nav class="sidebar-nav">
 

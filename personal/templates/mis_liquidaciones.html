@@ -14,7 +14,7 @@ Mis liquidaciones
             Mis liquidaciones
         </h1>
 
-        <p>
+        <p class="empty-state">
             Consulta el historial de tus remuneraciones.
         </p>
     </div>
@@ -22,7 +22,8 @@ Mis liquidaciones
 </div>
 
 
-<div class="card">
+<div class="card employees-card">
+<div class="table-responsive employees-table">
 
     {% if liquidaciones %}
 
@@ -95,6 +96,8 @@ Mis liquidaciones
 
     {% endif %}
 
+</div>
+{% include 'includes/listado_paginacion.html' %}
 </div>
 
 {% endblock %}

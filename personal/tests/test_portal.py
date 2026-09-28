@@ -9,8 +9,8 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Empleado, Notificacion
-from .models import Evaluacion
+from ..models import Empleado, Notificacion
+from ..models import Evaluacion
 
 
 class MenuUsuarioPortalTests(TestCase):
@@ -79,7 +79,7 @@ class EvaluacionesTests(TestCase):
     def test_periodos_semestrales_preestablecidos(self):
         from datetime import date
         from unittest.mock import patch
-        from .forms import EvaluacionForm
+        from ..forms import EvaluacionForm
         self.client.force_login(self.rrhh)
         for fecha, periodo in [
             (date(2026, 6, 30), '2026 - Primer semestre'),
@@ -236,7 +236,7 @@ class CamposFormularioParser(HTMLParser):
 class ConservacionImportesTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        from .models import Departamento, Puesto
+        from ..models import Departamento, Puesto
         departamento = Departamento.objects.create(nombre='Pruebas de importes')
         Puesto.objects.create(
             nombre='Analista', departamento=departamento,
@@ -253,7 +253,7 @@ class ConservacionImportesTests(TestCase):
         self.client.force_login(self.usuario)
 
     def test_formulario_empleado_rechaza_salario_negativo(self):
-        from .forms import EmpleadoForm
+        from ..forms import EmpleadoForm
 
         formulario = EmpleadoForm(instance=self.empleado, data={
             'nombre_completo': 'Ana Prueba',
@@ -268,7 +268,7 @@ class ConservacionImportesTests(TestCase):
         self.assertIn('El importe debe ser superior o igual a 0.', formulario.errors['salario_mensual'])
 
     def test_editar_nombre_conserva_salario_sin_crear_historial(self):
-        from .models import HistorialSalario
+        from ..models import HistorialSalario
         url = reverse('editar_empleado', args=[self.empleado.pk])
         for importe in ('850000.00', '1000.50', '0.00'):
             with self.subTest(importe=importe):
@@ -313,7 +313,7 @@ class ConservacionImportesTests(TestCase):
         self.assertEqual(self.empleado.salario_mensual, Decimal('1000.50'))
 
     def test_nomina_rechaza_importes_negativos(self):
-        from .forms import NominaForm
+        from ..forms import NominaForm
 
         formulario = NominaForm(data={
             'empleado': self.empleado.pk,
@@ -327,7 +327,7 @@ class ConservacionImportesTests(TestCase):
         self.assertIn('El importe debe ser superior o igual a 0.', formulario.errors['salario_base'])
 
     def test_nomina_invalida_conserva_importes_y_calcula_neto_al_corregir(self):
-        from .models import Salario
+        from ..models import Salario
         from unittest.mock import patch
         from datetime import date
         reloj = patch('django.utils.timezone.localdate', return_value=date(2026, 10, 1))
@@ -407,7 +407,7 @@ class NotificacionesGlobalesTests(TestCase):
         self.assertEqual(len(respuesta.context['ultimas_notificaciones']), 8)
 
     def test_anonimo_no_consulta_notificaciones(self):
-        from .context_processors import contexto_rol
+        from ..context_processors import contexto_rol
         request = RequestFactory().get('/login/')
         request.user = AnonymousUser()
         with self.assertNumQueries(0):
@@ -544,7 +544,7 @@ class CrearEmpleadoNombresTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        from .models import Departamento, Puesto
+        from ..models import Departamento, Puesto
         departamento, _ = Departamento.objects.get_or_create(nombre='Pruebas nombre')
         Puesto.objects.get_or_create(nombre='Cargo prueba', departamento=departamento, defaults={'salario_base': 1000})
         cls.admin = User.objects.create_user(username='rrhh_prueba', is_superuser=True)
@@ -557,7 +557,7 @@ class CrearEmpleadoNombresTests(TestCase):
         return datos
 
     def test_obligatorios_y_espacios(self):
-        from .forms import CrearEmpleadoForm
+        from ..forms import CrearEmpleadoForm
         for campo in ['nombre', 'apellido_paterno', 'apellido_materno']:
             for valor in ['', '   ', '\t\n', '\u00a0']:
                 with self.subTest(campo=campo, valor=valor):
@@ -568,7 +568,7 @@ class CrearEmpleadoNombresTests(TestCase):
                         f.save()
 
     def test_union_y_commit_false(self):
-        from .forms import CrearEmpleadoForm
+        from ..forms import CrearEmpleadoForm
         f = CrearEmpleadoForm(self.datos(nombre='  María   José ', apellido_paterno=' De la ', apellido_materno=' Cruz-Pérez '))
         self.assertTrue(f.is_valid(), f.errors)
         empleado = f.save(commit=False)
@@ -579,7 +579,7 @@ class CrearEmpleadoNombresTests(TestCase):
         self.assertEqual(empleado.nombre_completo, 'María José De la Cruz-Pérez')
 
     def test_limite_combinado(self):
-        from .forms import CrearEmpleadoForm
+        from ..forms import CrearEmpleadoForm
         f = CrearEmpleadoForm(self.datos(nombre='A' * 50, apellido_paterno='B' * 49, apellido_materno='C' * 49))
         self.assertTrue(f.is_valid(), f.errors)
         self.assertEqual(len(f.save().nombre_completo), 150)
@@ -610,7 +610,7 @@ class CrearEmpleadoNombresTests(TestCase):
         self.assertEqual(User.objects.count(), cantidad)
 
     def test_edicion_preserva_nombre_existente(self):
-        from .forms import EmpleadoForm
+        from ..forms import EmpleadoForm
         empleado = Empleado.objects.create(nombre_completo='Ana María de los Ángeles Pérez')
         datos = self.datos(nombre_completo=empleado.nombre_completo)
         f = EmpleadoForm(datos, instance=empleado)
@@ -619,7 +619,7 @@ class CrearEmpleadoNombresTests(TestCase):
         self.assertEqual(f.save().nombre_completo, 'Ana María de los Ángeles Pérez')
 
     def test_campos_y_atributos_html(self):
-        from .forms import CrearEmpleadoForm
+        from ..forms import CrearEmpleadoForm
         f = CrearEmpleadoForm()
         self.assertEqual(set(f.fields), {'nombre', 'apellido_paterno', 'apellido_materno', 'cargo', 'departamento', 'salario_mensual', 'fecha_contratacion', 'estado_laboral'})
         self.client.force_login(self.admin)
@@ -704,7 +704,7 @@ class AdminMensajesTests(TestCase):
 
 class EditarEmpleadoNombresTests(TestCase):
     def test_precarga_y_guardado_sin_perder_palabras(self):
-        from .forms import EditarEmpleadoForm
+        from ..forms import EditarEmpleadoForm
         for completo in ['Ana Pérez Soto', 'María José Pérez Soto',
                          'María José de la Cruz Pérez', '  María   José de la Cruz Pérez  ']:
             with self.subTest(nombre=completo):
@@ -719,7 +719,7 @@ class EditarEmpleadoNombresTests(TestCase):
                 self.assertEqual(self.empleado.nombre_completo, ' '.join(completo.split()))
 
     def test_historicos_incompletos_no_inventan_apellidos(self):
-        from .forms import EditarEmpleadoForm
+        from ..forms import EditarEmpleadoForm
         for completo, esperado in [('Ana', ('Ana', '', '')),
                                    ('Ana Pérez', ('Ana', 'Pérez', ''))]:
             self.empleado.nombre_completo = completo
@@ -732,7 +732,7 @@ class EditarEmpleadoNombresTests(TestCase):
             self.assertIn('apellido_materno', formulario.errors)
 
     def setUp(self):
-        from .models import Departamento, Puesto
+        from ..models import Departamento, Puesto
         depto, _ = Departamento.objects.get_or_create(nombre='Edición prueba')
         Puesto.objects.get_or_create(nombre='Cargo edición', departamento=depto, defaults={'salario_base': 1000})
         self.empleado = Empleado.objects.create(nombre_completo='Almendra Valdés Antúnez',
@@ -744,7 +744,7 @@ class EditarEmpleadoNombresTests(TestCase):
             'departamento': depto.nombre, 'cargo': 'Cargo edición', 'salario_mensual': '1000', 'estado_laboral': 'activo', 'fecha_contratacion': '2026-09-10'}
 
     def test_precarga_y_conservacion_de_palabras(self):
-        from .forms import EditarEmpleadoForm
+        from ..forms import EditarEmpleadoForm
         for nombre in ['Almendra Valdés Antúnez', 'María José de la Cruz Pérez', 'Pedro González', 'Almendra']:
             self.empleado.nombre_completo = nombre
             f = EditarEmpleadoForm(instance=self.empleado)
@@ -755,7 +755,7 @@ class EditarEmpleadoNombresTests(TestCase):
         self.assertNotContains(response, 'name="nombre_completo"')
 
     def test_vacios_no_modifican_y_conservan_valores(self):
-        from .models import HistorialSalario
+        from ..models import HistorialSalario
         avisos = Notificacion.objects.count()
         for campo in ['nombre', 'apellido_paterno', 'apellido_materno']:
             for valor in ['', '   ', '\u00a0']:
@@ -770,7 +770,7 @@ class EditarEmpleadoNombresTests(TestCase):
         self.assertFalse(HistorialSalario.objects.filter(empleado=self.empleado).exists())
 
     def test_guardado_y_historial_salarial(self):
-        from .models import HistorialSalario
+        from ..models import HistorialSalario
         response = self.client.post(self.url, dict(self.datos, nombre='María José', apellido_paterno='De la Cruz', apellido_materno='Pérez'))
         self.assertEqual(response.status_code, 302)
         self.empleado.refresh_from_db()
@@ -786,7 +786,7 @@ class EditarEmpleadoNombresTests(TestCase):
         self.assertEqual(historial.salario_nuevo, 1200)
 
     def test_limite_unido_y_commit_false(self):
-        from .forms import EditarEmpleadoForm
+        from ..forms import EditarEmpleadoForm
         f = EditarEmpleadoForm(dict(self.datos, nombre='A'*75, apellido_materno='B'*75), instance=self.empleado)
         self.assertFalse(f.is_valid())
         self.assertIn('apellido_materno', f.errors)
@@ -809,7 +809,7 @@ class EditarEmpleadoNombresTests(TestCase):
 
 class EmpleadoAdminNombresTests(TestCase):
     def setUp(self):
-        from .models import Departamento, Puesto
+        from ..models import Departamento, Puesto
         self.depto = Departamento.objects.create(nombre='Depto admin prueba')
         self.puesto = Puesto.objects.create(nombre='Cargo admin prueba', departamento=self.depto, salario_base=1000)
         self.admin = User.objects.create_superuser(username='admin_empleado_prueba', password='prueba')
@@ -819,7 +819,7 @@ class EmpleadoAdminNombresTests(TestCase):
             'salario_mensual': '1000', 'estado_laboral': 'activo', 'genero': 'femenino', '_save': 'Guardar', 'fecha_contratacion': '2026-09-10'}
 
     def test_alta_edicion_e_historiales(self):
-        from .models import EmpleadoPuesto, HistorialSalario, Puesto
+        from ..models import EmpleadoPuesto, HistorialSalario, Puesto
         response = self.client.post(reverse('admin:personal_empleado_add'), self.datos)
         self.assertEqual(response.status_code, 302, response.context['adminform'].form.errors if response.status_code == 200 else '')
         empleado = Empleado.objects.get(nombre_completo='María José De la Cruz Pérez')
@@ -838,7 +838,7 @@ class EmpleadoAdminNombresTests(TestCase):
         self.assertTrue(EmpleadoPuesto.objects.filter(empleado=empleado, puesto=nuevo, es_actual=True).exists())
 
     def test_validacion_admin_y_limite(self):
-        from .admin import EmpleadoAdminForm
+        from ..admin import EmpleadoAdminForm
         for campo in ['nombre', 'apellido_paterno', 'apellido_materno']:
             for valor in ['', '   ', '\u00a0']:
                 f = EmpleadoAdminForm(dict(self.datos, **{campo: valor}))
@@ -881,7 +881,7 @@ class FechaContratacionObligatoriaTests(TestCase):
 
     def test_fecha_obligatoria_en_portal_y_admin(self):
         from datetime import date
-        from .models import Departamento, Puesto
+        from ..models import Departamento, Puesto
         depto = Departamento.objects.create(nombre='Fecha prueba')
         puesto = Puesto.objects.create(nombre='Cargo fecha', departamento=depto, salario_base=1000)
         usuario = User.objects.create_superuser(username='admin_fecha', password='prueba')
@@ -937,7 +937,7 @@ class FiltroFechasAsistenciaTests(TestCase):
 
     def test_fechas_invalidas_y_rango_invertido(self):
         from django.utils import timezone
-        from .models import Asistencia
+        from ..models import Asistencia
         empleado = Empleado.objects.create(nombre_completo='Empleado filtro', departamento='Prueba fechas')
         casos = [
             {'fecha_desde': 'no-es-fecha'},
@@ -960,7 +960,7 @@ class FiltroFechasAsistenciaTests(TestCase):
                 self.assertFalse(Asistencia.objects.exists())
 
     def test_filtro_valido_y_fechas_vacias(self):
-        from .models import Asistencia
+        from ..models import Asistencia
         from django.utils import timezone
         empleado = Empleado.objects.create(nombre_completo='Empleado rango')
         dentro = Asistencia.objects.create(empleado=empleado, fecha='2026-09-10')

@@ -1,9 +1,9 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 
-from .models import Empleado
-from .usernames import generar_username_unico
-from .views import crear_usuario_para_empleado
+from ..models import Empleado
+from ..usernames import generar_username_unico
+from ..views import crear_usuario_para_empleado
 
 
 class UsernameTests(TestCase):

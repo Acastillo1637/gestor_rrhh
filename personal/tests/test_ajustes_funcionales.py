@@ -8,8 +8,8 @@ from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from .forms import NominaForm
-from .models import Empleado, Asistencia, Salario, Notificacion
+from ..forms import NominaForm
+from ..models import Empleado, Asistencia, Salario, Notificacion
 
 
 class AjustesFuncionalesTests(TestCase):

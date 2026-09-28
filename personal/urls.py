@@ -11,6 +11,7 @@ urlpatterns = [
     path('evaluaciones/<int:evaluacion_id>/', views.detalle_evaluacion, name='detalle_evaluacion'),
     path('evaluaciones/<int:evaluacion_id>/editar/', views.formulario_evaluacion, name='editar_evaluacion'),
     path('mis-evaluaciones/', views.mis_evaluaciones, name='mis_evaluaciones'),
+    path('mis-evaluaciones/<int:evaluacion_id>/', views.mi_evaluacion, name='mi_evaluacion'),
 
     # -------------------------------------------------------------------------
     # Autenticación

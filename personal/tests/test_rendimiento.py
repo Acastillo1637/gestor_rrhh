@@ -7,9 +7,9 @@ from django.test import TestCase, RequestFactory
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from .autorizacion_permisos import preparar_acciones_permisos, puede_resolver_permiso
-from .models import Departamento, Empleado, EmpleadoPuesto, Puesto, Permiso, Asistencia, Salario
-from .rendimiento import roles_en_request, roles_usuario
+from ..autorizacion_permisos import preparar_acciones_permisos, puede_resolver_permiso
+from ..models import Departamento, Empleado, EmpleadoPuesto, Puesto, Permiso, Asistencia, Salario
+from ..rendimiento import roles_en_request, roles_usuario
 
 
 class ListadosRendimientoTests(TestCase):

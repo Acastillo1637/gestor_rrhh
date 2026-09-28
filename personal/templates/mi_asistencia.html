@@ -121,7 +121,7 @@
 </div>
 
 
-<div class="content-card" style="margin-top: 25px;">
+<div class="card employees-card" style="margin-top: 25px;">
 
     <div class="card-header">
         <div>
@@ -131,9 +131,9 @@
     </div>
 
 
-    <div style="overflow-x: auto;">
+    <div class="table-responsive employees-table">
 
-        <table class="data-table">
+        <table>
 
             <thead>
                 <tr>
@@ -200,7 +200,7 @@
 
                     <tr>
                         <td colspan="5">
-                            No tienes registros de asistencia.
+                            <div class="empty-state">No tienes registros de asistencia.</div>
                         </td>
                     </tr>
 
@@ -212,6 +212,7 @@
 
     </div>
 
+{% include 'includes/listado_paginacion.html' %}
 </div>
 
 {% endblock %}

@@ -1,4 +1,4 @@
-// Ejecutar con: node personal/test_estado_liquidacion_js.cjs
+// Ejecutar con: node personal/tests/test_estado_liquidacion_js.cjs
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
@@ -13,7 +13,7 @@ form.dataset.estadoUrl = '/estado/';
 form.checkValidity = () => true;
 ids['formulario-nomina'] = form;
 const pendientes = [];
-vm.runInNewContext(fs.readFileSync('personal/static/personal/js/estado_liquidacion.js','utf8'), {
+vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname, '../static/personal/js/estado_liquidacion.js'),'utf8'), {
     document: {getElementById: id => ids[id]}, URLSearchParams, AbortController,
     fetch: () => new Promise(resolve => pendientes.push(resolve)),
 });

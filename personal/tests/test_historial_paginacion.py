@@ -8,7 +8,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Empleado, HistorialSalario
+from ..models import Empleado, HistorialSalario
 
 
 class HistorialPaginacionTests(TestCase):

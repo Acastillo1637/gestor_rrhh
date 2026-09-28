@@ -154,14 +154,21 @@ def detalle_evaluacion(request, evaluacion_id):
 @roles_en_request
 @login_required(login_url='login')
 def mis_evaluaciones(request):
-    try:
-        empleado = request.user.empleado
-    except Empleado.DoesNotExist:
-        raise Http404
+    empleado = empleado_autoservicio(request.user)
     evaluaciones = Evaluacion.objects.filter(empleado=empleado).order_by('-pk')
     return render(request, 'mis_evaluaciones.html', {
         'empleado': empleado,
         'pagina': Paginator(evaluaciones, 20).get_page(request.GET.get('page')),
+    })
+
+
+@login_required(login_url='login')
+def mi_evaluacion(request, evaluacion_id):
+    empleado = empleado_autoservicio(request.user)
+    evaluacion = get_object_or_404(Evaluacion.objects.select_related('empleado'),
+                                 pk=evaluacion_id, empleado=empleado)
+    return render(request, 'detalle_evaluacion.html', {
+        'evaluacion': evaluacion, 'puede_editar': False, 'vista_personal': True,
     })
 
 
@@ -1169,18 +1176,7 @@ def rechazar_permiso(
 @login_required(login_url='login')
 def solicitar_permiso(request):
 
-    try:
-
-        empleado = request.user.empleado
-
-    except Empleado.DoesNotExist:
-
-        messages.error(
-            request,
-            'Tu usuario no está asociado a un empleado.'
-        )
-
-        return redirect('inicio')
+    empleado = empleado_autoservicio(request.user)
 
     if request.method == 'POST':
 
@@ -1273,28 +1269,19 @@ def solicitar_permiso(request):
 @login_required(login_url='login')
 def mis_permisos(request):
 
-    try:
-
-        empleado = request.user.empleado
-
-    except Empleado.DoesNotExist:
-
-        messages.error(
-            request,
-            'Tu usuario no está asociado a un empleado.'
-        )
-
-        return redirect('inicio')
+    empleado = empleado_autoservicio(request.user)
 
     permisos = (
         Permiso.objects
         .filter(
             empleado=empleado
         )
-        .order_by('-fecha_inicio')
+        .order_by('-fecha_inicio', '-pk')
     )
 
+    permisos, paginacion = paginar(request, permisos)
     contexto = {
+        **paginacion,
         'empleado': empleado,
         'permisos': permisos,
         'titulo': 'Mis permisos',
@@ -1901,28 +1888,19 @@ def marcar_liquidacion_pagada(
 @login_required(login_url='login')
 def mis_liquidaciones(request):
 
-    try:
-
-        empleado = request.user.empleado
-
-    except Empleado.DoesNotExist:
-
-        messages.error(
-            request,
-            'Tu usuario no está asociado a un empleado.'
-        )
-
-        return redirect('inicio')
+    empleado = empleado_autoservicio(request.user)
 
     liquidaciones = (
         Salario.objects
         .filter(
             empleado=empleado
         )
-        .order_by('-mes_ano')
+        .order_by('-mes_ano', '-pk')
     )
 
+    liquidaciones, paginacion = paginar(request, liquidaciones)
     contexto = {
+        **paginacion,
         'empleado': empleado,
         'liquidaciones': liquidaciones,
         'titulo': 'Mis liquidaciones',
@@ -2324,17 +2302,7 @@ def gestion_asistencia(request):
 @login_required(login_url='login')
 def mi_asistencia(request):
 
-    try:
-        empleado = request.user.empleado
-
-    except Empleado.DoesNotExist:
-
-        messages.error(
-            request,
-            'Tu usuario no está asociado a un empleado.'
-        )
-
-        return redirect('dashboard_empleado')
+    empleado = empleado_autoservicio(request.user)
 
     hoy = timezone.localdate()
 
@@ -2448,10 +2416,12 @@ def mi_asistencia(request):
         .filter(
             empleado=empleado
         )
-        .order_by('-fecha')[:30]
+        .order_by('-fecha', '-pk')
     )
 
+    mis_asistencias, paginacion = paginar(request, mis_asistencias)
     contexto = {
+        **paginacion,
         'empleado': empleado,
         'asistencia_hoy': asistencia_hoy,
         'mis_asistencias': mis_asistencias,
@@ -2469,3 +2439,14 @@ def resumen_empleados(empleados):
         total=Count('pk'), activos=Count('pk', filter=Q(estado_laboral__iexact='activo')),
         inactivos=Count('pk', filter=~Q(estado_laboral__iexact='activo')),
         nomina=Sum('salario_mensual', filter=Q(estado_laboral__iexact='activo')))
+
+
+def empleado_autoservicio(user):
+    """La identidad personal procede exclusivamente de la cuenta autenticada."""
+    try:
+        empleado = user.empleado
+    except Empleado.DoesNotExist:
+        raise PermissionDenied
+    if empleado.estado_laboral != 'activo':
+        raise PermissionDenied
+    return empleado

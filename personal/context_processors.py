@@ -58,6 +58,7 @@ def contexto_rol(request):
         'es_gestion': es_gestion,
         'es_gerente': es_gerente,
         'es_empleado': es_empleado,
+        'tiene_autoservicio': es_empleado and request.user.empleado.estado_laboral == 'activo',
         'puede_modificar_buzon': puede_modificar_buzon,
         'notificaciones_no_leidas': notificaciones_no_leidas,
         'ultimas_notificaciones': ultimas_notificaciones,

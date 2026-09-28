@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from .models import Departamento, Empleado, EmpleadoPuesto, Notificacion, Permiso, Puesto
+from ..models import Departamento, Empleado, EmpleadoPuesto, Notificacion, Permiso, Puesto
 
 
 class PermisosDepartamentoTests(TestCase):

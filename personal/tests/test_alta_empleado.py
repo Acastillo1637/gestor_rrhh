@@ -6,8 +6,8 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .forms import CrearEmpleadoForm, EditarEmpleadoForm
-from .models import Departamento, Empleado, Puesto
+from ..forms import CrearEmpleadoForm, EditarEmpleadoForm
+from ..models import Departamento, Empleado, Puesto
 
 
 class AltaEmpleadoTests(TestCase):
