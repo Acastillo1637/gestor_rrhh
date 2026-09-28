@@ -5,6 +5,7 @@
 from django import forms
 from django.core.exceptions import NON_FIELD_ERRORS
 from django.utils import timezone
+from .salario_liquidacion import modo_salario
 
 from .models import (
     Empleado,
@@ -514,12 +515,47 @@ class NominaForm(forms.ModelForm):
             )
         )
 
+        if not self.is_bound and not self.instance.pk:
+            self.initial.setdefault('mes_ano', timezone.localdate().replace(day=1))
+        self.fields['mes_ano'].widget.format = '%Y-%m-%d'
+        self.mes_actual = timezone.localdate().strftime('%Y-%m')
+        try:
+            fecha = self.fields['mes_ano'].clean(
+                self.data.get(self.add_prefix('mes_ano')) if self.is_bound else self.initial.get('mes_ano'))
+        except forms.ValidationError:
+            fecha = None
+        self.modo_salario = modo_salario(fecha)
+        self.salario_automatico = self.modo_salario == 'actual' and not self.instance.pk
+        self.salario_actual = None
+        if self.salario_automatico:
+            campo = self.fields['salario_base']
+            campo.disabled = True
+            campo.required = False
+            identificador = self.data.get(self.add_prefix('empleado')) if self.is_bound else self.initial.get('empleado')
+            if isinstance(identificador, Empleado):
+                identificador = identificador.pk
+            if str(identificador).isdigit():
+                self.salario_actual = self.fields['empleado'].queryset.filter(pk=identificador).values_list('salario_mensual', flat=True).first()
+            self.initial['salario_base'] = self.salario_actual
+
     def clean(self):
         datos = super().clean()
+        # ModelChoiceField obtiene el empleado del servidor durante la validación.
+        # Nunca se toma el importe del POST para una nueva liquidación actual.
+        empleado = datos.get('empleado')
+        if self.salario_automatico and empleado:
+            datos['salario_base'] = empleado.salario_mensual
         for campo in ('salario_base', 'bonificacion', 'descuentos'):
             importe = datos.get(campo)
             if importe is not None and importe < 0:
                 self.add_error(campo, 'El importe debe ser superior o igual a 0.')
+        empleado, fecha = datos.get('empleado'), datos.get('mes_ano')
+        if empleado and fecha:
+            existentes = Salario.objects.filter(
+                empleado=empleado, mes_ano__year=fecha.year, mes_ano__month=fecha.month,
+            ).exclude(pk=self.instance.pk)
+            if existentes.exists():
+                self.add_error('mes_ano', 'Ya existe una liquidación para este empleado en el período seleccionado.')
         return datos
 
 # =============================================================================

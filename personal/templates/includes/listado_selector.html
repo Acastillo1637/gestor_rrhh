@@ -1,0 +1,9 @@
+<form method="get" class="listado-selector" aria-label="Cantidad de registros">
+    {% for clave, valor in filtros_selector %}<input type="hidden" name="{{ clave }}" value="{{ valor }}">{% endfor %}
+    <label class="employees-pagination-summary" for="por_pagina">Mostrar
+        <select id="por_pagina" name="por_pagina" onchange="this.form.requestSubmit()">
+            {% for cantidad in opciones_pagina %}<option value="{{ cantidad }}"{% if cantidad == por_pagina %} selected{% endif %}>{{ cantidad }}</option>{% endfor %}
+        </select> registros
+    </label>
+    <noscript><button type="submit" class="btn btn-secondary">Aplicar</button></noscript>
+</form>

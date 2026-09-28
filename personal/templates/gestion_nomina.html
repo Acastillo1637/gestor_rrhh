@@ -1,4 +1,4 @@
-﻿{% extends "base_site.html" %}
+{% extends "base_site.html" %}
 {% load moneda %}
 
 {% block title %}
@@ -198,6 +198,8 @@ Gestión de nómina
         method="get"
         class="payroll-filters"
     >
+<input type="hidden" name="por_pagina" value="{{ por_pagina }}">
+
 
         <input
             type="text"
@@ -250,6 +252,8 @@ Gestión de nómina
         </a>
 
     </form>
+
+
 
 
     <div class="table-responsive payroll-table">
@@ -431,6 +435,7 @@ Gestión de nómina
 
     </div>
 
+{% include 'includes/listado_paginacion.html' %}
 </div>
 
 {% endblock %}

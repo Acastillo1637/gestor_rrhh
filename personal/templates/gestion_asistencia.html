@@ -14,6 +14,8 @@ Gestión de asistencia
     </div>
 
     <form method="get" class="attendance-filters">
+<input type="hidden" name="por_pagina" value="{{ por_pagina }}">
+
 
         <div class="filter-group">
             <label for="fecha_desde">Desde</label>
@@ -98,6 +100,8 @@ Gestión de asistencia
         </a>
 
     </form>
+
+
 
 </div>
 
@@ -205,12 +209,15 @@ Gestión de asistencia
             {% endfor %}
         </tbody>
         </table>
+</div>
+{% include 'includes/listado_paginacion.html' %}
     </section>
 
 </div>
 
 <style>
     .page-header {
+        flex-wrap: wrap;
         margin-bottom: 24px;
         display: flex;
         justify-content: space-between;
@@ -223,6 +230,7 @@ Gestión de asistencia
     }
 
     .attendance-filters {
+        flex-wrap: wrap;
         display: flex;
         align-items: flex-end;
         justify-content: flex-end;

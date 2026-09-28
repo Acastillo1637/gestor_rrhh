@@ -1,10 +1,19 @@
 {% extends "base_site.html" %}
+{% load static moneda %}
 
 {% block title %}
 Nueva liquidación
 {% endblock %}
 
 {% block content %}
+<style>
+    #formulario-nomina #guardar-liquidacion:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
+</style>
 
 <div class="page-header">
 
@@ -59,6 +68,8 @@ Nueva liquidación
         <form
             method="post"
             class="employee-form"
+            id="formulario-nomina"
+            data-estado-url="{% url 'estado_liquidacion' %}"
         >
 
             {% csrf_token %}
@@ -112,11 +123,21 @@ Nueva liquidación
 
                     <div class="salary-input-wrapper">
 
-                        <span>$</span>
+                        <span id="salario-simbolo" {% if formulario.salario_automatico %}hidden{% endif %}>$</span>
 
+                        {% if formulario.salario_automatico %}
+                        <input type="text" name="salario_base" id="id_salario_base" class="form-control" readonly min="0" step="0.01"
+                               aria-describedby="salario-ayuda"
+                               data-importe="{{ formulario.salario_actual|default_if_none:'' }}"
+                               value="{% if formulario.salario_actual != None %}{{ formulario.salario_actual|pesos }}{% endif %}"
+                               placeholder="Selecciona un empleado">
+                        {% else %}
                         {{ formulario.salario_base }}
+                        {% endif %}
 
                     </div>
+
+                    <small id="salario-ayuda" data-mes-actual="{{ formulario.mes_actual }}" role="status">{% if formulario.salario_automatico %}Salario actual del empleado. El servidor lo verificará al guardar.{% elif formulario.modo_salario == 'historico' %}Período histórico: verifica e ingresa el salario base correspondiente a ese mes.{% else %}Período futuro: verifica e ingresa manualmente el salario base correspondiente.{% endif %}</small>
 
                     {{ formulario.salario_base.errors }}
 
@@ -178,6 +199,7 @@ Nueva liquidación
             </div>
 
 
+            <p id="estado-liquidacion" role="status" aria-live="polite">Selecciona empleado y período para comprobar si ya existe una liquidación.</p>
             <div class="employee-form-actions">
 
                 <a
@@ -191,6 +213,8 @@ Nueva liquidación
                 <button
                     type="submit"
                     class="btn"
+                    id="guardar-liquidacion"
+                    disabled
                 >
                     Guardar liquidación →
                 </button>
@@ -203,4 +227,5 @@ Nueva liquidación
 
 </div>
 
+<script src="{% static 'personal/js/estado_liquidacion.js' %}?v=salario-input-3" defer></script>
 {% endblock %}

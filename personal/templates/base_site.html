@@ -624,6 +624,17 @@
         <!-- NAVEGACIÓN EMPLEADO -->
         <!-- ========================================================= -->
 
+        {% if es_gerente and es_empleado %}
+        <nav class="sidebar-nav" aria-label="Autoservicio del gerente">
+            <span class="nav-section">MI PORTAL</span>
+            <a href="{% url 'mi_asistencia' %}" class="nav-link {% if request.resolver_match.url_name == 'mi_asistencia' %}active{% endif %}"><span class="nav-icon">✓</span><span>Mi asistencia</span></a>
+            <a href="{% url 'mis_permisos' %}" class="nav-link {% if request.resolver_match.url_name == 'mis_permisos' %}active{% endif %}"><span class="nav-icon">📋</span><span>Mis permisos</span></a>
+            <a href="{% url 'solicitar_permiso' %}" class="nav-link {% if request.resolver_match.url_name == 'solicitar_permiso' %}active{% endif %}"><span class="nav-icon">＋</span><span>Solicitar permiso</span></a>
+            <a href="{% url 'mis_liquidaciones' %}" class="nav-link {% if request.resolver_match.url_name == 'mis_liquidaciones' %}active{% endif %}"><span class="nav-icon">💰</span><span>Mis liquidaciones</span></a>
+            <a href="{% url 'mis_evaluaciones' %}" class="nav-link {% if request.resolver_match.url_name == 'mis_evaluaciones' %}active{% endif %}"><span class="nav-icon">★</span><span>Mis evaluaciones</span></a>
+        </nav>
+        {% endif %}
+
         {% else %}
 
         <nav class="sidebar-nav">

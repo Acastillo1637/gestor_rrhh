@@ -28,6 +28,7 @@
     </div>
 
     <form method="get" class="filters-form">
+        <input type="hidden" name="por_pagina" value="{{ por_pagina }}">
         <div class="filter-search">
             <input type="text" name="busqueda" value="{{ busqueda }}" placeholder="Buscar empleado, RUT/DNI o usuario...">
         </div>
@@ -67,5 +68,6 @@
             </tbody>
         </table>
     </div>
+    {% include 'includes/listado_paginacion.html' %}
 </div>
 {% endblock %}

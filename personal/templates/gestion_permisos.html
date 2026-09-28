@@ -156,6 +156,8 @@ Gestión de permisos
         method="get"
         class="permissions-filters"
     >
+<input type="hidden" name="por_pagina" value="{{ por_pagina }}">
+
 
         <input
             type="text"
@@ -239,6 +241,8 @@ Gestión de permisos
         </a>
 
     </form>
+
+
 
 
     <!-- TABLA -->
@@ -427,6 +431,7 @@ Gestión de permisos
 
     </div>
 
+{% include 'includes/listado_paginacion.html' %}
 </div>
 
 {% endblock %}

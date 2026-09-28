@@ -7,7 +7,8 @@ from django.utils.crypto import get_random_string
 from .usernames import generar_username_unico
 from django.utils import timezone
 from django.utils.dateparse import parse_date
-from django.db import transaction
+from django.db import transaction, IntegrityError
+from calendar import monthrange
 from django.urls import reverse, reverse_lazy
 from datetime import datetime, time, timedelta
 from urllib.parse import urlencode
@@ -39,7 +40,7 @@ from django.db.models import (
 )
 from django.core.paginator import Paginator
 
-from django.http import JsonResponse, HttpResponse, request
+from django.http import JsonResponse, HttpResponse, Http404, request
 # Generación del libro Excel y estilos de sus encabezados.
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
@@ -47,9 +48,10 @@ from openpyxl.styles import Font, Alignment
 from django.template.loader import render_to_string
 from django.middleware.csrf import get_token
 from .context_processors import contexto_rol
-from .autorizacion_permisos import puede_resolver_permiso
+from .autorizacion_permisos import puede_resolver_permiso, preparar_acciones_permisos
+from .rendimiento import roles_usuario, roles_en_request, paginar
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Avg
@@ -81,6 +83,7 @@ from .models import (
 # ROLES Y PERMISOS
 # =============================================================================
 
+@roles_en_request
 @login_required(login_url='login')
 def gestion_evaluaciones(request):
     if not usuario_autorizado(request.user):
@@ -98,10 +101,13 @@ def gestion_evaluaciones(request):
                         if puntuacion in ['1', '2', '3', '4', '5'] else evaluaciones.none())
     filtros = request.GET.copy()
     filtros.pop('page', None)
+    resumen = evaluaciones.aggregate(total=Count('pk'), promedio=Avg('puntuacion'))
+    paginador = Paginator(evaluaciones, 20)
+    paginador.count = resumen['total']
     return render(request, 'gestion_evaluaciones.html', {
-        'pagina': Paginator(evaluaciones, 20).get_page(request.GET.get('page')),
-        'total': evaluaciones.count(),
-        'promedio': evaluaciones.aggregate(valor=Avg('puntuacion'))['valor'],
+        'pagina': paginador.get_page(request.GET.get('page')),
+        'total': resumen['total'],
+        'promedio': resumen['promedio'],
         'puede_editar': usuario_rrhh(request.user),
         'busqueda': busqueda, 'periodo': periodo, 'puntuacion': puntuacion,
         'puntuaciones': range(1, 6), 'filtros': filtros.urlencode(),
@@ -145,9 +151,13 @@ def detalle_evaluacion(request, evaluacion_id):
     })
 
 
+@roles_en_request
 @login_required(login_url='login')
 def mis_evaluaciones(request):
-    empleado = get_object_or_404(Empleado, usuario=request.user)
+    try:
+        empleado = request.user.empleado
+    except Empleado.DoesNotExist:
+        raise Http404
     evaluaciones = Evaluacion.objects.filter(empleado=empleado).order_by('-pk')
     return render(request, 'mis_evaluaciones.html', {
         'empleado': empleado,
@@ -155,6 +165,7 @@ def mis_evaluaciones(request):
     })
 
 
+@roles_en_request
 @login_required(login_url='login')
 def mi_cuenta(request):
     return render(request, 'mi_cuenta.html')
@@ -164,8 +175,7 @@ def usuario_autorizado(user):
 
     return (
         user.is_superuser
-        or user.groups.filter(name='RRHH').exists()
-        or user.groups.filter(name='GERENTES').exists()
+        or bool(roles_usuario(user) & {'RRHH', 'GERENTES'})
     )
 
 
@@ -173,13 +183,13 @@ def usuario_rrhh(user):
 
     return (
         user.is_superuser
-        or user.groups.filter(name='RRHH').exists()
+        or 'RRHH' in roles_usuario(user)
     )
 
 def usuario_gerente(user):
     return (
         user.is_authenticated
-        and user.groups.filter(name='GERENTES').exists()
+        and 'GERENTES' in roles_usuario(user)
         and not usuario_rrhh(user)
     )
 
@@ -283,7 +293,7 @@ def inicio(request):
     if usuario_rrhh(request.user):
         return redirect('dashboard_gestion')
     
-    if request.user.groups.filter(name='GERENTES').exists():
+    if 'GERENTES' in roles_usuario(request.user):
         return redirect('dashboard_gerente')
 
     if hasattr(request.user, 'empleado'):
@@ -375,6 +385,7 @@ def cerrar_sesion(request):
 # DASHBOARD RRHH
 # =============================================================================
 
+@roles_en_request
 @login_required(login_url='login')
 @user_passes_test(
     usuario_autorizado,
@@ -384,26 +395,11 @@ def dashboard_gestion(request):
 
     empleados = Empleado.objects.all()
 
-    total_empleados = empleados.count()
-
-    total_activos = empleados.filter(
-        estado_laboral__iexact='activo'
-    ).count()
-
-    total_inactivos = empleados.exclude(
-        estado_laboral__iexact='activo'
-    ).count()
-
-    total_nomina = (
-        empleados
-        .filter(
-            estado_laboral__iexact='activo'
-        )
-        .aggregate(
-            total=Sum('salario_mensual')
-        )['total']
-        or 0
-    )
+    resumen = resumen_empleados(empleados)
+    total_empleados = resumen['total']
+    total_activos = resumen['activos']
+    total_inactivos = resumen['inactivos']
+    total_nomina = resumen['nomina'] or 0
 
     permisos_pendientes = (
         Permiso.objects
@@ -450,6 +446,7 @@ def dashboard_gestion(request):
 # DASHBOARD GERENTE
 # =============================================================================
 
+@roles_en_request
 @login_required(login_url='login')
 @user_passes_test(
     usuario_autorizado,
@@ -461,19 +458,12 @@ def dashboard_gerente(request):
 
     empleados = Empleado.objects.all()
 
+    resumen = resumen_empleados(empleados)
     contexto = {
-        'total_empleados': empleados.count(),
-        'total_activos': empleados.filter(
-            estado_laboral__iexact='activo'
-        ).count(),
-        'total_inactivos': empleados.exclude(
-            estado_laboral__iexact='activo'
-        ).count(),
-        'total_nomina': (
-            empleados.filter(
-                estado_laboral__iexact='activo'
-            ).aggregate(total=Sum('salario_mensual'))['total'] or 0
-        ),
+        'total_empleados': resumen['total'],
+        'total_activos': resumen['activos'],
+        'total_inactivos': resumen['inactivos'],
+        'total_nomina': resumen['nomina'] or 0,
         'permisos_pendientes': Permiso.objects.filter(
             estado='pendiente'
         ).count(),
@@ -494,6 +484,7 @@ def dashboard_gerente(request):
 # DASHBOARD EMPLEADO
 # =============================================================================
 
+@roles_en_request
 @login_required(login_url='login')
 def dashboard_empleado(request):
 
@@ -515,17 +506,13 @@ def dashboard_empleado(request):
         empleado=empleado
     )
 
-    permisos_pendientes = permisos.filter(
-        estado='pendiente'
-    ).count()
-
-    permisos_aprobados = permisos.filter(
-        estado='aprobado'
-    ).count()
-
-    permisos_rechazados = permisos.filter(
-        estado='rechazado'
-    ).count()
+    resumen = permisos.aggregate(
+        pendientes=Count('pk', filter=Q(estado='pendiente')),
+        aprobados=Count('pk', filter=Q(estado='aprobado')),
+        rechazados=Count('pk', filter=Q(estado='rechazado')))
+    permisos_pendientes = resumen['pendientes']
+    permisos_aprobados = resumen['aprobados']
+    permisos_rechazados = resumen['rechazados']
 
     ultima_liquidacion = (
         Salario.objects
@@ -561,6 +548,7 @@ def dashboard_empleado(request):
 # LISTADO DE EMPLEADOS
 # =============================================================================
 
+@roles_en_request
 @login_required(login_url='login')
 @user_passes_test(
     usuario_autorizado,
@@ -626,26 +614,11 @@ def listar_empleados(request):
             estado_laboral__iexact='activo'
         )
 
-    total_empleados = empleados.count()
-
-    total_activos = empleados.filter(
-        estado_laboral__iexact='activo'
-    ).count()
-
-    total_inactivos = empleados.exclude(
-        estado_laboral__iexact='activo'
-    ).count()
-
-    total_nomina = (
-        empleados
-        .filter(
-            estado_laboral__iexact='activo'
-        )
-        .aggregate(
-            total=Sum('salario_mensual')
-        )['total']
-        or 0
-    )
+    resumen = resumen_empleados(empleados)
+    total_empleados = resumen['total']
+    total_activos = resumen['activos']
+    total_inactivos = resumen['inactivos']
+    total_nomina = resumen['nomina'] or 0
 
     departamentos = (
         Empleado.objects
@@ -671,9 +644,7 @@ def listar_empleados(request):
 
     puede_editar = (
         request.user.is_superuser
-        or request.user.groups.filter(
-            name='RRHH'
-        ).exists()
+        or 'RRHH' in roles_usuario(request.user)
     )
 
     # El identificador resuelve empates entre nombres y mantiene estable el orden.
@@ -681,6 +652,7 @@ def listar_empleados(request):
         empleados.order_by('nombre_completo', 'pk'),
         10
     )
+    paginador.count = total_empleados
     pagina_empleados = paginador.get_page(request.GET.get('page'))
     filtros_url = urlencode({
         clave: valor for clave, valor in {
@@ -906,6 +878,7 @@ def editar_empleado(
 # HISTORIAL SALARIAL - RRHH / GERENCIA
 # =============================================================================
 
+@roles_en_request
 @login_required(login_url='login')
 @user_passes_test(
     usuario_autorizado,
@@ -918,7 +891,7 @@ def historial_salarial(request, empleado_id=None):
         HistorialSalario.objects
         .select_related('empleado')
         .all()
-        .order_by('-fecha_modificacion')
+        .order_by('-fecha_modificacion', '-pk')
     )
 
     empleado_seleccionado = None
@@ -942,13 +915,15 @@ def historial_salarial(request, empleado_id=None):
 
     empleados = Empleado.objects.all().order_by('nombre_completo')
 
+    registros, paginacion = paginar(request, registros)
     contexto = {
+        **paginacion,
         'registros': registros,
         'empleados': empleados,
         'empleado_seleccionado': empleado_seleccionado,
         'busqueda': busqueda,
         'empleado_filtro': empleado_filtro,
-        'total_registros': registros.count(),
+        'total_registros': registros.paginator.count,
     }
 
     return render(request, 'historial_salarial.html', contexto)
@@ -958,6 +933,7 @@ def historial_salarial(request, empleado_id=None):
 # GESTIÓN DE PERMISOS - RRHH / GERENCIA
 # =============================================================================
 
+@roles_en_request
 @login_required(login_url='login')
 @user_passes_test(
     usuario_autorizado,
@@ -1010,24 +986,19 @@ def gestion_permisos(request):
         '-fecha_inicio'
     )
 
-    total_permisos = permisos.count()
-
-    total_pendientes = permisos.filter(
-        estado='pendiente'
-    ).count()
-
-    total_aprobados = permisos.filter(
-        estado='aprobado'
-    ).count()
-
-    total_rechazados = permisos.filter(
-        estado='rechazado'
-    ).count()
-
-    for permiso in permisos:
-        permiso.puede_resolver = puede_resolver_permiso(request.user, permiso)
+    resumen = permisos.aggregate(total=Count('pk'),
+        pendientes=Count('pk', filter=Q(estado='pendiente')),
+        aprobados=Count('pk', filter=Q(estado='aprobado')),
+        rechazados=Count('pk', filter=Q(estado='rechazado')))
+    total_permisos = resumen['total']
+    total_pendientes = resumen['pendientes']
+    total_aprobados = resumen['aprobados']
+    total_rechazados = resumen['rechazados']
+    permisos, paginacion = paginar(request, permisos.order_by('-fecha_inicio', 'pk'), total_permisos)
+    preparar_acciones_permisos(request.user, permisos)
 
     contexto = {
+        **paginacion,
         'permisos': permisos,
         'puede_gestionar': usuario_rrhh(request.user),
         'total_permisos':
@@ -1298,6 +1269,7 @@ def solicitar_permiso(request):
 # MIS PERMISOS
 # =============================================================================
 
+@roles_en_request
 @login_required(login_url='login')
 def mis_permisos(request):
 
@@ -1339,6 +1311,7 @@ def mis_permisos(request):
 # GESTIÓN DE NÓMINA - RRHH / GERENCIA
 # =============================================================================
 
+@roles_en_request
 @login_required(login_url='login')
 @user_passes_test(
     usuario_autorizado,
@@ -1391,37 +1364,23 @@ def gestion_nomina(request):
         'empleado__nombre_completo'
     )
 
-    total_liquidaciones = (
-        liquidaciones.count()
-    )
-
-    total_pagadas = (
-        liquidaciones.filter(
-            pagado=True
-        ).count()
-    )
-
-    total_pendientes = (
-        liquidaciones.filter(
-            pagado=False
-        ).count()
-    )
-
-    total_neto = (
-        liquidaciones.aggregate(
-            total=Sum('neto')
-        )['total']
-        or 0
-    )
+    resumen = liquidaciones.aggregate(total=Count('pk'),
+        pagadas=Count('pk', filter=Q(pagado=True)),
+        pendientes=Count('pk', filter=Q(pagado=False)), neto=Sum('neto'))
+    total_liquidaciones = resumen['total']
+    total_pagadas = resumen['pagadas']
+    total_pendientes = resumen['pendientes']
+    total_neto = resumen['neto'] or 0
+    liquidaciones, paginacion = paginar(request,
+        liquidaciones.order_by('-mes_ano', 'empleado__nombre_completo', 'pk'), total_liquidaciones)
 
     puede_gestionar = (
         request.user.is_superuser
-        or request.user.groups.filter(
-            name='RRHH'
-        ).exists()
+        or 'RRHH' in roles_usuario(request.user)
     )
 
     contexto = {
+        **paginacion,
         'liquidaciones':
             liquidaciones,
 
@@ -1799,68 +1758,66 @@ def exportar_nomina_pdf(request):
     login_url='login'
 )
 def crear_liquidacion(request):
-
-    if request.method == 'POST':
-
-        formulario = NominaForm(
-            request.POST
-        )
-
-        if formulario.is_valid():
-
-            liquidacion = formulario.save()
-
-            crear_notificacion(
-                mensaje=(
-                    f'{request.user.username} creó la liquidación de '
-                    f'{liquidacion.empleado.nombre_completo}.'
-                ),
-                tipo='nomina',
-                url=reverse('gestion_nomina')
-            )
-
-            if liquidacion.empleado.usuario:
+    formulario = NominaForm(request.POST if request.method == 'POST' else None)
+    if request.method == 'POST' and formulario.is_valid():
+        try:
+            with transaction.atomic():
+                liquidacion = formulario.save()
                 crear_notificacion(
-                    mensaje=(
-                        f'Ya está disponible tu liquidación de '
-                        f'{liquidacion.mes_ano:%m/%Y}.'
-                    ),
-                    tipo='nomina',
-                    usuario=liquidacion.empleado.usuario,
-                    url=reverse('mis_liquidaciones')
+                    mensaje=f'{request.user.username} creó la liquidación de {liquidacion.empleado.nombre_completo}.',
+                    tipo='nomina', url=reverse('gestion_nomina'),
                 )
+                if liquidacion.empleado.usuario_id:
+                    crear_notificacion(
+                        mensaje=f'Ya está disponible tu liquidación de {liquidacion.mes_ano:%m/%Y}.',
+                        tipo='nomina', usuario=liquidacion.empleado.usuario,
+                        url=reverse('mis_liquidaciones'),
+                    )
+        except IntegrityError:
+            # Se consulta fuera del atomic fallido: puede haber ganado otra petición.
+            datos = formulario.cleaned_data
+            fecha = datos['mes_ano']
+            if not Salario.objects.filter(empleado=datos['empleado'],
+                    mes_ano__year=fecha.year, mes_ano__month=fecha.month).exists():
+                raise
+            formulario.add_error(None, 'Ya existe una liquidación para este empleado en el período seleccionado.')
+        else:
+            messages.success(request, f'Liquidación de {liquidacion.empleado.nombre_completo} creada correctamente.')
+            return redirect('gestion_nomina')
+    return render(request, 'formulario_nomina.html', {
+        'formulario': formulario, 'titulo': 'Nueva liquidación',
+    })
 
-            messages.success(
-                request,
-                (
-                    f'Liquidación de '
-                    f'{liquidacion.empleado.nombre_completo} '
-                    f'creada correctamente.'
-                )
-            )
 
-            return redirect(
-                'gestion_nomina'
-            )
-
-    else:
-
-        formulario = NominaForm()
-
-    contexto = {
-        'formulario':
-            formulario,
-
-        'titulo':
-            'Nueva liquidación',
-
-    }
-
-    return render(
-        request,
-        'formulario_nomina.html',
-        contexto
-    )
+@login_required(login_url='login')
+@never_cache
+@require_GET
+def estado_liquidacion(request):
+    if not usuario_rrhh(request.user):
+        raise PermissionDenied
+    empleado_id = request.GET.get('empleado', '')
+    try:
+        fecha = parse_date(request.GET.get('mes_ano', ''))
+    except ValueError:
+        fecha = None
+    if not empleado_id.isdigit() or fecha is None:
+        return JsonResponse({'error': 'Selecciona un empleado y una fecha válida.'}, status=400)
+    empleado = get_object_or_404(Empleado.objects.filter(estado_laboral__iexact='activo'), pk=empleado_id)
+    existente = Salario.objects.filter(empleado=empleado,
+        mes_ano__year=fecha.year, mes_ano__month=fecha.month).values('mes_ano', 'pagado').first()
+    from django.utils.formats import date_format
+    periodo = f"{date_format(fecha, 'F')} de {fecha.year}"
+    from .salario_liquidacion import modo_salario
+    from .templatetags.moneda import pesos
+    modo = modo_salario(fecha)
+    return JsonResponse({
+        'modo_salario': modo,
+        'salario_base': str(empleado.salario_mensual) if modo == 'actual' else None,
+        'salario_formateado': pesos(empleado.salario_mensual) if modo == 'actual' else None,
+        'existe': existente is not None, 'periodo': periodo,
+        'estado': ('Pagada' if existente['pagado'] else 'Pendiente de pago') if existente else None,
+        'fecha': existente['mes_ano'].isoformat() if existente else None,
+    })
 
 
 # =============================================================================
@@ -1940,6 +1897,7 @@ def marcar_liquidacion_pagada(
 # MIS LIQUIDACIONES
 # =============================================================================
 
+@roles_en_request
 @login_required(login_url='login')
 def mis_liquidaciones(request):
 
@@ -2135,6 +2093,7 @@ def obtener_puestos_por_departamento(request):
 # =============================================================================
 # GESTIÓN DE ASISTENCIA - RRHH / GERENCIA
 # =============================================================================
+@roles_en_request
 @login_required(login_url='login')
 @user_passes_test(
     usuario_autorizado,
@@ -2161,10 +2120,10 @@ def gestion_asistencia(request):
     hoy = timezone.localdate()
 
     if not fecha_desde:
-        fecha_desde = hoy.strftime('%Y-%m-%d')
+        fecha_desde = hoy.replace(day=1).isoformat()
 
     if not fecha_hasta:
-        fecha_hasta = hoy.strftime('%Y-%m-%d')
+        fecha_hasta = hoy.replace(day=monthrange(hoy.year, hoy.month)[1]).isoformat()
 
     # Valida también las fechas recibidas por URL: el calendario del navegador
     # no impide enviar texto o días inexistentes directamente al servidor.
@@ -2180,9 +2139,9 @@ def gestion_asistencia(request):
         error_fechas = 'Ingresa fechas válidas en Desde y Hasta (AAAA-MM-DD).'
 
     if error_fechas:
-        # Restablece explícitamente el rango de hoy, conservando los demás filtros.
+        # Restablece el mes actual, conservando los demás filtros.
         # La redirección elimina el valor inválido y evita repetir el error al recargar.
-        messages.error(request, error_fechas + ' Se restableció el rango de fechas a hoy.')
+        messages.error(request, error_fechas + ' Se restableció el rango de fechas al mes actual.')
         filtros = request.GET.copy()
         filtros.pop('fecha_desde', None)
         filtros.pop('fecha_hasta', None)
@@ -2249,12 +2208,28 @@ def gestion_asistencia(request):
     # ---------------------------------------------------------
     # DATOS VISUALES DE ASISTENCIA
     # ---------------------------------------------------------
-    asistencias = list(
-        asistencias.order_by
-        ('-fecha',
-        'empleado__nombre_completo'
-        )
-    )
+    asistencias, paginacion = paginar(request,
+        asistencias.order_by('-fecha', 'empleado__nombre_completo', 'pk'))
+    # Fija también el mes implícito en los enlaces y en el selector de cantidad.
+    filtros = request.GET.copy()
+    filtros.pop('page', None)
+    filtros['fecha_desde'] = fecha_desde
+    filtros['fecha_hasta'] = fecha_hasta
+    filtros['por_pagina'] = str(paginacion['por_pagina'])
+    paginacion['filtros_pagina'] = filtros.urlencode()
+    paginacion['filtros_selector'] = [(k, v) for k in filtros if k != 'por_pagina'
+                                    for v in filtros.getlist(k)]
+    visibles = list(asistencias)
+    necesitan_permiso = [a for a in visibles if a.estado == 'permiso']
+    permisos_por_empleado = {}
+    if necesitan_permiso:
+        relevantes = Permiso.objects.filter(
+            empleado_id__in={a.empleado_id for a in necesitan_permiso}, estado='aprobado',
+            fecha_inicio__lte=max(a.fecha for a in necesitan_permiso),
+            fecha_fin__gte=min(a.fecha for a in necesitan_permiso),
+        ).order_by('pk')
+        for permiso in relevantes:
+            permisos_por_empleado.setdefault(permiso.empleado_id, []).append(permiso)
 
     # Feriados irrenunciables dentro del rango seleccionado
     feriados_irrenunciables = set(
@@ -2272,12 +2247,9 @@ def gestion_asistencia(request):
         asistencia.motivo_permiso = None
 
         if asistencia.estado == 'permiso':
-            permiso = Permiso.objects.filter(
-                empleado=asistencia.empleado,
-                estado='aprobado',
-                fecha_inicio__lte=asistencia.fecha,
-                fecha_fin__gte=asistencia.fecha,
-            ).first()
+            # Mantiene .first(): gana el permiso coincidente de menor PK.
+            permiso = next((p for p in permisos_por_empleado.get(asistencia.empleado_id, [])
+                            if p.fecha_inicio <= asistencia.fecha <= p.fecha_fin), None)
 
             if permiso:
                 asistencia.motivo_permiso = permiso.get_tipo_display()
@@ -2323,6 +2295,7 @@ def gestion_asistencia(request):
     )
 
     contexto = {
+        **paginacion,
         'asistencias': asistencias,
 
         'empleados': empleados,
@@ -2347,6 +2320,7 @@ def gestion_asistencia(request):
 # MI ASISTENCIA - EMPLEADO 
 # =============================================================================
 
+@roles_en_request
 @login_required(login_url='login')
 def mi_asistencia(request):
 
@@ -2488,3 +2462,10 @@ def mi_asistencia(request):
         'mi_asistencia.html',
         contexto
     )
+
+
+def resumen_empleados(empleados):
+    return empleados.aggregate(
+        total=Count('pk'), activos=Count('pk', filter=Q(estado_laboral__iexact='activo')),
+        inactivos=Count('pk', filter=~Q(estado_laboral__iexact='activo')),
+        nomina=Sum('salario_mensual', filter=Q(estado_laboral__iexact='activo')))

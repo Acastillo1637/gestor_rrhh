@@ -38,7 +38,7 @@ Dashboard RRHH
             Ver empleados
         </a>
 
-        {% if request.user.is_superuser or request.user.groups.all %}
+        {% if request.user.is_superuser or tiene_grupos %}
 
             <a
                 href="{% url 'crear_empleado' %}"

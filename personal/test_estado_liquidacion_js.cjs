@@ -1,0 +1,88 @@
+// Ejecutar con: node personal/test_estado_liquidacion_js.cjs
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const element = value => ({value, style: {}, dataset: {}, handlers: {},
+    addEventListener(name, fn) { this.handlers[name] = fn; }});
+const empleado = element('1'), periodo = element('2026-09-01'), salario = element('123');
+const ids = Object.fromEntries(['guardar-liquidacion','estado-liquidacion','salario-simbolo','salario-ayuda'].map(id => [id, element('')]));
+ids['salario-ayuda'].dataset.mesActual = '2026-09';
+const form = element('');
+form.elements = {empleado, mes_ano: periodo, salario_base: salario};
+form.dataset.estadoUrl = '/estado/';
+form.checkValidity = () => true;
+ids['formulario-nomina'] = form;
+const pendientes = [];
+vm.runInNewContext(fs.readFileSync('personal/static/personal/js/estado_liquidacion.js','utf8'), {
+    document: {getElementById: id => ids[id]}, URLSearchParams, AbortController,
+    fetch: () => new Promise(resolve => pendientes.push(resolve)),
+});
+const responder = async (resolve, data) => {
+    resolve({ok:true, json:async () => data});
+    await new Promise(resolve => setImmediate(resolve));
+};
+const actual = {modo_salario:'actual', salario_base:'3825000',salario_formateado:'$3.825.000',existe:true,estado:'Pagada',periodo:'septiembre de 2026'};
+(async () => {
+    assert.equal(pendientes.length, 1, 'La evaluación del script consulta la selección inicial');
+    assert.equal(ids['guardar-liquidacion'].disabled, true);
+    assert.equal(salario.placeholder,'Consultando salario…');
+    await responder(pendientes.shift(), actual);
+    assert.equal(salario.readOnly,true);
+    assert.equal(salario.disabled,false);
+    assert.equal(salario.value,'$3.825.000');
+    assert.equal(salario.type,'text');
+    assert.equal(ids['guardar-liquidacion'].disabled,true);
+    assert.match(ids['estado-liquidacion'].textContent, /Pagada/);
+    empleado.value = '2';
+    empleado.handlers.change({});
+    await responder(pendientes.shift(), {...actual, existe:false,salario_base:'1700000',salario_formateado:'$1.700.000'});
+    assert.equal(ids['guardar-liquidacion'].disabled,false);
+    assert.equal(salario.value,'$1.700.000');
+    empleado.value = '1';
+    empleado.handlers.change({});
+    await responder(pendientes.shift(), {...actual, estado:'Pendiente de pago'});
+    assert.equal(ids['guardar-liquidacion'].disabled,true);
+    assert.equal(salario.value,'$3.825.000');
+    assert.match(ids['estado-liquidacion'].textContent,/Pendiente de pago/);
+    periodo.value = '2026-08-01';
+    periodo.handlers.change({});
+    assert.equal(salario.disabled,false);
+    assert.equal(salario.readOnly,false);
+    assert.equal(salario.type,'number');
+    assert.equal(salario.value,'');
+    await responder(pendientes.shift(),{modo_salario:'historico',existe:false});
+    salario.value = '1200000';
+    periodo.value = '2026-09-01';
+    periodo.handlers.change({});
+    const vieja = pendientes.shift();
+    empleado.value = '2';
+    empleado.handlers.change({});
+    await responder(pendientes.shift(), {...actual,salario_base:'1700000',salario_formateado:'$1.700.000',existe:true,estado:'Pagada'});
+    await responder(vieja,actual);
+    assert.equal(salario.value,'$1.700.000');
+    assert.equal(ids['guardar-liquidacion'].disabled,true);
+    let bloqueado = false;
+    form.handlers.submit({preventDefault(){ bloqueado = true; }});
+    assert.equal(bloqueado,true);
+    periodo.value = '2026-10-01';
+    periodo.handlers.change({});
+    await responder(pendientes.shift(),{modo_salario:'futuro',existe:false});
+    assert.equal(salario.disabled,false);
+    assert.equal(ids['guardar-liquidacion'].disabled,true);
+    salario.value = '1200000';
+    form.handlers.input();
+    assert.equal(ids['guardar-liquidacion'].disabled,false);
+    form.checkValidity = () => false;
+    form.handlers.input();
+    assert.equal(ids['guardar-liquidacion'].disabled,true);
+    form.checkValidity = () => true;
+    empleado.value = '';
+    empleado.handlers.change({});
+    assert.equal(ids['guardar-liquidacion'].disabled,true);
+    empleado.value = '1';
+    periodo.value = '';
+    periodo.handlers.change({});
+    assert.equal(ids['guardar-liquidacion'].disabled,true);
+    assert.equal(pendientes.length,0);
+    console.log('OK: automático, manual histórico/futuro, cambio empleado, respuestas antiguas y bloqueo duplicados.');
+})().catch(error => {console.error(error); process.exitCode = 1;});

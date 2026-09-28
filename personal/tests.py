@@ -1,3 +1,4 @@
+from calendar import monthrange
 from decimal import Decimal
 from html.parser import HTMLParser
 
@@ -327,6 +328,11 @@ class ConservacionImportesTests(TestCase):
 
     def test_nomina_invalida_conserva_importes_y_calcula_neto_al_corregir(self):
         from .models import Salario
+        from unittest.mock import patch
+        from datetime import date
+        reloj = patch('django.utils.timezone.localdate', return_value=date(2026, 10, 1))
+        reloj.start()
+        self.addCleanup(reloj.stop)
         url = reverse('crear_liquidacion')
         datos = {
             'mes_ano': '2026-09-01', 'salario_base': '850000.00',
@@ -946,9 +952,9 @@ class FiltroFechasAsistenciaTests(TestCase):
                     departamento=empleado.departamento), follow=True)
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(len(response.redirect_chain), 1)
-                self.assertContains(response, 'Se restableció el rango de fechas a hoy.')
-                self.assertEqual(response.context['fecha_desde'], timezone.localdate().isoformat())
-                self.assertEqual(response.context['fecha_hasta'], timezone.localdate().isoformat())
+                self.assertContains(response, 'Se restableció el rango de fechas al mes actual.')
+                self.assertEqual(response.context['fecha_desde'], timezone.localdate().replace(day=1).isoformat())
+                self.assertEqual(response.context['fecha_hasta'], timezone.localdate().replace(day=monthrange(timezone.localdate().year, timezone.localdate().month)[1]).isoformat())
                 self.assertEqual(response.context['empleado_seleccionado'], str(empleado.pk))
                 self.assertEqual(response.context['departamento_seleccionado'], empleado.departamento)
                 self.assertFalse(Asistencia.objects.exists())
@@ -965,8 +971,8 @@ class FiltroFechasAsistenciaTests(TestCase):
         for parametros in [{}, {'fecha_desde': '', 'fecha_hasta': ''}]:
             response = self.client.get(self.url, parametros)
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.context['fecha_desde'], timezone.localdate().isoformat())
-            self.assertEqual(response.context['fecha_hasta'], timezone.localdate().isoformat())
+            self.assertEqual(response.context['fecha_desde'], timezone.localdate().replace(day=1).isoformat())
+            self.assertEqual(response.context['fecha_hasta'], timezone.localdate().replace(day=monthrange(timezone.localdate().year, timezone.localdate().month)[1]).isoformat())
         self.assertEqual(Asistencia.objects.count(), 2)
 
 

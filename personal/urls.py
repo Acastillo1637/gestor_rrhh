@@ -4,6 +4,7 @@ from . import views
 
 
 urlpatterns = [
+    path('nomina/estado/', views.estado_liquidacion, name='estado_liquidacion'),
     path('mi-cuenta/', views.mi_cuenta, name='mi_cuenta'),
     path('evaluaciones/', views.gestion_evaluaciones, name='gestion_evaluaciones'),
     path('evaluaciones/nueva/', views.formulario_evaluacion, name='crear_evaluacion'),
